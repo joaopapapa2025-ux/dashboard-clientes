@@ -285,7 +285,6 @@ st.divider()
 # =========================
 
 resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
-
 resumo_categoria.columns = ["Categoria", "Quantidade"]
 
 fig_cat = px.bar(
@@ -298,11 +297,26 @@ fig_cat = px.bar(
 st.plotly_chart(fig_cat, use_container_width=True)
 
 # =========================
+# GRÁFICO FATURAMENTO
+# =========================
+
+resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+resumo_faturamento.columns = ["Faixa", "Quantidade"]
+
+fig_fat = px.bar(
+    resumo_faturamento,
+    x="Faixa",
+    y="Quantidade",
+    title="Distribuição por Faixa de Faturamento"
+)
+
+st.plotly_chart(fig_fat, use_container_width=True)
+
+# =========================
 # MAPA
 # =========================
 
 resumo_estado = df_filtrado[col_uf].value_counts().reset_index()
-
 resumo_estado.columns = ["UF", "Quantidade"]
 
 url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
@@ -325,6 +339,19 @@ fig_mapa.update_geos(fitbounds="locations", visible=False)
 st.plotly_chart(fig_mapa, use_container_width=True)
 
 st.divider()
+
+# =========================
+# BOTÃO EXPORTAR EXCEL
+# =========================
+
+csv = df_filtrado.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+    label="📥 Baixar base filtrada",
+    data=csv,
+    file_name="clientes_filtrados.csv",
+    mime="text/csv"
+)
 
 # =========================
 # TABELA
