@@ -23,7 +23,10 @@ ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 @st.cache_data
 def carregar_dados():
     df = pd.read_excel(ARQUIVO_BASE)
+
+    # normalizar colunas
     df.columns = df.columns.str.strip().str.upper()
+
     return df
 
 df = carregar_dados()
@@ -48,7 +51,21 @@ col_faturamento = "FATURAMENTO ÚLTIMOS 6 MESES"
 # GARANTIR COLUNAS
 # =========================
 
-for col in [col_telefone, col_email]:
+colunas_obrigatorias = [
+    col_razao,
+    col_fantasia,
+    col_uf,
+    col_cidade,
+    col_bairro,
+    col_cnpj,
+    col_telefone,
+    col_email,
+    col_vendedor,
+    col_categoria,
+    col_faturamento
+]
+
+for col in colunas_obrigatorias:
     if col not in df.columns:
         df[col] = ""
 
@@ -168,7 +185,7 @@ if busca_tel:
 # FILTROS
 # =========================
 
-vendedores = sorted(df[col_vendedor].dropna().unique())
+vendedores = sorted(df_filtrado[col_vendedor].dropna().unique())
 
 vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores)
 
@@ -237,7 +254,7 @@ if len(df_filtrado) == 1:
         unsafe_allow_html=True
     )
 
-    telefone = limpar_telefone(cliente.get(col_telefone, ""))
+    telefone = limpar_telefone(cliente[col_telefone])
 
     if telefone:
 
@@ -278,24 +295,7 @@ fig_cat = px.bar(
     title="Distribuição por Categoria"
 )
 
-st.plotly_chart(fig_cat, width="stretch")
-
-# =========================
-# GRÁFICO FATURAMENTO
-# =========================
-
-resumo_faixa = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
-
-resumo_faixa.columns = ["Faixa", "Quantidade"]
-
-fig_faixa = px.bar(
-    resumo_faixa,
-    x="Faixa",
-    y="Quantidade",
-    title="Distribuição por Faixa de Faturamento"
-)
-
-st.plotly_chart(fig_faixa, width="stretch")
+st.plotly_chart(fig_cat, use_container_width=True)
 
 # =========================
 # MAPA
@@ -322,7 +322,7 @@ fig_mapa = px.choropleth(
 
 fig_mapa.update_geos(fitbounds="locations", visible=False)
 
-st.plotly_chart(fig_mapa, width="stretch")
+st.plotly_chart(fig_mapa, use_container_width=True)
 
 st.divider()
 
@@ -332,4 +332,4 @@ st.divider()
 
 st.subheader("Base de Clientes")
 
-st.dataframe(df_filtrado, width="stretch")
+st.dataframe(df_filtrado, use_container_width=True)
