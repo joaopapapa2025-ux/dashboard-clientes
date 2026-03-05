@@ -4,6 +4,7 @@ import plotly.express as px
 import json
 import urllib.request
 import re
+from io import BytesIO
 
 # =========================
 # CONFIGURAÇÃO
@@ -23,10 +24,7 @@ ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 @st.cache_data
 def carregar_dados():
     df = pd.read_excel(ARQUIVO_BASE)
-
-    # normalizar colunas
     df.columns = df.columns.str.strip().str.upper()
-
     return df
 
 df = carregar_dados()
@@ -46,28 +44,6 @@ col_email = "E-MAIL"
 col_vendedor = "VENDEDOR"
 col_categoria = "CATEGORIA"
 col_faturamento = "FATURAMENTO ÚLTIMOS 6 MESES"
-
-# =========================
-# GARANTIR COLUNAS
-# =========================
-
-colunas_obrigatorias = [
-    col_razao,
-    col_fantasia,
-    col_uf,
-    col_cidade,
-    col_bairro,
-    col_cnpj,
-    col_telefone,
-    col_email,
-    col_vendedor,
-    col_categoria,
-    col_faturamento
-]
-
-for col in colunas_obrigatorias:
-    if col not in df.columns:
-        df[col] = ""
 
 # =========================
 # LIMPAR CNPJ
@@ -95,19 +71,20 @@ df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
 # TRATAR FATURAMENTO
 # =========================
 
-df[col_faturamento] = pd.to_numeric(df[col_faturamento], errors="coerce").fillna(0)
+if col_faturamento in df.columns:
+    df[col_faturamento] = pd.to_numeric(df[col_faturamento], errors="coerce").fillna(0)
 
-bins = [0, 5000, 20000, 50000, 100000, float("inf")]
+    bins = [0, 5000, 20000, 50000, 100000, float("inf")]
 
-labels = [
-    "Até 5 mil",
-    "5 mil – 20 mil",
-    "20 mil – 50 mil",
-    "50 mil – 100 mil",
-    "Acima de 100 mil"
-]
+    labels = [
+        "Até 5 mil",
+        "5 mil – 20 mil",
+        "20 mil – 50 mil",
+        "50 mil – 100 mil",
+        "Acima de 100 mil"
+    ]
 
-df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
+    df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 
 # =========================
 # SIDEBAR
@@ -185,12 +162,14 @@ if busca_tel:
 # FILTROS
 # =========================
 
-vendedores = sorted(df_filtrado[col_vendedor].dropna().unique())
+if col_vendedor in df.columns:
 
-vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores)
+    vendedores = sorted(df[col_vendedor].dropna().unique())
 
-if vendedor_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
+    vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores)
+
+    if vendedor_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
 
 ufs = sorted(df_filtrado[col_uf].dropna().unique())
 
@@ -213,12 +192,14 @@ bairro_sel = st.sidebar.multiselect("Bairro", bairros)
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[col_bairro].isin(bairro_sel)]
 
-categorias = sorted(df_filtrado[col_categoria].dropna().unique())
+if col_categoria in df.columns:
 
-categoria_sel = st.sidebar.multiselect("Categoria", categorias)
+    categorias = sorted(df_filtrado[col_categoria].dropna().unique())
 
-if categoria_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
+    categoria_sel = st.sidebar.multiselect("Categoria", categorias)
+
+    if categoria_sel:
+        df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
 
 # =========================
 # TÍTULO
@@ -284,18 +265,39 @@ st.divider()
 # GRÁFICO SEGMENTO
 # =========================
 
-resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
+if col_categoria in df.columns:
 
-resumo_categoria.columns = ["Categoria", "Quantidade"]
+    resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
 
-fig_cat = px.bar(
-    resumo_categoria,
-    x="Categoria",
-    y="Quantidade",
-    title="Distribuição por Categoria"
-)
+    resumo_categoria.columns = ["Categoria", "Quantidade"]
 
-st.plotly_chart(fig_cat, use_container_width=True)
+    fig_cat = px.bar(
+        resumo_categoria,
+        x="Categoria",
+        y="Quantidade",
+        title="Distribuição por Categoria"
+    )
+
+    st.plotly_chart(fig_cat, width="stretch")
+
+# =========================
+# GRÁFICO FATURAMENTO
+# =========================
+
+if "FAIXA_FATURAMENTO" in df_filtrado.columns:
+
+    resumo_faixa = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+
+    resumo_faixa.columns = ["Faixa", "Quantidade"]
+
+    fig_faixa = px.bar(
+        resumo_faixa,
+        x="Faixa",
+        y="Quantidade",
+        title="Distribuição por Faixa de Faturamento"
+    )
+
+    st.plotly_chart(fig_faixa, width="stretch")
 
 # =========================
 # MAPA
@@ -322,9 +324,22 @@ fig_mapa = px.choropleth(
 
 fig_mapa.update_geos(fitbounds="locations", visible=False)
 
-st.plotly_chart(fig_mapa, use_container_width=True)
+st.plotly_chart(fig_mapa, width="stretch")
 
 st.divider()
+
+# =========================
+# EXPORTAR BASE
+# =========================
+
+def gerar_excel(df):
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Clientes")
+
+    return output.getvalue()
 
 # =========================
 # TABELA
@@ -332,4 +347,13 @@ st.divider()
 
 st.subheader("Base de Clientes")
 
-st.dataframe(df_filtrado, use_container_width=True)
+excel = gerar_excel(df_filtrado)
+
+st.download_button(
+    label="📥 Baixar base em Excel",
+    data=excel,
+    file_name="base_clientes_filtrada.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+st.dataframe(df_filtrado, width="stretch")
