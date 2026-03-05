@@ -1,334 +1,222 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import re
 import json
 import urllib.request
-import re
-from io import BytesIO
 
-# =========================
-# CONFIGURAÇÃO
-# =========================
-
-st.set_page_config(
-    page_title="Dashboard Inside Sales - PAPAPÁ",
-    layout="wide"
-)
-
-ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
-
-# =========================
-# CARREGAR BASE
-# =========================
-
-@st.cache_data
-def carregar_dados():
-    df = pd.read_excel(ARQUIVO_BASE)
-    df.columns = df.columns.str.strip().str.upper()
-    return df
-
-df = carregar_dados()
-
-# =========================
-# DEFINIR COLUNAS
-# =========================
-
-col_razao = "RAZÃO SOCIAL"
-col_fantasia = "NOME FANTASIA"
-col_uf = "UF"
-col_cidade = "CIDADE"
-col_bairro = "BAIRRO"
-col_cnpj = "CNPJ"
-col_telefone = "TELEFONE"
-col_email = "E-MAIL"
-col_vendedor = "VENDEDOR"
-col_categoria = "CATEGORIA"
-col_faturamento = "FATURAMENTO ÚLTIMOS 6 MESES"
-
-# =========================
-# LIMPAR CNPJ
-# =========================
-
-def limpar_cnpj(cnpj):
-    if pd.isna(cnpj):
-        return ""
-    return re.sub(r"\D", "", str(cnpj))
-
-if col_cnpj in df.columns:
-    df["CNPJ_LIMPO"] = df[col_cnpj].apply(limpar_cnpj)
-else:
-    df["CNPJ_LIMPO"] = ""
-
-# =========================
-# LIMPAR TELEFONE
-# =========================
-
-def limpar_telefone(tel):
-    if pd.isna(tel):
-        return ""
-    return re.sub(r"\D", "", str(tel))
-
-if col_telefone in df.columns:
-    df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
-else:
-    df["TEL_LIMPO"] = ""
-
-# =========================
-# FATURAMENTO
-# =========================
-
-if col_faturamento in df.columns:
-
-    df[col_faturamento] = pd.to_numeric(df[col_faturamento], errors="coerce").fillna(0)
-
-    bins = [0, 5000, 20000, 50000, 100000, float("inf")]
-
-    labels = [
-        "Até 5 mil",
-        "5 mil – 20 mil",
-        "20 mil – 50 mil",
-        "50 mil – 100 mil",
-        "Acima de 100 mil"
-    ]
-
-    df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
-
-# =========================
-# SIDEBAR
-# =========================
-
-st.sidebar.title("Filtros")
-
-df_filtrado = df.copy()
-
-# =========================
-# BUSCA CNPJ
-# =========================
-
-busca_cnpj = st.sidebar.text_input("Buscar por CNPJ")
-
-if busca_cnpj:
-
-    cnpj_limpo = limpar_cnpj(busca_cnpj)
-
-    df_filtrado = df_filtrado[
-        df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_limpo, na=False)
-    ]
-
-# =========================
-# BUSCA RAZÃO SOCIAL
-# =========================
-
-busca_nome = st.sidebar.text_input("Buscar Razão Social")
-
-cliente_escolhido = None
-
-if busca_nome and col_razao in df.columns:
-
-    sugestoes = df[
-        df[col_razao].str.contains(busca_nome, case=False, na=False)
-    ][col_razao].drop_duplicates().head(50)
-
-    if len(sugestoes) > 0:
-
-        cliente_escolhido = st.sidebar.selectbox(
-            "Selecione o cliente",
-            sugestoes
-        )
-
-        df_filtrado = df_filtrado[
-            df_filtrado[col_razao] == cliente_escolhido
-        ]
-
-# =========================
-# BUSCA EMAIL
-# =========================
-
-busca_email = st.sidebar.text_input("Buscar por E-mail")
-
-if busca_email and col_email in df.columns:
-
-    df_filtrado = df_filtrado[
-        df_filtrado[col_email].astype(str).str.contains(busca_email, case=False, na=False)
-    ]
-
-# =========================
-# BUSCA TELEFONE
-# =========================
-
-busca_tel = st.sidebar.text_input("Buscar por Telefone")
-
-if busca_tel:
-
-    tel_limpo = limpar_telefone(busca_tel)
-
-    df_filtrado = df_filtrado[
-        df_filtrado["TEL_LIMPO"].str.contains(tel_limpo, na=False)
-    ]
-
-# =========================
-# FILTROS
-# =========================
-
-if col_vendedor in df.columns:
-
-    vendedores = sorted(df[col_vendedor].dropna().unique())
-
-    vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores)
-
-    if vendedor_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
-
-if col_uf in df.columns:
-
-    ufs = sorted(df_filtrado[col_uf].dropna().unique())
-
-    uf_sel = st.sidebar.multiselect("Estado (UF)", ufs)
-
-    if uf_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_uf].isin(uf_sel)]
-
-if col_cidade in df.columns:
-
-    cidades = sorted(df_filtrado[col_cidade].dropna().unique())
-
-    cidade_sel = st.sidebar.multiselect("Cidade", cidades)
-
-    if cidade_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_cidade].isin(cidade_sel)]
-
-if col_bairro in df.columns:
-
-    bairros = sorted(df_filtrado[col_bairro].dropna().unique())
-
-    bairro_sel = st.sidebar.multiselect("Bairro", bairros)
-
-    if bairro_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_bairro].isin(bairro_sel)]
-
-if col_categoria in df.columns:
-
-    categorias = sorted(df_filtrado[col_categoria].dropna().unique())
-
-    categoria_sel = st.sidebar.multiselect("Categoria", categorias)
-
-    if categoria_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
-
-# =========================
-# TÍTULO
-# =========================
+st.set_page_config(layout="wide")
 
 st.title("Dashboard Inside Sales - PAPAPÁ")
 
 # =========================
-# CARD CLIENTE
+# UPLOAD DA BASE
 # =========================
 
-if len(df_filtrado) == 1:
+arquivo = st.file_uploader("Envie sua base de clientes", type=["xlsx", "csv"])
 
-    cliente = df_filtrado.iloc[0]
+if arquivo:
 
-    telefone = cliente[col_telefone] if col_telefone in df.columns else ""
-    email = cliente[col_email] if col_email in df.columns else ""
+    if arquivo.name.endswith(".csv"):
+        df = pd.read_csv(arquivo)
+    else:
+        df = pd.read_excel(arquivo)
 
-    st.markdown(
-        f"""
-        <div style="padding:20px;border-radius:10px;background-color:#f6f6f6">
+    # =========================
+    # DETECTAR COLUNAS
+    # =========================
 
-        <h3 style="color:#FF4B4B">{cliente[col_razao]}</h3>
+    col_categoria = None
+    col_faturamento = None
+    col_uf = None
+    col_telefone = None
 
-        <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[col_vendedor]}</span><br><br>
+    for col in df.columns:
 
-        <b>CNPJ:</b> {cliente[col_cnpj]}<br>
-        <b>Telefone:</b> {telefone}<br>
-        <b>E-mail:</b> {email}<br>
-        <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}<br>
+        nome = col.lower()
 
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        if "categoria" in nome:
+            col_categoria = col
 
-    tel_limpo = limpar_telefone(telefone)
+        if "faturamento" in nome:
+            col_faturamento = col
 
-    if tel_limpo:
+        if nome == "uf":
+            col_uf = col
 
-        link_whatsapp = f"https://wa.me/55{tel_limpo}"
+        if "telefone" in nome or "celular" in nome or "phone" in nome:
+            col_telefone = col
 
-        st.link_button(
-            "💬 Chamar no WhatsApp",
-            link_whatsapp
+    # =========================
+    # LIMPAR TELEFONE
+    # =========================
+
+    def limpar_telefone(telefone):
+
+        telefone = str(telefone)
+
+        telefone = re.sub(r"\D", "", telefone)
+
+        if len(telefone) == 11:
+            return f"({telefone[:2]}) {telefone[2:7]}-{telefone[7:]}"
+
+        if len(telefone) == 10:
+            return f"({telefone[:2]}) {telefone[2:6]}-{telefone[6:]}"
+
+        return telefone
+
+    if col_telefone:
+        df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
+
+    # =========================
+    # CRIAR FAIXA FATURAMENTO
+    # =========================
+
+    if col_faturamento:
+
+        df["FAIXA_FATURAMENTO"] = pd.cut(
+            df[col_faturamento],
+            bins=[0, 5000, 20000, 50000, 100000, 999999999],
+            labels=[
+                "Até 5 mil",
+                "5 mil – 20 mil",
+                "20 mil – 50 mil",
+                "50 mil – 100 mil",
+                "Acima de 100 mil",
+            ],
         )
+
+    df_filtrado = df.copy()
+
+    # =========================
+    # KPIs
+    # =========================
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    with c1:
+        st.metric("Total Clientes", len(df_filtrado))
+
+    with c2:
+        if col_uf:
+            st.metric("Estados", df_filtrado[col_uf].nunique())
+
+    with c3:
+        if col_categoria:
+            st.metric("Categorias", df_filtrado[col_categoria].nunique())
+
+    with c4:
+        if "VENDEDOR" in df_filtrado.columns:
+            st.metric("Vendedores", df_filtrado["VENDEDOR"].nunique())
 
     st.divider()
 
-# =========================
-# KPIs
-# =========================
+    # =========================
+    # GRÁFICO CATEGORIA
+    # =========================
 
-k1, k2, k3, k4 = st.columns(4)
+    if col_categoria:
 
-k1.metric("Total Clientes", len(df_filtrado))
-k2.metric("Estados Ativos", df_filtrado[col_uf].nunique() if col_uf in df.columns else 0)
-k3.metric("Categorias", df_filtrado[col_categoria].nunique() if col_categoria in df.columns else 0)
-k4.metric("Vendedores", df_filtrado[col_vendedor].nunique() if col_vendedor in df.columns else 0)
+        categoria_count = (
+            df_filtrado[col_categoria]
+            .value_counts()
+            .reset_index()
+        )
 
-st.divider()
+        categoria_count.columns = ["Categoria", "Quantidade"]
 
-# =========================
-# MAPA
-# =========================
+        fig_categoria = px.bar(
+            categoria_count,
+            x="Categoria",
+            y="Quantidade",
+            title="Distribuição por Categoria",
+        )
 
-if col_uf in df.columns:
+        st.plotly_chart(fig_categoria, use_container_width=True)
 
-    resumo_estado = df_filtrado[col_uf].value_counts().reset_index()
+    # =========================
+    # GRÁFICO FATURAMENTO
+    # =========================
 
-    resumo_estado.columns = ["UF", "Quantidade"]
+    if "FAIXA_FATURAMENTO" in df_filtrado.columns:
 
-    url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+        fat_count = (
+            df_filtrado["FAIXA_FATURAMENTO"]
+            .value_counts()
+            .sort_index()
+            .reset_index()
+        )
 
-    with urllib.request.urlopen(url) as response:
-        geojson_br = json.load(response)
+        fat_count.columns = ["Faixa", "Quantidade"]
 
-    fig_mapa = px.choropleth(
-        resumo_estado,
-        geojson=geojson_br,
-        locations="UF",
-        featureidkey="properties.sigla",
-        color="Quantidade",
-        color_continuous_scale="Reds",
-        title="Distribuição de Clientes por Estado"
+        fig_fat = px.bar(
+            fat_count,
+            x="Faixa",
+            y="Quantidade",
+            title="Distribuição por Faixa de Faturamento",
+        )
+
+        st.plotly_chart(fig_fat, use_container_width=True)
+
+    # =========================
+    # MAPA BRASIL
+    # =========================
+
+    @st.cache_data
+    def carregar_geojson():
+        url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+        with urllib.request.urlopen(url) as response:
+            return json.load(response)
+
+    geojson = carregar_geojson()
+
+    if col_uf:
+
+        mapa = (
+            df_filtrado[col_uf]
+            .value_counts()
+            .reset_index()
+        )
+
+        mapa.columns = ["UF", "Quantidade"]
+
+        fig_mapa = px.choropleth(
+            mapa,
+            geojson=geojson,
+            locations="UF",
+            featureidkey="properties.sigla",
+            color="Quantidade",
+            scope="south america",
+            title="Distribuição de Clientes por Estado",
+        )
+
+        fig_mapa.update_geos(fitbounds="locations", visible=False)
+
+        st.plotly_chart(fig_mapa, use_container_width=True)
+
+    st.divider()
+
+    # =========================
+    # DOWNLOAD BASE
+    # =========================
+
+    csv = df_filtrado.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Baixar base filtrada",
+        data=csv,
+        file_name="clientes_filtrados.csv",
+        mime="text/csv",
     )
 
-    fig_mapa.update_geos(fitbounds="locations", visible=False)
+    # =========================
+    # TABELA
+    # =========================
 
-    st.plotly_chart(fig_mapa, width="stretch")
+    st.subheader("Base de Clientes")
 
-st.divider()
-
-# =========================
-# DOWNLOAD EXCEL
-# =========================
-
-def gerar_excel(df):
-
-    buffer = BytesIO()
-
-    with pd.ExcelWriter(buffer) as writer:
-        df.to_excel(writer, index=False)
-
-    return buffer.getvalue()
-
-st.subheader("Base de Clientes")
-
-excel = gerar_excel(df_filtrado)
-
-st.download_button(
-    label="⬇️ Baixar base em Excel",
-    data=excel,
-    file_name="base_clientes_filtrada.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
-
-st.dataframe(df_filtrado, width="stretch")
+    st.dataframe(
+        df_filtrado,
+        use_container_width=True,
+        height=400
+    )
