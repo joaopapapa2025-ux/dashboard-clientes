@@ -4,6 +4,7 @@ import plotly.express as px
 import json
 import urllib.request
 import re
+from io import BytesIO
 
 # =========================
 # CONFIGURAÇÃO
@@ -341,16 +342,25 @@ st.plotly_chart(fig_mapa, use_container_width=True)
 st.divider()
 
 # =========================
-# BOTÃO EXPORTAR EXCEL
+# GERAR EXCEL
 # =========================
 
-csv = df_filtrado.to_csv(index=False).encode("utf-8")
+def gerar_excel(df):
+
+    buffer = BytesIO()
+
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Clientes")
+
+    return buffer.getvalue()
+
+excel = gerar_excel(df_filtrado)
 
 st.download_button(
-    label="📥 Baixar base filtrada",
-    data=csv,
-    file_name="clientes_filtrados.csv",
-    mime="text/csv"
+    label="📥 Baixar base filtrada em Excel",
+    data=excel,
+    file_name="clientes_filtrados.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
 # =========================
