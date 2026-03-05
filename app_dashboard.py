@@ -45,6 +45,14 @@ col_categoria = "CATEGORIA"
 col_faturamento = "FATURAMENTO ÚLTIMOS 6 MESES"
 
 # =========================
+# GARANTIR COLUNAS
+# =========================
+
+for col in [col_telefone, col_email]:
+    if col not in df.columns:
+        df[col] = ""
+
+# =========================
 # LIMPAR CNPJ
 # =========================
 
@@ -229,7 +237,7 @@ if len(df_filtrado) == 1:
         unsafe_allow_html=True
     )
 
-    telefone = limpar_telefone(cliente[col_telefone])
+    telefone = limpar_telefone(cliente.get(col_telefone, ""))
 
     if telefone:
 
