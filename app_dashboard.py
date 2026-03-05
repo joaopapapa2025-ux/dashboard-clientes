@@ -65,13 +65,17 @@ def limpar_telefone(tel):
         return ""
     return re.sub(r"\D", "", str(tel))
 
-df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
+if col_telefone in df.columns:
+    df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
+else:
+    df["TEL_LIMPO"] = ""
 
 # =========================
 # TRATAR FATURAMENTO
 # =========================
 
 if col_faturamento in df.columns:
+
     df[col_faturamento] = pd.to_numeric(df[col_faturamento], errors="coerce").fillna(0)
 
     bins = [0, 5000, 20000, 50000, 100000, float("inf")]
@@ -139,7 +143,7 @@ if busca_nome:
 
 busca_email = st.sidebar.text_input("Buscar por E-mail")
 
-if busca_email:
+if busca_email and col_email in df.columns:
     df_filtrado = df_filtrado[
         df_filtrado[col_email].str.contains(busca_email, case=False, na=False)
     ]
@@ -162,14 +166,12 @@ if busca_tel:
 # FILTROS
 # =========================
 
-if col_vendedor in df.columns:
+vendedores = sorted(df[col_vendedor].dropna().unique())
 
-    vendedores = sorted(df[col_vendedor].dropna().unique())
+vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores)
 
-    vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores)
-
-    if vendedor_sel:
-        df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
+if vendedor_sel:
+    df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
 
 ufs = sorted(df_filtrado[col_uf].dropna().unique())
 
@@ -256,7 +258,7 @@ k1, k2, k3, k4 = st.columns(4)
 
 k1.metric("Total Clientes", len(df_filtrado))
 k2.metric("Estados Ativos", df_filtrado[col_uf].nunique())
-k3.metric("Categorias", df_filtrado[col_categoria].nunique())
+k3.metric("Categorias", df_filtrado[col_categoria].nunique() if col_categoria in df.columns else 0)
 k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 
 st.divider()
@@ -284,7 +286,7 @@ if col_categoria in df.columns:
 # GRÁFICO FATURAMENTO
 # =========================
 
-if "FAIXA_FATURAMENTO" in df_filtrado.columns:
+if "FAIXA_FATURAMENTO" in df.columns:
 
     resumo_faixa = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
 
@@ -329,28 +331,24 @@ st.plotly_chart(fig_mapa, width="stretch")
 st.divider()
 
 # =========================
-# EXPORTAR BASE
+# DOWNLOAD EXCEL
 # =========================
 
 def gerar_excel(df):
 
-    output = BytesIO()
+    buffer = BytesIO()
 
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Clientes")
 
-    return output.getvalue()
-
-# =========================
-# TABELA
-# =========================
+    return buffer.getvalue()
 
 st.subheader("Base de Clientes")
 
 excel = gerar_excel(df_filtrado)
 
 st.download_button(
-    label="📥 Baixar base em Excel",
+    label="⬇️ Baixar base em Excel",
     data=excel,
     file_name="base_clientes_filtrada.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
