@@ -136,13 +136,16 @@ df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 # SIDEBAR
 # =========================
 
+st.sidebar.title("Filtros")
+
+# BOTÃO LIMPAR FILTROS (CORRIGIDO)
+
 if st.sidebar.button("Limpar filtros"):
-
     for key in list(st.session_state.keys()):
-        if key != "acesso_liberado":
-            del st.session_state[key]
-
+        del st.session_state[key]
     st.rerun()
+
+df_filtrado = df.copy()
 
 # =========================
 # BUSCA CNPJ
@@ -331,4 +334,3 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
-
