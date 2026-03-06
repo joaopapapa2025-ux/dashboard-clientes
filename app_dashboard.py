@@ -146,32 +146,13 @@ df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR FILTROS
-if st.sidebar.button("Limpar filtros"):
-    for key in [
-        "busca_cnpj",
-        "busca_nome",
-        "busca_email",
-        "busca_tel",
-        "filtro_vendedor",
-        "filtro_uf",
-        "filtro_cidade",
-        "filtro_bairro",
-        "filtro_categoria",
-        "filtro_faixa"
-    ]:
-        if key in st.session_state:
-            del st.session_state[key]
-
-    st.rerun()
-
 df_filtrado = df.copy()
 
 # =========================
 # BUSCA CNPJ
 # =========================
 
-busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
+busca_cnpj = st.sidebar.text_input("Buscar por CNPJ")
 
 if busca_cnpj:
 
@@ -185,7 +166,7 @@ if busca_cnpj:
 # BUSCA RAZÃO SOCIAL
 # =========================
 
-busca_nome = st.sidebar.text_input("Buscar Razão Social", key="busca_nome")
+busca_nome = st.sidebar.text_input("Buscar Razão Social")
 
 cliente_escolhido = None
 
@@ -210,7 +191,7 @@ if busca_nome:
 # BUSCA EMAIL
 # =========================
 
-busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
+busca_email = st.sidebar.text_input("Buscar por E-mail")
 
 if busca_email:
     df_filtrado = df_filtrado[
@@ -221,7 +202,7 @@ if busca_email:
 # BUSCA TELEFONE
 # =========================
 
-busca_tel = st.sidebar.text_input("Buscar por Telefone", key="busca_tel")
+busca_tel = st.sidebar.text_input("Buscar por Telefone")
 
 if busca_tel:
 
@@ -237,35 +218,35 @@ if busca_tel:
 
 vendedores = sorted(df_filtrado[col_vendedor].dropna().unique())
 
-vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores, key="filtro_vendedor")
+vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores)
 
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
 
 ufs = sorted(df_filtrado[col_uf].dropna().unique())
 
-uf_sel = st.sidebar.multiselect("Estado (UF)", ufs, key="filtro_uf")
+uf_sel = st.sidebar.multiselect("Estado (UF)", ufs)
 
 if uf_sel:
     df_filtrado = df_filtrado[df_filtrado[col_uf].isin(uf_sel)]
 
 cidades = sorted(df_filtrado[col_cidade].dropna().unique())
 
-cidade_sel = st.sidebar.multiselect("Cidade", cidades, key="filtro_cidade")
+cidade_sel = st.sidebar.multiselect("Cidade", cidades)
 
 if cidade_sel:
     df_filtrado = df_filtrado[df_filtrado[col_cidade].isin(cidade_sel)]
 
 bairros = sorted(df_filtrado[col_bairro].dropna().unique())
 
-bairro_sel = st.sidebar.multiselect("Bairro", bairros, key="filtro_bairro")
+bairro_sel = st.sidebar.multiselect("Bairro", bairros)
 
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[col_bairro].isin(bairro_sel)]
 
 categorias = sorted(df_filtrado[col_categoria].dropna().unique())
 
-categoria_sel = st.sidebar.multiselect("Categoria", categorias, key="filtro_categoria")
+categoria_sel = st.sidebar.multiselect("Categoria", categorias)
 
 if categoria_sel:
     df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
@@ -276,16 +257,61 @@ if categoria_sel:
 
 faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
 
-faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_faixa")
+faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas)
 
 if faixa_sel:
     df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(faixa_sel)]
 
 # =========================
-# RESTANTE DO DASH
+# TÍTULO
 # =========================
 
 st.title("Dashboard Inside Sales - PAPAPÁ")
+
+# =========================
+# CARD CLIENTE
+# =========================
+
+if len(df_filtrado) == 1:
+
+    cliente = df_filtrado.iloc[0]
+
+    st.markdown("### Cliente encontrado")
+
+    st.markdown(
+        f"""
+        <div style="padding:20px;border-radius:10px;background-color:#f6f6f6">
+
+        <h3 style="color:#FF4B4B">{cliente[col_razao]}</h3>
+
+        <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[col_vendedor]}</span><br><br>
+
+        <b>CNPJ:</b> {cliente[col_cnpj]}<br>
+        <b>Telefone:</b> {cliente[col_telefone]}<br>
+        <b>E-mail:</b> {cliente[col_email]}<br>
+        <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}<br>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    telefone = limpar_telefone(cliente[col_telefone])
+
+    if telefone:
+
+        link_whatsapp = f"https://wa.me/55{telefone}"
+
+        st.link_button(
+            "💬 Chamar no WhatsApp",
+            link_whatsapp
+        )
+
+    st.divider()
+
+# =========================
+# KPIs
+# =========================
 
 k1, k2, k3, k4 = st.columns(4)
 
@@ -295,6 +321,92 @@ k3.metric("Categorias", df_filtrado[col_categoria].nunique())
 k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 
 st.divider()
+
+# =========================
+# GRÁFICO SEGMENTO
+# =========================
+
+resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
+resumo_categoria.columns = ["Categoria", "Quantidade"]
+
+fig_cat = px.bar(
+    resumo_categoria,
+    x="Categoria",
+    y="Quantidade",
+    title="Distribuição por Categoria"
+)
+
+st.plotly_chart(fig_cat, use_container_width=True)
+
+# =========================
+# GRÁFICO FATURAMENTO
+# =========================
+
+resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+resumo_faturamento.columns = ["Faixa", "Quantidade"]
+
+fig_fat = px.bar(
+    resumo_faturamento,
+    x="Faixa",
+    y="Quantidade",
+    title="Distribuição por Faixa de Faturamento"
+)
+
+st.plotly_chart(fig_fat, use_container_width=True)
+
+# =========================
+# MAPA
+# =========================
+
+resumo_estado = df_filtrado[col_uf].value_counts().reset_index()
+resumo_estado.columns = ["UF", "Quantidade"]
+
+url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+
+with urllib.request.urlopen(url) as response:
+    geojson_br = json.load(response)
+
+fig_mapa = px.choropleth(
+    resumo_estado,
+    geojson=geojson_br,
+    locations="UF",
+    featureidkey="properties.sigla",
+    color="Quantidade",
+    color_continuous_scale="Reds",
+    title="Distribuição de Clientes por Estado"
+)
+
+fig_mapa.update_geos(fitbounds="locations", visible=False)
+
+st.plotly_chart(fig_mapa, use_container_width=True)
+
+st.divider()
+
+# =========================
+# GERAR EXCEL
+# =========================
+
+def gerar_excel(df):
+
+    buffer = BytesIO()
+
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Clientes")
+
+    return buffer.getvalue()
+
+excel = gerar_excel(df_filtrado)
+
+st.download_button(
+    label="📥 Baixar base filtrada em Excel",
+    data=excel,
+    file_name="clientes_filtrados.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+# =========================
+# TABELA
+# =========================
 
 st.subheader("Base de Clientes")
 
