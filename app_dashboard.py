@@ -15,6 +15,39 @@ st.set_page_config(
     layout="wide"
 )
 
+# =========================
+# PROTEÇÃO DE ACESSO
+# =========================
+
+CODIGO_ACESSO = "amamosnossosclientes"
+
+if "acesso_liberado" not in st.session_state:
+    st.session_state.acesso_liberado = False
+
+if not st.session_state.acesso_liberado:
+
+    st.title("Acesso restrito")
+
+    codigo_digitado = st.text_input(
+        "Digite o código de acesso",
+        type="password"
+    )
+
+    if st.button("Entrar"):
+
+        if codigo_digitado == CODIGO_ACESSO:
+            st.session_state.acesso_liberado = True
+            st.rerun()
+
+        else:
+            st.error("Código incorreto")
+
+    st.stop()
+
+# =========================
+# ARQUIVO BASE
+# =========================
+
 ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 
 # =========================
@@ -25,7 +58,6 @@ ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 def carregar_dados():
     df = pd.read_excel(ARQUIVO_BASE)
 
-    # normalizar colunas
     df.columns = df.columns.str.strip().str.upper()
 
     return df
