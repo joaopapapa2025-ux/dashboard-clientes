@@ -15,40 +15,30 @@ st.set_page_config(
     layout="wide"
 )
 
-# =========================
-# PROTEÇÃO DE ACESSO
-# =========================
+ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 
-CODIGO_ACESSO = "amamosnossosclientes"
+# =========================
+# CAMADA DE SEGURANÇA
+# =========================
 
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
 if not st.session_state.acesso_liberado:
 
-    st.title("Acesso restrito")
+    st.title("Acesso ao Dashboard")
 
-    codigo_digitado = st.text_input(
-        "Digite o código de acesso",
-        type="password"
-    )
+    codigo = st.text_input("Digite o código de acesso", type="password")
 
     if st.button("Entrar"):
 
-        if codigo_digitado == CODIGO_ACESSO:
+        if codigo == "amamosnossosclientes":
             st.session_state.acesso_liberado = True
             st.rerun()
-
         else:
             st.error("Código incorreto")
 
     st.stop()
-
-# =========================
-# ARQUIVO BASE
-# =========================
-
-ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 
 # =========================
 # CARREGAR BASE
@@ -147,6 +137,11 @@ df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 # =========================
 
 st.sidebar.title("Filtros")
+
+# BOTÃO LIMPAR FILTROS
+if st.sidebar.button("Limpar filtros"):
+    st.cache_data.clear()
+    st.rerun()
 
 df_filtrado = df.copy()
 
