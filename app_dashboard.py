@@ -57,7 +57,9 @@ ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 @st.cache_data
 def carregar_dados():
     df = pd.read_excel(ARQUIVO_BASE)
+
     df.columns = df.columns.str.strip().str.upper()
+
     return df
 
 df = carregar_dados()
@@ -145,13 +147,6 @@ df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 # =========================
 
 st.sidebar.title("Filtros")
-
-# BOTÃO LIMPAR FILTROS
-if st.sidebar.button("Limpar filtros"):
-    for key in list(st.session_state.keys()):
-        if key != "acesso_liberado":
-            del st.session_state[key]
-    st.rerun()
 
 df_filtrado = df.copy()
 
