@@ -142,7 +142,8 @@ st.sidebar.title("Filtros")
 
 if st.sidebar.button("Limpar filtros"):
     for key in list(st.session_state.keys()):
-        del st.session_state[key]
+        if key != "acesso_liberado":
+            del st.session_state[key]
     st.rerun()
 
 df_filtrado = df.copy()
