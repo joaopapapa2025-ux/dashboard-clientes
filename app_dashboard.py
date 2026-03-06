@@ -138,9 +138,11 @@ df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR FILTROS
+# BOTÃO LIMPAR FILTROS (CORRIGIDO)
+
 if st.sidebar.button("Limpar filtros"):
-    st.cache_data.clear()
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
     st.rerun()
 
 df_filtrado = df.copy()
@@ -249,55 +251,10 @@ if categoria_sel:
     df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
 
 # =========================
-# TÍTULO
+# RESTANTE DO DASH
 # =========================
 
 st.title("Dashboard Inside Sales - PAPAPÁ")
-
-# =========================
-# CARD CLIENTE
-# =========================
-
-if len(df_filtrado) == 1:
-
-    cliente = df_filtrado.iloc[0]
-
-    st.markdown("### Cliente encontrado")
-
-    st.markdown(
-        f"""
-        <div style="padding:20px;border-radius:10px;background-color:#f6f6f6">
-
-        <h3 style="color:#FF4B4B">{cliente[col_razao]}</h3>
-
-        <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[col_vendedor]}</span><br><br>
-
-        <b>CNPJ:</b> {cliente[col_cnpj]}<br>
-        <b>Telefone:</b> {cliente[col_telefone]}<br>
-        <b>E-mail:</b> {cliente[col_email]}<br>
-        <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}<br>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    telefone = limpar_telefone(cliente[col_telefone])
-
-    if telefone:
-
-        link_whatsapp = f"https://wa.me/55{telefone}"
-
-        st.link_button(
-            "💬 Chamar no WhatsApp",
-            link_whatsapp
-        )
-
-    st.divider()
-
-# =========================
-# KPIs
-# =========================
 
 k1, k2, k3, k4 = st.columns(4)
 
@@ -307,10 +264,6 @@ k3.metric("Categorias", df_filtrado[col_categoria].nunique())
 k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 
 st.divider()
-
-# =========================
-# GRÁFICO SEGMENTO
-# =========================
 
 resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
 resumo_categoria.columns = ["Categoria", "Quantidade"]
@@ -324,10 +277,6 @@ fig_cat = px.bar(
 
 st.plotly_chart(fig_cat, use_container_width=True)
 
-# =========================
-# GRÁFICO FATURAMENTO
-# =========================
-
 resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
 resumo_faturamento.columns = ["Faixa", "Quantidade"]
 
@@ -339,10 +288,6 @@ fig_fat = px.bar(
 )
 
 st.plotly_chart(fig_fat, use_container_width=True)
-
-# =========================
-# MAPA
-# =========================
 
 resumo_estado = df_filtrado[col_uf].value_counts().reset_index()
 resumo_estado.columns = ["UF", "Quantidade"]
@@ -368,10 +313,6 @@ st.plotly_chart(fig_mapa, use_container_width=True)
 
 st.divider()
 
-# =========================
-# GERAR EXCEL
-# =========================
-
 def gerar_excel(df):
 
     buffer = BytesIO()
@@ -389,10 +330,6 @@ st.download_button(
     file_name="clientes_filtrados.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
-
-# =========================
-# TABELA
-# =========================
 
 st.subheader("Base de Clientes")
 
