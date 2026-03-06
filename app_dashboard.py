@@ -57,9 +57,7 @@ ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 @st.cache_data
 def carregar_dados():
     df = pd.read_excel(ARQUIVO_BASE)
-
     df.columns = df.columns.str.strip().str.upper()
-
     return df
 
 df = carregar_dados()
@@ -252,6 +250,17 @@ categoria_sel = st.sidebar.multiselect("Categoria", categorias)
 
 if categoria_sel:
     df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
+
+# =========================
+# FILTRO FAIXA FATURAMENTO
+# =========================
+
+faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
+
+faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas)
+
+if faixa_sel:
+    df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(faixa_sel)]
 
 # =========================
 # TÍTULO
