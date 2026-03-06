@@ -148,11 +148,20 @@ st.sidebar.title("Filtros")
 
 # BOTÃO LIMPAR FILTROS
 if st.sidebar.button("Limpar filtros"):
-    for key in list(st.session_state.keys()):
-        if key.startswith("filtro_") or key.startswith("busca_"):
-            del st.session_state[key]
-    st.rerun()
 
+    st.session_state["busca_cnpj"] = ""
+    st.session_state["busca_nome"] = ""
+    st.session_state["busca_email"] = ""
+    st.session_state["busca_tel"] = ""
+
+    st.session_state["filtro_vendedor"] = []
+    st.session_state["filtro_uf"] = []
+    st.session_state["filtro_cidade"] = []
+    st.session_state["filtro_bairro"] = []
+    st.session_state["filtro_categoria"] = []
+    st.session_state["filtro_faturamento"] = []
+
+    st.rerun()
 df_filtrado = df.copy()
 
 # =========================
@@ -418,3 +427,4 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
