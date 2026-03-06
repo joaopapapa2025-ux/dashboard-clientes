@@ -146,13 +146,20 @@ df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 
 st.sidebar.title("Filtros")
 
+# BOTÃO LIMPAR FILTROS
+if st.sidebar.button("Limpar filtros"):
+    for key in list(st.session_state.keys()):
+        if key.startswith("filtro_") or key.startswith("busca_"):
+            del st.session_state[key]
+    st.rerun()
+
 df_filtrado = df.copy()
 
 # =========================
 # BUSCA CNPJ
 # =========================
 
-busca_cnpj = st.sidebar.text_input("Buscar por CNPJ")
+busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
 
 if busca_cnpj:
 
@@ -166,7 +173,7 @@ if busca_cnpj:
 # BUSCA RAZÃO SOCIAL
 # =========================
 
-busca_nome = st.sidebar.text_input("Buscar Razão Social")
+busca_nome = st.sidebar.text_input("Buscar Razão Social", key="busca_nome")
 
 cliente_escolhido = None
 
@@ -191,7 +198,7 @@ if busca_nome:
 # BUSCA EMAIL
 # =========================
 
-busca_email = st.sidebar.text_input("Buscar por E-mail")
+busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
 
 if busca_email:
     df_filtrado = df_filtrado[
@@ -202,7 +209,7 @@ if busca_email:
 # BUSCA TELEFONE
 # =========================
 
-busca_tel = st.sidebar.text_input("Buscar por Telefone")
+busca_tel = st.sidebar.text_input("Buscar por Telefone", key="busca_tel")
 
 if busca_tel:
 
@@ -218,35 +225,35 @@ if busca_tel:
 
 vendedores = sorted(df_filtrado[col_vendedor].dropna().unique())
 
-vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores)
+vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores, key="filtro_vendedor")
 
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
 
 ufs = sorted(df_filtrado[col_uf].dropna().unique())
 
-uf_sel = st.sidebar.multiselect("Estado (UF)", ufs)
+uf_sel = st.sidebar.multiselect("Estado (UF)", ufs, key="filtro_uf")
 
 if uf_sel:
     df_filtrado = df_filtrado[df_filtrado[col_uf].isin(uf_sel)]
 
 cidades = sorted(df_filtrado[col_cidade].dropna().unique())
 
-cidade_sel = st.sidebar.multiselect("Cidade", cidades)
+cidade_sel = st.sidebar.multiselect("Cidade", cidades, key="filtro_cidade")
 
 if cidade_sel:
     df_filtrado = df_filtrado[df_filtrado[col_cidade].isin(cidade_sel)]
 
 bairros = sorted(df_filtrado[col_bairro].dropna().unique())
 
-bairro_sel = st.sidebar.multiselect("Bairro", bairros)
+bairro_sel = st.sidebar.multiselect("Bairro", bairros, key="filtro_bairro")
 
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[col_bairro].isin(bairro_sel)]
 
 categorias = sorted(df_filtrado[col_categoria].dropna().unique())
 
-categoria_sel = st.sidebar.multiselect("Categoria", categorias)
+categoria_sel = st.sidebar.multiselect("Categoria", categorias, key="filtro_categoria")
 
 if categoria_sel:
     df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
@@ -257,7 +264,7 @@ if categoria_sel:
 
 faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
 
-faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas)
+faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_faturamento")
 
 if faixa_sel:
     df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(faixa_sel)]
