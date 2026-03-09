@@ -5,6 +5,14 @@ import json
 import urllib.request
 import re
 from io import BytesIO
+from datetime import datetime
+
+# PDF
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib import colors
 
 # =========================
 # CONFIGURAÇÃO
@@ -51,16 +59,34 @@ if not st.session_state.acesso_liberado:
 ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
 
 # =========================
-# CARREGAR BASE
+# CARREGAR BASE CLIENTES
 # =========================
 
 @st.cache_data
 def carregar_dados():
-    df = pd.read_excel(ARQUIVO_BASE)
+    df = pd.read_excel(ARQUIVO_BASE, sheet_name=0)
     df.columns = df.columns.str.strip().str.upper()
     return df
 
 df = carregar_dados()
+
+# =========================
+# CARREGAR BASE PRODUTOS
+# =========================
+
+@st.cache_data
+def carregar_vendas():
+    try:
+        vendas = pd.read_excel(ARQUIVO_BASE, sheet_name=1)
+        vendas.columns = vendas.columns.str.strip().str.upper()
+
+        vendas["CNPJ_LIMPO"] = vendas["CNPJ"].astype(str).str.replace(r"\D", "", regex=True)
+
+        return vendas
+    except:
+        return pd.DataFrame()
+
+df_vendas = carregar_vendas()
 
 # =========================
 # DEFINIR COLUNAS
@@ -141,12 +167,117 @@ labels = [
 df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 
 # =========================
+# FUNÇÃO GERAR PDF
+# =========================
+
+def gerar_pdf_cliente(cliente, vendas_cliente):
+
+    buffer = BytesIO()
+    styles = getSampleStyleSheet()
+    elementos = []
+
+    titulo = Paragraph("Relatório de Cliente - PAPAPÁ", styles["Title"])
+    data = Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y')}", styles["Normal"])
+
+    elementos.append(titulo)
+    elementos.append(data)
+    elementos.append(Spacer(1,20))
+
+    dados_cliente = [
+
+        ["Razão Social", cliente[col_razao]],
+        ["Nome Fantasia", cliente[col_fantasia]],
+        ["CNPJ", cliente[col_cnpj]],
+        ["Telefone", cliente[col_telefone]],
+        ["Email", cliente[col_email]],
+        ["Cidade", f"{cliente[col_cidade]} - {cliente[col_uf]}"],
+        ["Vendedor", cliente[col_vendedor]],
+        ["Categoria", cliente[col_categoria]],
+        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}"],
+        ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
+
+    ]
+
+    tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
+
+    tabela_cliente.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(1,0),colors.whitesmoke),
+        ("GRID",(0,0),(-1,-1),0.5,colors.grey)
+    ]))
+
+    elementos.append(tabela_cliente)
+    elementos.append(Spacer(1,30))
+
+    elementos.append(Paragraph("Mix de Produtos Comprados", styles["Heading2"]))
+
+    if len(vendas_cliente) > 0:
+
+        resumo = (
+            vendas_cliente
+            .groupby(["SKU UNIFICADO","FAMÍLIA"])[["QUANTIDADE","VALOR"]]
+            .sum()
+            .reset_index()
+            .sort_values("VALOR", ascending=False)
+        )
+
+        total_valor = resumo["VALOR"].sum()
+        total_qtd = resumo["QUANTIDADE"].sum()
+        total_skus = resumo["SKU UNIFICADO"].nunique()
+
+        resumo_comercial = [
+
+            ["Total SKUs Comprados", total_skus],
+            ["Total Unidades", int(total_qtd)],
+            ["Valor Total Comprado", f"R$ {total_valor:,.2f}"]
+
+        ]
+
+        tabela_resumo = Table(resumo_comercial)
+
+        elementos.append(Spacer(1,10))
+        elementos.append(tabela_resumo)
+        elementos.append(Spacer(1,20))
+
+        dados_produtos = [["Produto","Família","Quantidade","Valor"]]
+
+        for _,row in resumo.iterrows():
+
+            dados_produtos.append([
+
+                row["SKU UNIFICADO"],
+                row["FAMÍLIA"],
+                int(row["QUANTIDADE"]),
+                f"R$ {row['VALOR']:,.2f}"
+
+            ])
+
+        tabela_produtos = Table(dados_produtos)
+
+        tabela_produtos.setStyle(TableStyle([
+            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
+            ("GRID",(0,0),(-1,-1),0.5,colors.grey)
+        ]))
+
+        elementos.append(tabela_produtos)
+
+    else:
+
+        elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
+
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+
+    doc.build(elementos)
+
+    buffer.seek(0)
+
+    return buffer
+
+# =========================
 # SIDEBAR
 # =========================
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR FILTROS
 if st.sidebar.button("Limpar filtros"):
 
     st.session_state["busca_cnpj"] = ""
@@ -162,6 +293,7 @@ if st.sidebar.button("Limpar filtros"):
     st.session_state["filtro_faturamento"] = []
 
     st.rerun()
+
 df_filtrado = df.copy()
 
 # =========================
@@ -267,10 +399,6 @@ categoria_sel = st.sidebar.multiselect("Categoria", categorias, key="filtro_cate
 if categoria_sel:
     df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
 
-# =========================
-# FILTRO FAIXA FATURAMENTO
-# =========================
-
 faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
 
 faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_faturamento")
@@ -324,6 +452,23 @@ if len(df_filtrado) == 1:
         )
 
     st.divider()
+
+    vendas_cliente = pd.DataFrame()
+
+    if not df_vendas.empty:
+
+        vendas_cliente = df_vendas[
+            df_vendas["CNPJ_LIMPO"] == cliente["CNPJ_LIMPO"]
+        ]
+
+    pdf = gerar_pdf_cliente(cliente, vendas_cliente)
+
+    st.download_button(
+        "📄 Baixar relatório completo do cliente em PDF",
+        data=pdf,
+        file_name=f"relatorio_cliente_{cliente[col_razao]}.pdf",
+        mime="application/pdf"
+    )
 
 # =========================
 # KPIs
@@ -427,4 +572,3 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
-
