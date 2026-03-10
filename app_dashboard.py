@@ -7,16 +7,25 @@ import re
 from io import BytesIO
 from datetime import datetime
 
+# PDF
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
+# =========================
+# CONFIGURAÇÃO
+# =========================
+
 st.set_page_config(
     page_title="Dashboard Inside Sales - PAPAPÁ",
     layout="wide"
 )
+
+# =========================
+# PROTEÇÃO DE ACESSO
+# =========================
 
 CODIGO_ACESSO = "amamosnossosclientes"
 
@@ -43,7 +52,15 @@ if not st.session_state.acesso_liberado:
 
     st.stop()
 
+# =========================
+# ARQUIVO BASE
+# =========================
+
 ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
+
+# =========================
+# CARREGAR BASE CLIENTES
+# =========================
 
 @st.cache_data
 def carregar_dados():
@@ -53,36 +70,27 @@ def carregar_dados():
 
 df = carregar_dados()
 
+# =========================
+# CARREGAR BASE PRODUTOS
+# =========================
+
 @st.cache_data
 def carregar_vendas():
     try:
-
         vendas = pd.read_excel(ARQUIVO_BASE, sheet_name=1)
-
         vendas.columns = vendas.columns.str.strip().str.upper()
 
         vendas["CNPJ_LIMPO"] = vendas["CNPJ"].astype(str).str.replace(r"\D", "", regex=True)
 
-        vendas["VALOR"] = (
-            vendas["VALOR"]
-            .astype(str)
-            .str.replace("R$","", regex=False)
-            .str.replace(".","", regex=False)
-            .str.replace(",",".", regex=False)
-        )
-
-        vendas["VALOR"] = pd.to_numeric(vendas["VALOR"], errors="coerce").fillna(0)
-
-        vendas["QTDE"] = pd.to_numeric(vendas["QTDE"], errors="coerce").fillna(0)
-
-        vendas["DATA PEDIDO"] = pd.to_datetime(vendas["DATA PEDIDO"], errors="coerce")
-
         return vendas
-
     except:
         return pd.DataFrame()
 
 df_vendas = carregar_vendas()
+
+# =========================
+# DEFINIR COLUNAS
+# =========================
 
 col_razao = "RAZÃO SOCIAL"
 col_fantasia = "NOME FANTASIA"
@@ -95,6 +103,10 @@ col_email = "E-MAIL"
 col_vendedor = "VENDEDOR"
 col_categoria = "CATEGORIA"
 col_faturamento = "FATURAMENTO ÚLTIMOS 6 MESES"
+
+# =========================
+# GARANTIR COLUNAS
+# =========================
 
 colunas_obrigatorias = [
     col_razao,
@@ -114,6 +126,10 @@ for col in colunas_obrigatorias:
     if col not in df.columns:
         df[col] = ""
 
+# =========================
+# LIMPAR CNPJ
+# =========================
+
 def limpar_cnpj(cnpj):
     if pd.isna(cnpj):
         return ""
@@ -121,12 +137,20 @@ def limpar_cnpj(cnpj):
 
 df["CNPJ_LIMPO"] = df[col_cnpj].apply(limpar_cnpj)
 
+# =========================
+# LIMPAR TELEFONE
+# =========================
+
 def limpar_telefone(tel):
     if pd.isna(tel):
         return ""
     return re.sub(r"\D", "", str(tel))
 
 df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
+
+# =========================
+# TRATAR FATURAMENTO
+# =========================
 
 df[col_faturamento] = pd.to_numeric(df[col_faturamento], errors="coerce").fillna(0)
 
@@ -142,14 +166,21 @@ labels = [
 
 df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 
+# =========================
+# FUNÇÃO GERAR PDF
+# =========================
+
 def gerar_pdf_cliente(cliente, vendas_cliente):
 
     buffer = BytesIO()
     styles = getSampleStyleSheet()
     elementos = []
 
-    elementos.append(Paragraph("Relatório Comercial do Cliente", styles["Title"]))
-    elementos.append(Paragraph(f"Gerado em {datetime.now().strftime('%d/%m/%Y')}", styles["Normal"]))
+    titulo = Paragraph("Relatório de Cliente - PAPAPÁ", styles["Title"])
+    data = Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y')}", styles["Normal"])
+
+    elementos.append(titulo)
+    elementos.append(data)
     elementos.append(Spacer(1,20))
 
     dados_cliente = [
@@ -162,72 +193,63 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ["Cidade", f"{cliente[col_cidade]} - {cliente[col_uf]}"],
         ["Vendedor", cliente[col_vendedor]],
         ["Categoria", cliente[col_categoria]],
-        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}"]
+        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}"],
+        ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
 
     ]
 
     tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
 
     tabela_cliente.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(1,0),colors.whitesmoke),
         ("GRID",(0,0),(-1,-1),0.5,colors.grey)
     ]))
 
     elementos.append(tabela_cliente)
-    elementos.append(Spacer(1,25))
+    elementos.append(Spacer(1,30))
+
+    elementos.append(Paragraph("Mix de Produtos Comprados", styles["Heading2"]))
 
     if len(vendas_cliente) > 0:
 
-        total_valor = vendas_cliente["VALOR"].sum()
-        total_qtde = vendas_cliente["QTDE"].sum()
-        total_pedidos = vendas_cliente["NUMERO NF"].nunique()
-
-        ticket = total_valor / total_pedidos if total_pedidos > 0 else 0
-
-        primeira_compra = vendas_cliente["DATA PEDIDO"].min()
-        ultima_compra = vendas_cliente["DATA PEDIDO"].max()
-
-        resumo = [
-
-            ["Valor total comprado", f"R$ {total_valor:,.2f}"],
-            ["Total unidades", int(total_qtde)],
-            ["Total pedidos", total_pedidos],
-            ["Ticket médio", f"R$ {ticket:,.2f}"],
-            ["Primeira compra", primeira_compra.strftime("%d/%m/%Y") if pd.notnull(primeira_compra) else ""],
-            ["Última compra", ultima_compra.strftime("%d/%m/%Y") if pd.notnull(ultima_compra) else ""]
-        ]
-
-        elementos.append(Paragraph("Resumo Comercial", styles["Heading2"]))
-
-        tabela_resumo = Table(resumo)
-
-        tabela_resumo.setStyle(TableStyle([
-            ("GRID",(0,0),(-1,-1),0.5,colors.grey)
-        ]))
-
-        elementos.append(tabela_resumo)
-
-        elementos.append(Spacer(1,25))
-
-        top_produtos = (
+        resumo = (
             vendas_cliente
-            .groupby("DESC PRODUTO")[["QTDE","VALOR"]]
+            .groupby(["SKU UNIFICADO","FAMÍLIA"])[["QUANTIDADE","VALOR"]]
             .sum()
             .reset_index()
             .sort_values("VALOR", ascending=False)
-            .head(10)
         )
 
-        dados_produtos = [["Produto","Qtde","Valor"]]
+        total_valor = resumo["VALOR"].sum()
+        total_qtd = resumo["QUANTIDADE"].sum()
+        total_skus = resumo["SKU UNIFICADO"].nunique()
 
-        for _,row in top_produtos.iterrows():
+        resumo_comercial = [
+
+            ["Total SKUs Comprados", total_skus],
+            ["Total Unidades", int(total_qtd)],
+            ["Valor Total Comprado", f"R$ {total_valor:,.2f}"]
+
+        ]
+
+        tabela_resumo = Table(resumo_comercial)
+
+        elementos.append(Spacer(1,10))
+        elementos.append(tabela_resumo)
+        elementos.append(Spacer(1,20))
+
+        dados_produtos = [["Produto","Família","Quantidade","Valor"]]
+
+        for _,row in resumo.iterrows():
 
             dados_produtos.append([
-                row["DESC PRODUTO"],
-                int(row["QTDE"]),
-                f"R$ {row['VALOR']:,.2f}"
-            ])
 
-        elementos.append(Paragraph("Top Produtos Comprados", styles["Heading2"]))
+                row["SKU UNIFICADO"],
+                row["FAMÍLIA"],
+                int(row["QUANTIDADE"]),
+                f"R$ {row['VALOR']:,.2f}"
+
+            ])
 
         tabela_produtos = Table(dados_produtos)
 
@@ -238,32 +260,9 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         elementos.append(tabela_produtos)
 
-        elementos.append(Spacer(1,25))
+    else:
 
-        ultimos = vendas_cliente.sort_values("DATA PEDIDO", ascending=False).head(10)
-
-        dados_pedidos = [["Data","NF","Produto","Qtde","Valor"]]
-
-        for _,row in ultimos.iterrows():
-
-            dados_pedidos.append([
-                row["DATA PEDIDO"].strftime("%d/%m/%Y") if pd.notnull(row["DATA PEDIDO"]) else "",
-                row["NUMERO NF"],
-                row["DESC PRODUTO"],
-                int(row["QTDE"]),
-                f"R$ {row['VALOR']:,.2f}"
-            ])
-
-        elementos.append(Paragraph("Últimos Pedidos", styles["Heading2"]))
-
-        tabela_pedidos = Table(dados_pedidos)
-
-        tabela_pedidos.setStyle(TableStyle([
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.5,colors.grey)
-        ]))
-
-        elementos.append(tabela_pedidos)
+        elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
 
     doc = SimpleDocTemplate(buffer, pagesize=A4)
 
@@ -272,6 +271,10 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     buffer.seek(0)
 
     return buffer
+
+# =========================
+# SIDEBAR
+# =========================
 
 st.sidebar.title("Filtros")
 
@@ -293,6 +296,10 @@ if st.sidebar.button("Limpar filtros"):
 
 df_filtrado = df.copy()
 
+# =========================
+# BUSCA CNPJ
+# =========================
+
 busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
 
 if busca_cnpj:
@@ -302,6 +309,10 @@ if busca_cnpj:
     df_filtrado = df_filtrado[
         df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_limpo, na=False)
     ]
+
+# =========================
+# BUSCA RAZÃO SOCIAL
+# =========================
 
 busca_nome = st.sidebar.text_input("Buscar Razão Social", key="busca_nome")
 
@@ -324,12 +335,20 @@ if busca_nome:
             df_filtrado[col_razao] == cliente_escolhido
         ]
 
+# =========================
+# BUSCA EMAIL
+# =========================
+
 busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
 
 if busca_email:
     df_filtrado = df_filtrado[
         df_filtrado[col_email].str.contains(busca_email, case=False, na=False)
     ]
+
+# =========================
+# BUSCA TELEFONE
+# =========================
 
 busca_tel = st.sidebar.text_input("Buscar por Telefone", key="busca_tel")
 
@@ -340,6 +359,10 @@ if busca_tel:
     df_filtrado = df_filtrado[
         df_filtrado["TEL_LIMPO"].str.contains(tel_limpo, na=False)
     ]
+
+# =========================
+# FILTROS
+# =========================
 
 vendedores = sorted(df_filtrado[col_vendedor].dropna().unique())
 
@@ -383,13 +406,52 @@ faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_f
 if faixa_sel:
     df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(faixa_sel)]
 
+# =========================
+# TÍTULO
+# =========================
+
 st.title("Dashboard Inside Sales - PAPAPÁ")
+
+# =========================
+# CARD CLIENTE
+# =========================
 
 if len(df_filtrado) == 1:
 
     cliente = df_filtrado.iloc[0]
 
+    st.markdown("### Cliente encontrado")
+
+    st.markdown(
+        f"""
+        <div style="padding:20px;border-radius:10px;background-color:#f6f6f6">
+
+        <h3 style="color:#FF4B4B">{cliente[col_razao]}</h3>
+
+        <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[col_vendedor]}</span><br><br>
+
+        <b>CNPJ:</b> {cliente[col_cnpj]}<br>
+        <b>Telefone:</b> {cliente[col_telefone]}<br>
+        <b>E-mail:</b> {cliente[col_email]}<br>
+        <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}<br>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     telefone = limpar_telefone(cliente[col_telefone])
+
+    if telefone:
+
+        link_whatsapp = f"https://wa.me/55{telefone}"
+
+        st.link_button(
+            "💬 Chamar no WhatsApp",
+            link_whatsapp
+        )
+
+    st.divider()
 
     vendas_cliente = pd.DataFrame()
 
@@ -407,6 +469,105 @@ if len(df_filtrado) == 1:
         file_name=f"relatorio_cliente_{cliente[col_razao]}.pdf",
         mime="application/pdf"
     )
+
+# =========================
+# KPIs
+# =========================
+
+k1, k2, k3, k4 = st.columns(4)
+
+k1.metric("Total Clientes", len(df_filtrado))
+k2.metric("Estados Ativos", df_filtrado[col_uf].nunique())
+k3.metric("Categorias", df_filtrado[col_categoria].nunique())
+k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
+
+st.divider()
+
+# =========================
+# GRÁFICO SEGMENTO
+# =========================
+
+resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
+resumo_categoria.columns = ["Categoria", "Quantidade"]
+
+fig_cat = px.bar(
+    resumo_categoria,
+    x="Categoria",
+    y="Quantidade",
+    title="Distribuição por Categoria"
+)
+
+st.plotly_chart(fig_cat, use_container_width=True)
+
+# =========================
+# GRÁFICO FATURAMENTO
+# =========================
+
+resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+resumo_faturamento.columns = ["Faixa", "Quantidade"]
+
+fig_fat = px.bar(
+    resumo_faturamento,
+    x="Faixa",
+    y="Quantidade",
+    title="Distribuição por Faixa de Faturamento"
+)
+
+st.plotly_chart(fig_fat, use_container_width=True)
+
+# =========================
+# MAPA
+# =========================
+
+resumo_estado = df_filtrado[col_uf].value_counts().reset_index()
+resumo_estado.columns = ["UF", "Quantidade"]
+
+url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+
+with urllib.request.urlopen(url) as response:
+    geojson_br = json.load(response)
+
+fig_mapa = px.choropleth(
+    resumo_estado,
+    geojson=geojson_br,
+    locations="UF",
+    featureidkey="properties.sigla",
+    color="Quantidade",
+    color_continuous_scale="Reds",
+    title="Distribuição de Clientes por Estado"
+)
+
+fig_mapa.update_geos(fitbounds="locations", visible=False)
+
+st.plotly_chart(fig_mapa, use_container_width=True)
+
+st.divider()
+
+# =========================
+# GERAR EXCEL
+# =========================
+
+def gerar_excel(df):
+
+    buffer = BytesIO()
+
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Clientes")
+
+    return buffer.getvalue()
+
+excel = gerar_excel(df_filtrado)
+
+st.download_button(
+    label="📥 Baixar base filtrada em Excel",
+    data=excel,
+    file_name="clientes_filtrados.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+# =========================
+# TABELA
+# =========================
 
 st.subheader("Base de Clientes")
 
