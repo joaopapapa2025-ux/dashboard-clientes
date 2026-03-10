@@ -14,6 +14,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
+# =========================
+# CONFIGURAÇÃO
+# =========================
 
 st.set_page_config(
     page_title="Dashboard Inside Sales - PAPAPÁ",
@@ -68,36 +71,19 @@ def carregar_dados():
 df = carregar_dados()
 
 # =========================
-# CARREGAR BASE VENDAS
+# CARREGAR BASE PRODUTOS
 # =========================
 
 @st.cache_data
 def carregar_vendas():
-
     try:
-
         vendas = pd.read_excel(ARQUIVO_BASE, sheet_name=1)
-
         vendas.columns = vendas.columns.str.strip().str.upper()
 
         vendas["CNPJ_LIMPO"] = vendas["CNPJ"].astype(str).str.replace(r"\D", "", regex=True)
 
-        vendas["QTDE"] = pd.to_numeric(vendas["QTDE"], errors="coerce").fillna(0)
-
-        vendas["VALOR"] = (
-            vendas["VALOR"]
-            .astype(str)
-            .str.replace("R$", "", regex=False)
-            .str.replace(".", "", regex=False)
-            .str.replace(",", ".", regex=False)
-        )
-
-        vendas["VALOR"] = pd.to_numeric(vendas["VALOR"], errors="coerce").fillna(0)
-
         return vendas
-
     except:
-
         return pd.DataFrame()
 
 df_vendas = carregar_vendas()
@@ -119,14 +105,34 @@ col_categoria = "CATEGORIA"
 col_faturamento = "FATURAMENTO ÚLTIMOS 6 MESES"
 
 # =========================
+# GARANTIR COLUNAS
+# =========================
+
+colunas_obrigatorias = [
+    col_razao,
+    col_fantasia,
+    col_uf,
+    col_cidade,
+    col_bairro,
+    col_cnpj,
+    col_telefone,
+    col_email,
+    col_vendedor,
+    col_categoria,
+    col_faturamento
+]
+
+for col in colunas_obrigatorias:
+    if col not in df.columns:
+        df[col] = ""
+
+# =========================
 # LIMPAR CNPJ
 # =========================
 
 def limpar_cnpj(cnpj):
-
     if pd.isna(cnpj):
         return ""
-
     return re.sub(r"\D", "", str(cnpj))
 
 df["CNPJ_LIMPO"] = df[col_cnpj].apply(limpar_cnpj)
@@ -136,10 +142,8 @@ df["CNPJ_LIMPO"] = df[col_cnpj].apply(limpar_cnpj)
 # =========================
 
 def limpar_telefone(tel):
-
     if pd.isna(tel):
         return ""
-
     return re.sub(r"\D", "", str(tel))
 
 df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
@@ -163,15 +167,13 @@ labels = [
 df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 
 # =========================
-# GERAR PDF
+# FUNÇÃO GERAR PDF
 # =========================
 
 def gerar_pdf_cliente(cliente, vendas_cliente):
 
     buffer = BytesIO()
-
     styles = getSampleStyleSheet()
-
     elementos = []
 
     titulo = Paragraph("Relatório de Cliente - PAPAPÁ", styles["Title"])
@@ -204,24 +206,23 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     ]))
 
     elementos.append(tabela_cliente)
-
     elementos.append(Spacer(1,30))
 
-    elementos.append(Paragraph("Histórico de Compras", styles["Heading2"]))
+    elementos.append(Paragraph("Mix de Produtos Comprados", styles["Heading2"]))
 
     if len(vendas_cliente) > 0:
 
         resumo = (
             vendas_cliente
-            .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
+            .groupby(["SKU UNIFICADO","FAMÍLIA"])[["QUANTIDADE","VALOR"]]
             .sum()
             .reset_index()
             .sort_values("VALOR", ascending=False)
         )
 
         total_valor = resumo["VALOR"].sum()
-        total_qtd = resumo["QTDE"].sum()
-        total_skus = resumo["DESC PRODUTO"].nunique()
+        total_qtd = resumo["QUANTIDADE"].sum()
+        total_skus = resumo["SKU UNIFICADO"].nunique()
 
         resumo_comercial = [
 
@@ -231,23 +232,21 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         ]
 
-        elementos.append(Spacer(1,10))
-
         tabela_resumo = Table(resumo_comercial)
 
+        elementos.append(Spacer(1,10))
         elementos.append(tabela_resumo)
-
         elementos.append(Spacer(1,20))
 
-        dados_produtos = [["Produto","Linha","Quantidade","Valor"]]
+        dados_produtos = [["Produto","Família","Quantidade","Valor"]]
 
         for _,row in resumo.iterrows():
 
             dados_produtos.append([
 
-                row["DESC PRODUTO"],
-                row["LINHA"],
-                int(row["QTDE"]),
+                row["SKU UNIFICADO"],
+                row["FAMÍLIA"],
+                int(row["QUANTIDADE"]),
                 f"R$ {row['VALOR']:,.2f}"
 
             ])
@@ -279,9 +278,29 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
 st.sidebar.title("Filtros")
 
+if st.sidebar.button("Limpar filtros"):
+
+    st.session_state["busca_cnpj"] = ""
+    st.session_state["busca_nome"] = ""
+    st.session_state["busca_email"] = ""
+    st.session_state["busca_tel"] = ""
+
+    st.session_state["filtro_vendedor"] = []
+    st.session_state["filtro_uf"] = []
+    st.session_state["filtro_cidade"] = []
+    st.session_state["filtro_bairro"] = []
+    st.session_state["filtro_categoria"] = []
+    st.session_state["filtro_faturamento"] = []
+
+    st.rerun()
+
 df_filtrado = df.copy()
 
-busca_cnpj = st.sidebar.text_input("Buscar por CNPJ")
+# =========================
+# BUSCA CNPJ
+# =========================
+
+busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
 
 if busca_cnpj:
 
@@ -291,7 +310,11 @@ if busca_cnpj:
         df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_limpo, na=False)
     ]
 
-busca_nome = st.sidebar.text_input("Buscar Razão Social")
+# =========================
+# BUSCA RAZÃO SOCIAL
+# =========================
+
+busca_nome = st.sidebar.text_input("Buscar Razão Social", key="busca_nome")
 
 cliente_escolhido = None
 
@@ -311,6 +334,81 @@ if busca_nome:
         df_filtrado = df_filtrado[
             df_filtrado[col_razao] == cliente_escolhido
         ]
+
+# =========================
+# BUSCA EMAIL
+# =========================
+
+busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
+
+if busca_email:
+    df_filtrado = df_filtrado[
+        df_filtrado[col_email].str.contains(busca_email, case=False, na=False)
+    ]
+
+# =========================
+# BUSCA TELEFONE
+# =========================
+
+busca_tel = st.sidebar.text_input("Buscar por Telefone", key="busca_tel")
+
+if busca_tel:
+
+    tel_limpo = limpar_telefone(busca_tel)
+
+    df_filtrado = df_filtrado[
+        df_filtrado["TEL_LIMPO"].str.contains(tel_limpo, na=False)
+    ]
+
+# =========================
+# FILTROS
+# =========================
+
+vendedores = sorted(df_filtrado[col_vendedor].dropna().unique())
+
+vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores, key="filtro_vendedor")
+
+if vendedor_sel:
+    df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
+
+ufs = sorted(df_filtrado[col_uf].dropna().unique())
+
+uf_sel = st.sidebar.multiselect("Estado (UF)", ufs, key="filtro_uf")
+
+if uf_sel:
+    df_filtrado = df_filtrado[df_filtrado[col_uf].isin(uf_sel)]
+
+cidades = sorted(df_filtrado[col_cidade].dropna().unique())
+
+cidade_sel = st.sidebar.multiselect("Cidade", cidades, key="filtro_cidade")
+
+if cidade_sel:
+    df_filtrado = df_filtrado[df_filtrado[col_cidade].isin(cidade_sel)]
+
+bairros = sorted(df_filtrado[col_bairro].dropna().unique())
+
+bairro_sel = st.sidebar.multiselect("Bairro", bairros, key="filtro_bairro")
+
+if bairro_sel:
+    df_filtrado = df_filtrado[df_filtrado[col_bairro].isin(bairro_sel)]
+
+categorias = sorted(df_filtrado[col_categoria].dropna().unique())
+
+categoria_sel = st.sidebar.multiselect("Categoria", categorias, key="filtro_categoria")
+
+if categoria_sel:
+    df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
+
+faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
+
+faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_faturamento")
+
+if faixa_sel:
+    df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(faixa_sel)]
+
+# =========================
+# TÍTULO
+# =========================
 
 st.title("Dashboard Inside Sales - PAPAPÁ")
 
@@ -353,6 +451,8 @@ if len(df_filtrado) == 1:
             link_whatsapp
         )
 
+    st.divider()
+
     vendas_cliente = pd.DataFrame()
 
     if not df_vendas.empty:
@@ -380,6 +480,94 @@ k1.metric("Total Clientes", len(df_filtrado))
 k2.metric("Estados Ativos", df_filtrado[col_uf].nunique())
 k3.metric("Categorias", df_filtrado[col_categoria].nunique())
 k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
+
+st.divider()
+
+# =========================
+# GRÁFICO SEGMENTO
+# =========================
+
+resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
+resumo_categoria.columns = ["Categoria", "Quantidade"]
+
+fig_cat = px.bar(
+    resumo_categoria,
+    x="Categoria",
+    y="Quantidade",
+    title="Distribuição por Categoria"
+)
+
+st.plotly_chart(fig_cat, use_container_width=True)
+
+# =========================
+# GRÁFICO FATURAMENTO
+# =========================
+
+resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+resumo_faturamento.columns = ["Faixa", "Quantidade"]
+
+fig_fat = px.bar(
+    resumo_faturamento,
+    x="Faixa",
+    y="Quantidade",
+    title="Distribuição por Faixa de Faturamento"
+)
+
+st.plotly_chart(fig_fat, use_container_width=True)
+
+# =========================
+# MAPA
+# =========================
+
+resumo_estado = df_filtrado[col_uf].value_counts().reset_index()
+resumo_estado.columns = ["UF", "Quantidade"]
+
+url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+
+with urllib.request.urlopen(url) as response:
+    geojson_br = json.load(response)
+
+fig_mapa = px.choropleth(
+    resumo_estado,
+    geojson=geojson_br,
+    locations="UF",
+    featureidkey="properties.sigla",
+    color="Quantidade",
+    color_continuous_scale="Reds",
+    title="Distribuição de Clientes por Estado"
+)
+
+fig_mapa.update_geos(fitbounds="locations", visible=False)
+
+st.plotly_chart(fig_mapa, use_container_width=True)
+
+st.divider()
+
+# =========================
+# GERAR EXCEL
+# =========================
+
+def gerar_excel(df):
+
+    buffer = BytesIO()
+
+    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Clientes")
+
+    return buffer.getvalue()
+
+excel = gerar_excel(df_filtrado)
+
+st.download_button(
+    label="📥 Baixar base filtrada em Excel",
+    data=excel,
+    file_name="clientes_filtrados.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+# =========================
+# TABELA
+# =========================
 
 st.subheader("Base de Clientes")
 
