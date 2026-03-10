@@ -240,16 +240,18 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         dados_produtos = [["Data Pedido","NF","Produto","Linha","Qtd","Valor"]]
 
-        for _,row in resumo.iterrows():
+        for _,row in vendas_cliente.iterrows():
 
             dados_produtos.append([
 
-                Paragraph(row["DESC PRODUTO"], styles["Normal"]),
-                row["LINHA"],
-                int(row["QTDE"]),
-                f"R$ {row['VALOR']:,.2f}"
+        row["DATA PEDIDO"].strftime("%d/%m/%Y") if not pd.isna(row["DATA PEDIDO"]) else "",
+        str(row["NUMERO NF"]),
+        Paragraph(str(row["DESC PRODUTO"]), styles["Normal"]),
+        Paragraph(str(row["LINHA"]), styles["Normal"]),
+        int(row["QTDE"]),
+        f"R$ {row['VALOR']:,.2f}"
 
-            ])
+    ])
 
         tabela_produtos = Table(
     dados_produtos,
@@ -574,6 +576,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
