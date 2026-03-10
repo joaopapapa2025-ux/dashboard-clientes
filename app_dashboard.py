@@ -208,21 +208,15 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     elementos.append(tabela_cliente)
     elementos.append(Spacer(1,30))
 
-    elementos.append(Paragraph("Mix de Produtos Comprados", styles["Heading2"]))
+    elementos.append(Paragraph("Histórico de Compras", styles["Heading2"]))
 
     if not vendas_cliente.empty:
 
-        resumo = (
-            vendas_cliente
-            .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
-            .sum()
-            .reset_index()
-            .sort_values("VALOR", ascending=False)
-        )
+        vendas_cliente = vendas_cliente.sort_values("DATA PEDIDO", ascending=False)
 
-        total_valor = resumo["VALOR"].sum()
-        total_qtd = resumo["QTDE"].sum()
-        total_skus = resumo["DESC PRODUTO"].nunique()
+        total_valor = vendas_cliente["VALOR"].sum()
+        total_qtd = vendas_cliente["QTDE"].sum()
+        total_skus = vendas_cliente["DESC PRODUTO"].nunique()
 
         resumo_comercial = [
 
@@ -232,42 +226,64 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         ]
 
-        tabela_resumo = Table(resumo_comercial)
+        tabela_resumo = Table(resumo_comercial, colWidths=[8*cm,8*cm])
+
+        tabela_resumo.setStyle(TableStyle([
+            ("GRID",(0,0),(-1,-1),0.5,colors.grey)
+        ]))
 
         elementos.append(Spacer(1,10))
         elementos.append(tabela_resumo)
         elementos.append(Spacer(1,20))
 
-        dados_produtos = [["Data Pedido","NF","Produto","Linha","Qtd","Valor"]]
+        dados_produtos = [
+            ["Data Pedido","NF","Produto","Linha","Qtd","Valor"]
+        ]
 
         for _,row in vendas_cliente.iterrows():
 
+            data_pedido = ""
+            if not pd.isna(row["DATA PEDIDO"]):
+                try:
+                    data_pedido = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
+                except:
+                    data_pedido = str(row["DATA PEDIDO"])
+
+            nf = str(row["NUMERO NF"]) if not pd.isna(row["NUMERO NF"]) else ""
+
+            produto = Paragraph(str(row["DESC PRODUTO"]), styles["Normal"])
+            linha = Paragraph(str(row["LINHA"]), styles["Normal"])
+
+            qtd = int(row["QTDE"]) if not pd.isna(row["QTDE"]) else ""
+            valor = f"R$ {row['VALOR']:,.2f}" if not pd.isna(row["VALOR"]) else ""
+
             dados_produtos.append([
-
-        row["DATA PEDIDO"].strftime("%d/%m/%Y") if not pd.isna(row["DATA PEDIDO"]) else "",
-        str(row["NUMERO NF"]),
-        Paragraph(str(row["DESC PRODUTO"]), styles["Normal"]),
-        Paragraph(str(row["LINHA"]), styles["Normal"]),
-        int(row["QTDE"]),
-        f"R$ {row['VALOR']:,.2f}"
-
-    ])
+                data_pedido,
+                nf,
+                produto,
+                linha,
+                qtd,
+                valor
+            ])
 
         tabela_produtos = Table(
-    dados_produtos,
-    colWidths=[2.5*cm,2.5*cm,7*cm,3.5*cm,2*cm,2.5*cm]
-)
+            dados_produtos,
+            colWidths=[2.5*cm,2.5*cm,7*cm,3.5*cm,2*cm,2.5*cm],
+            repeatRows=1
+        )
 
         tabela_produtos.setStyle(TableStyle([
 
-    ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-    ("GRID",(0,0),(-1,-1),0.25,colors.grey),
+            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
 
-    ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-    ("ALIGN",(4,1),(4,-1),"CENTER"),
-    ("ALIGN",(5,1),(5,-1),"RIGHT")
+            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
 
-]))
+            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+
+            ("ALIGN",(4,1),(4,-1),"CENTER"),
+            ("ALIGN",(5,1),(5,-1),"RIGHT")
+
+        ]))
 
         elementos.append(tabela_produtos)
 
@@ -275,7 +291,14 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
 
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=18
+    )
 
     doc.build(elementos)
 
@@ -582,6 +605,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
