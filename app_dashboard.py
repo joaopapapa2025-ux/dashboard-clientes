@@ -80,8 +80,6 @@ def carregar_vendas():
         vendas = pd.read_excel(ARQUIVO_BASE, sheet_name=1)
         vendas.columns = vendas.columns.str.strip().str.upper()
         
-        st.write("Colunas da aba de vendas:", vendas.columns.tolist())
-
         vendas["CNPJ_LIMPO"] = vendas["CNPJ"].astype(str).str.replace(r"\D", "", regex=True)
 
         return vendas
@@ -576,6 +574,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
