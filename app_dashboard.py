@@ -212,7 +212,9 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
     elementos.append(Paragraph("Mix de Produtos Comprados", styles["Heading2"]))
 
-    if len(vendas_cliente) > 0:
+    if not vendas_cliente.empty:
+    
+        if {"DESC PRODUTO","LINHA","QTDE","VALOR"}.issubset(vendas_cliente.columns):
 
         resumo = (
             vendas_cliente
@@ -570,6 +572,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
