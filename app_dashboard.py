@@ -255,7 +255,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         tabela_produtos = Table(
     dados_produtos,
-    colWidths=[9*cm,4*cm,2*cm,3*cm]
+    colWidths=[2.5*cm,2.5*cm,7*cm,3.5*cm,2*cm,2.5*cm]
 )
 
         tabela_produtos.setStyle(TableStyle([
@@ -576,6 +576,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
