@@ -172,11 +172,13 @@ df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 # FUNÇÃO GERAR PDF
 # =========================
 
-def gerar_pdf_cliente(cliente, vendas_cliente):
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
 
-    buffer = BytesIO()
-    styles = getSampleStyleSheet()
-    elementos = []
+    doc.build(elementos)
+
+    buffer.seek(0)
+
+    return buffer
 
     titulo = Paragraph("Relatório de Cliente - PAPAPÁ", styles["Title"])
     data = Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y')}", styles["Normal"])
@@ -574,6 +576,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
