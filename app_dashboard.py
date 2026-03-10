@@ -212,9 +212,9 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
     elementos.append(Paragraph("Mix de Produtos Comprados", styles["Heading2"]))
 
-    if not vendas_cliente.empty:
-    
-        if {"DESC PRODUTO","LINHA","QTDE","VALOR"}.issubset(vendas_cliente.columns):
+if not vendas_cliente.empty:
+
+    if {"DESC PRODUTO","LINHA","QTDE","VALOR"}.issubset(vendas_cliente.columns):
 
         resumo = (
             vendas_cliente
@@ -229,9 +229,11 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         total_skus = resumo["DESC PRODUTO"].nunique()
 
         resumo_comercial = [
+
             ["Total Produtos Comprados", total_skus],
             ["Total Unidades", int(total_qtd)],
             ["Valor Total Comprado", f"R$ {total_valor:,.2f}"]
+
         ]
 
         tabela_resumo = Table(resumo_comercial)
@@ -260,9 +262,9 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         elementos.append(tabela_produtos)
 
-    else:
+else:
 
-        elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
+    elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
 
     doc = SimpleDocTemplate(buffer, pagesize=A4)
 
@@ -572,6 +574,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
