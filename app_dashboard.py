@@ -178,21 +178,6 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     styles = getSampleStyleSheet()
     elementos = []
 
-    ...
-
-    if not vendas_cliente.empty:
-        ...
-    else:
-        ...
-
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-
-    doc.build(elementos)
-
-    buffer.seek(0)
-
-    return buffer
-
     titulo = Paragraph("Relatório de Cliente - PAPAPÁ", styles["Title"])
     data = Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y')}", styles["Normal"])
 
@@ -227,9 +212,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
     elementos.append(Paragraph("Mix de Produtos Comprados", styles["Heading2"]))
 
-if not vendas_cliente.empty:
-
-    if {"DESC PRODUTO","LINHA","QTDE","VALOR"}.issubset(vendas_cliente.columns):
+    if not vendas_cliente.empty:
 
         resumo = (
             vendas_cliente
@@ -262,10 +245,12 @@ if not vendas_cliente.empty:
         for _,row in resumo.iterrows():
 
             dados_produtos.append([
+
                 row["DESC PRODUTO"],
                 row["LINHA"],
                 int(row["QTDE"]),
                 f"R$ {row['VALOR']:,.2f}"
+
             ])
 
         tabela_produtos = Table(dados_produtos)
@@ -277,9 +262,9 @@ if not vendas_cliente.empty:
 
         elementos.append(tabela_produtos)
 
-else:
+    else:
 
-    elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
+        elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
 
     doc = SimpleDocTemplate(buffer, pagesize=A4)
 
@@ -288,7 +273,6 @@ else:
     buffer.seek(0)
 
     return buffer
-
 # =========================
 # SIDEBAR
 # =========================
@@ -589,6 +573,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
