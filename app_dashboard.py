@@ -212,12 +212,17 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
     if len(vendas_cliente) > 0:
 
-        resumo = (
-            vendas_cliente
-            .groupby(["SKU UNIFICADO","FAMÍLIA"])[["QUANTIDADE","VALOR"]]
-            .sum()
-            .reset_index()
-            .sort_values("VALOR", ascending=False)
+resumo = (
+    vendas_cliente
+    .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
+    .sum()
+    .reset_index()
+    .sort_values("VALOR", ascending=False)
+)
+
+total_valor = resumo["VALOR"].sum()
+total_qtd = resumo["QTDE"].sum()
+total_skus = resumo["DESC PRODUTO"].nunique()
         )
 
         total_valor = resumo["VALOR"].sum()
@@ -238,18 +243,18 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         elementos.append(tabela_resumo)
         elementos.append(Spacer(1,20))
 
-        dados_produtos = [["Produto","Família","Quantidade","Valor"]]
+        dados_produtos = [["Produto","Linha","Quantidade","Valor"]]
 
-        for _,row in resumo.iterrows():
+for _,row in resumo.iterrows():
 
-            dados_produtos.append([
+    dados_produtos.append([
 
-                row["SKU UNIFICADO"],
-                row["FAMÍLIA"],
-                int(row["QUANTIDADE"]),
-                f"R$ {row['VALOR']:,.2f}"
+        row["DESC PRODUTO"],
+        row["LINHA"],
+        int(row["QTDE"]),
+        f"R$ {row['VALOR']:,.2f}"
 
-            ])
+    ])
 
         tabela_produtos = Table(dados_produtos)
 
@@ -572,3 +577,4 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
