@@ -238,7 +238,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         elementos.append(tabela_resumo)
         elementos.append(Spacer(1,20))
 
-        dados_produtos = [["Produto","Linha","Quantidade","Valor"]]
+        dados_produtos = [["Data Pedido","NF","Produto","Linha","Qtd","Valor"]]
 
         for _,row in resumo.iterrows():
 
@@ -574,6 +574,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
