@@ -212,44 +212,40 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
     if len(vendas_cliente) > 0:
 
-resumo = (
-    vendas_cliente
-    .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
-    .sum()
-    .reset_index()
-    .sort_values("VALOR", ascending=False)
-)
+        resumo = (
+            vendas_cliente
+            .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
+            .sum()
+            .reset_index()
+            .sort_values("VALOR", ascending=False)
+        )
 
-total_valor = resumo["VALOR"].sum()
-total_qtd = resumo["QTDE"].sum()
-total_skus = resumo["DESC PRODUTO"].nunique()
+        total_valor = resumo["VALOR"].sum()
+        total_qtd = resumo["QTDE"].sum()
+        total_skus = resumo["DESC PRODUTO"].nunique()
 
-resumo_comercial = [
+        resumo_comercial = [
+            ["Total Produtos Comprados", total_skus],
+            ["Total Unidades", int(total_qtd)],
+            ["Valor Total Comprado", f"R$ {total_valor:,.2f}"]
+        ]
 
-    ["Total Produtos Comprados", total_skus],
-    ["Total Unidades", int(total_qtd)],
-    ["Valor Total Comprado", f"R$ {total_valor:,.2f}"]
+        tabela_resumo = Table(resumo_comercial)
 
-]
+        elementos.append(Spacer(1,10))
+        elementos.append(tabela_resumo)
+        elementos.append(Spacer(1,20))
 
-tabela_resumo = Table(resumo_comercial)
+        dados_produtos = [["Produto","Linha","Quantidade","Valor"]]
 
-elementos.append(Spacer(1,10))
-elementos.append(tabela_resumo)
-elementos.append(Spacer(1,20))
+        for _,row in resumo.iterrows():
 
-dados_produtos = [["Produto","Linha","Quantidade","Valor"]]
-
-for _,row in resumo.iterrows():
-
-    dados_produtos.append([
-
-        row["DESC PRODUTO"],
-        row["LINHA"],
-        int(row["QTDE"]),
-        f"R$ {row['VALOR']:,.2f}"
-
-    ])
+            dados_produtos.append([
+                row["DESC PRODUTO"],
+                row["LINHA"],
+                int(row["QTDE"]),
+                f"R$ {row['VALOR']:,.2f}"
+            ])
 
         tabela_produtos = Table(dados_produtos)
 
@@ -572,6 +568,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
