@@ -259,9 +259,15 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 )
 
         tabela_produtos.setStyle(TableStyle([
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.5,colors.grey)
-        ]))
+
+    ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
+    ("GRID",(0,0),(-1,-1),0.25,colors.grey),
+
+    ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+    ("ALIGN",(4,1),(4,-1),"CENTER"),
+    ("ALIGN",(5,1),(5,-1),"RIGHT")
+
+]))
 
         elementos.append(tabela_produtos)
 
@@ -576,6 +582,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
