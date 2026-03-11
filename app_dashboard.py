@@ -605,7 +605,7 @@ if len(df_filtrado) == 1:
 # ANÁLISE DE COMPRAS DO CLIENTE
 # =========================
 
-if not vendas_cliente.empty:
+if "vendas_cliente" in locals() and not vendas_cliente.empty:
 
     st.divider()
     st.subheader("📊 Análise de Compras do Cliente")
@@ -809,6 +809,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
