@@ -210,13 +210,118 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
     elementos.append(Paragraph("Histórico de Compras", styles["Heading2"]))
 
-    if not vendas_cliente.empty:
+if not vendas_cliente.empty:
 
-        vendas_cliente = vendas_cliente.sort_values("DATA PEDIDO", ascending=False)
+    resumo = (
+        vendas_cliente
+        .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
+        .sum()
+        .reset_index()
+        .sort_values("VALOR", ascending=False)
+    )
 
-        total_valor = vendas_cliente["VALOR"].sum()
-        total_qtd = vendas_cliente["QTDE"].sum()
-        total_skus = vendas_cliente["DESC PRODUTO"].nunique()
+    total_valor = resumo["VALOR"].sum()
+    total_qtd = resumo["QTDE"].sum()
+    total_skus = resumo["DESC PRODUTO"].nunique()
+
+    # =========================
+    # NOVOS INDICADORES
+    # =========================
+
+    ticket_medio = 0
+    ultima_compra = ""
+
+    if "NUMERO NF" in vendas_cliente.columns:
+        total_pedidos = vendas_cliente["NUMERO NF"].nunique()
+        if total_pedidos > 0:
+            ticket_medio = total_valor / total_pedidos
+
+    if "DATA PEDIDO" in vendas_cliente.columns:
+        data_max = vendas_cliente["DATA PEDIDO"].max()
+        if pd.notna(data_max):
+            ultima_compra = data_max.strftime("%d/%m/%Y")
+
+    # =========================
+    # RESUMO COMERCIAL
+    # =========================
+
+    resumo_comercial = [
+
+        ["Total Produtos Comprados", total_skus],
+        ["Total Unidades", int(total_qtd)],
+        ["Valor Total Comprado", f"R$ {total_valor:,.2f}"],
+        ["Ticket Médio", f"R$ {ticket_medio:,.2f}"],
+        ["Data da Última Compra", ultima_compra]
+
+    ]
+
+    tabela_resumo = Table(resumo_comercial)
+
+    elementos.append(Spacer(1,10))
+    elementos.append(tabela_resumo)
+    elementos.append(Spacer(1,20))
+
+    # =========================
+    # TOP PRODUTOS
+    # =========================
+
+    elementos.append(Paragraph("Top Produtos Comprados", styles["Heading3"]))
+
+    top_produtos = resumo.head(5)
+
+    dados_top = [["Produto","Linha","Qtd","Valor"]]
+
+    for _,row in top_produtos.iterrows():
+
+        dados_top.append([
+            Paragraph(str(row["DESC PRODUTO"]), styles["Normal"]),
+            row["LINHA"],
+            int(row["QTDE"]),
+            f"R$ {row['VALOR']:,.2f}"
+        ])
+
+    tabela_top = Table(dados_top, colWidths=[8*cm,4*cm,2*cm,3*cm])
+
+    tabela_top.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
+        ("GRID",(0,0),(-1,-1),0.25,colors.grey)
+    ]))
+
+    elementos.append(tabela_top)
+    elementos.append(Spacer(1,20))
+
+    # =========================
+    # DISTRIBUIÇÃO POR LINHA
+    # =========================
+
+    elementos.append(Paragraph("Distribuição por Linha de Produto", styles["Heading3"]))
+
+    dist_linha = (
+        vendas_cliente
+        .groupby("LINHA")[["VALOR"]]
+        .sum()
+        .reset_index()
+        .sort_values("VALOR", ascending=False)
+    )
+
+    dados_linha = [["Linha","Valor"]]
+
+    for _,row in dist_linha.iterrows():
+
+        dados_linha.append([
+            row["LINHA"],
+            f"R$ {row['VALOR']:,.2f}"
+        ])
+
+    tabela_linha = Table(dados_linha, colWidths=[10*cm,5*cm])
+
+    tabela_linha.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
+        ("GRID",(0,0),(-1,-1),0.25,colors.grey)
+    ]))
+
+    elementos.append(tabela_linha)
+    elementos.append(Spacer(1,20))
 
         resumo_comercial = [
 
@@ -605,6 +710,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
