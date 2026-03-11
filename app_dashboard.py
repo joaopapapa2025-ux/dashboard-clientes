@@ -409,7 +409,8 @@ else:
 
     buffer.seek(0)
 
-return buffer
+    return buffer
+    
 # =========================
 # SIDEBAR
 # =========================
@@ -710,6 +711,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
