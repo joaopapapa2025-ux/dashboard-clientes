@@ -684,14 +684,7 @@ if len(df_filtrado) == 1:
 
 if "vendas_cliente" in locals() and not vendas_cliente.empty:
 
-    produtos_cliente = set(
-        vendas_cliente["DESC PRODUTO"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-        .unique()
-    )
-
+    # LIMPAR BASE DE PRODUTOS
     produtos_base = (
         df_vendas["DESC PRODUTO"]
         .astype(str)
@@ -699,7 +692,6 @@ if "vendas_cliente" in locals() and not vendas_cliente.empty:
         .str.upper()
     )
 
-    # remover produtos inválidos
     produtos_base = produtos_base[
         (~produtos_base.str.contains("CONFERIR", na=False)) &
         (~produtos_base.str.contains("TESTE", na=False)) &
@@ -708,6 +700,23 @@ if "vendas_cliente" in locals() and not vendas_cliente.empty:
 
     todos_produtos = set(produtos_base.unique())
 
+    # LIMPAR PRODUTOS DO CLIENTE
+    produtos_cliente = (
+        vendas_cliente["DESC PRODUTO"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+
+    produtos_cliente = produtos_cliente[
+        (~produtos_cliente.str.contains("CONFERIR", na=False)) &
+        (~produtos_cliente.str.contains("TESTE", na=False)) &
+        (~produtos_cliente.str.contains("AJUSTE", na=False))
+    ]
+
+    produtos_cliente = set(produtos_cliente.unique())
+
+    # CALCULAR DIFERENÇA
     produtos_nao_compra = sorted(list(todos_produtos - produtos_cliente))
 
     df_nao_compra = pd.DataFrame({
@@ -862,6 +871,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
