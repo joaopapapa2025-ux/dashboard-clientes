@@ -197,7 +197,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ["Cidade", f"{cliente[col_cidade]} - {cliente[col_uf]}"],
         ["Vendedor", cliente[col_vendedor]],
         ["Categoria", cliente[col_categoria]],
-        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}],
+        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}"],
         ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
 
     ]
@@ -666,6 +666,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
