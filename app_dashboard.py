@@ -323,7 +323,7 @@ if not vendas_cliente.empty:
     elementos.append(tabela_linha)
     elementos.append(Spacer(1,20))
 
-        resumo_comercial = [
+    resumo_comercial = [
 
             ["Total Produtos Comprados", total_skus],
             ["Total Unidades", int(total_qtd)],
@@ -710,6 +710,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
