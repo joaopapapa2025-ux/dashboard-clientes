@@ -201,7 +201,6 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
 
     tabela_cliente.setStyle(TableStyle([
-        ("BACKGROUND",(0,0),(1,0),colors.whitesmoke),
         ("GRID",(0,0),(-1,-1),0.5,colors.grey)
     ]))
 
@@ -257,6 +256,10 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         elementos.append(tabela_resumo)
         elementos.append(Spacer(1,20))
 
+        # =========================
+        # TOP PRODUTOS
+        # =========================
+
         elementos.append(Paragraph("Top Produtos Comprados", styles["Heading3"]))
 
         top_produtos = resumo.head(5)
@@ -266,38 +269,37 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         for _,row in top_produtos.iterrows():
 
             dados_top.append([
-                Paragraph(str(row["DESC PRODUTO"]), styles["BodyText"])
+
+                Paragraph(str(row["DESC PRODUTO"]), styles["BodyText"]),
                 row["LINHA"],
                 int(row["QTDE"]),
                 f"R$ {row['VALOR']:,.2f}"
+
             ])
 
         tabela_top = Table(
             dados_top,
-        colWidths=[9*cm,3.5*cm,2*cm,2.5*cm],
-        repeatRows=1
-)
-
-tabela_top.setStyle(TableStyle([
-
-    ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-
-    ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-
-    ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-
-    ("ALIGN",(2,1),(2,-1),"CENTER"),
-    ("ALIGN",(3,1),(3,-1),"RIGHT"),
-
-]))
+            colWidths=[9*cm,3.5*cm,2*cm,2.5*cm],
+            repeatRows=1
+        )
 
         tabela_top.setStyle(TableStyle([
+
             ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey)
+            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
+            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+
+            ("ALIGN",(2,1),(2,-1),"CENTER"),
+            ("ALIGN",(3,1),(3,-1),"RIGHT"),
+
         ]))
 
         elementos.append(tabela_top)
-        elementos.append(Spacer(1,20))
+        elementos.append(Spacer(1,25))
+
+        # =========================
+        # DISTRIBUIÇÃO POR LINHA
+        # =========================
 
         elementos.append(Paragraph("Distribuição por Linha de Produto", styles["Heading3"]))
 
@@ -326,9 +328,15 @@ tabela_top.setStyle(TableStyle([
         ]))
 
         elementos.append(tabela_linha)
-        elementos.append(Spacer(1,20))
+        elementos.append(Spacer(1,25))
 
-        dados_produtos = [["Data Pedido","NF","Produto","Linha","Qtd","Valor"]]
+        # =========================
+        # HISTÓRICO COMPLETO
+        # =========================
+
+        dados_produtos = [
+            ["Data Pedido","NF","Produto","Linha","Qtd","Valor"]
+        ]
 
         for _,row in vendas_cliente.iterrows():
 
@@ -338,8 +346,8 @@ tabela_top.setStyle(TableStyle([
 
             nf = str(row["NUMERO NF"]) if not pd.isna(row["NUMERO NF"]) else ""
 
-            produto = Paragraph(str(row["DESC PRODUTO"]), styles["Normal"])
-            linha = Paragraph(str(row["LINHA"]), styles["Normal"])
+            produto = Paragraph(str(row["DESC PRODUTO"]), styles["BodyText"])
+            linha = Paragraph(str(row["LINHA"]), styles["BodyText"])
 
             qtd = int(row["QTDE"]) if not pd.isna(row["QTDE"]) else ""
             valor = f"R$ {row['VALOR']:,.2f}" if not pd.isna(row["VALOR"]) else ""
@@ -363,7 +371,7 @@ tabela_top.setStyle(TableStyle([
 
             ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
             ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+
             ("ALIGN",(4,1),(4,-1),"CENTER"),
             ("ALIGN",(5,1),(5,-1),"RIGHT")
 
@@ -690,6 +698,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
