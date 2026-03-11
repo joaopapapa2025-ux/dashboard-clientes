@@ -601,6 +601,105 @@ if len(df_filtrado) == 1:
 
     pdf = gerar_pdf_cliente(cliente, vendas_cliente)
 
+# =========================
+# ANÁLISE DE COMPRAS DO CLIENTE
+# =========================
+
+if not vendas_cliente.empty:
+
+    st.divider()
+    st.subheader("📊 Análise de Compras do Cliente")
+
+    vendas_cliente["DATA PEDIDO"] = pd.to_datetime(vendas_cliente["DATA PEDIDO"])
+
+    # MIX POR LINHA
+
+    mix_linha = (
+        vendas_cliente
+        .groupby("LINHA")["VALOR"]
+        .sum()
+        .reset_index()
+        .sort_values("VALOR", ascending=False)
+    )
+
+    fig_mix = px.pie(
+        mix_linha,
+        names="LINHA",
+        values="VALOR",
+        title="Mix de Compras por Linha"
+    )
+
+    st.plotly_chart(fig_mix, use_container_width=True)
+
+    # TOP PRODUTOS
+
+    top_produtos = (
+        vendas_cliente
+        .groupby("DESC PRODUTO")["VALOR"]
+        .sum()
+        .reset_index()
+        .sort_values("VALOR", ascending=False)
+        .head(10)
+    )
+
+    fig_top = px.bar(
+        top_produtos,
+        x="VALOR",
+        y="DESC PRODUTO",
+        orientation="h",
+        title="Top Produtos Comprados"
+    )
+
+    st.plotly_chart(fig_top, use_container_width=True)
+
+    # EVOLUÇÃO DE COMPRAS
+
+    evolucao = (
+        vendas_cliente
+        .groupby("DATA PEDIDO")["VALOR"]
+        .sum()
+        .reset_index()
+    )
+
+    fig_evolucao = px.line(
+        evolucao,
+        x="DATA PEDIDO",
+        y="VALOR",
+        title="Evolução de Compras"
+    )
+
+    st.plotly_chart(fig_evolucao, use_container_width=True)
+
+    # PRODUTOS QUE O CLIENTE NÃO COMPRA
+
+    produtos_cliente = set(vendas_cliente["DESC PRODUTO"].unique())
+    todos_produtos = set(df_vendas["DESC PRODUTO"].unique())
+
+    produtos_nao_compra = list(todos_produtos - produtos_cliente)
+
+    df_nao_compra = pd.DataFrame({
+        "Produtos que o cliente ainda não compra": produtos_nao_compra
+    }).head(20)
+
+    st.subheader("🚨 Produtos que o cliente ainda não compra")
+
+    st.dataframe(df_nao_compra, use_container_width=True)
+
+    # CROSS SELL
+
+    linhas_cliente = set(vendas_cliente["LINHA"].unique())
+    todas_linhas = set(df_vendas["LINHA"].unique())
+
+    linhas_faltantes = list(todas_linhas - linhas_cliente)
+
+    df_cross = pd.DataFrame({
+        "Linhas que o cliente ainda não compra (oportunidade)": linhas_faltantes
+    })
+
+    st.subheader("💡 Oportunidades de Cross-sell")
+
+    st.dataframe(df_cross, use_container_width=True)
+    
     st.download_button(
         "📄 Baixar relatório completo do cliente em PDF",
         data=pdf,
@@ -710,6 +809,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
