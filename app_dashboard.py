@@ -394,7 +394,7 @@ if not vendas_cliente.empty:
 
 else:
 
-        elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
+    elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
 
     doc = SimpleDocTemplate(
         buffer,
@@ -710,6 +710,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
