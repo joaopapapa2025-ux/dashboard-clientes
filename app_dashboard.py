@@ -692,6 +692,8 @@ if "vendas_cliente" in locals() and not vendas_cliente.empty:
 
     st.dataframe(df_nao_compra, use_container_width=True)
 
+if "vendas_cliente" in locals() and not vendas_cliente.empty:
+
 linhas_cliente = set(
     vendas_cliente["LINHA"]
     .astype(str)
@@ -826,6 +828,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
