@@ -371,13 +371,13 @@ if not vendas_cliente.empty:
                 valor
             ])
 
-        tabela_produtos = Table(
+    tabela_produtos = Table(
             dados_produtos,
             colWidths=[2.5*cm,2.5*cm,7*cm,3.5*cm,2*cm,2.5*cm],
             repeatRows=1
         )
 
-        tabela_produtos.setStyle(TableStyle([
+    tabela_produtos.setStyle(TableStyle([
 
             ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
 
@@ -390,7 +390,7 @@ if not vendas_cliente.empty:
 
         ]))
 
-        elementos.append(tabela_produtos)
+    elementos.append(tabela_produtos)
 
     else:
 
@@ -710,6 +710,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
