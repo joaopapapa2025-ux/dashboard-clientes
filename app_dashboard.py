@@ -698,18 +698,35 @@ if "vendas_cliente" in locals() and not vendas_cliente.empty:
 
     st.subheader("💡 Oportunidades de Cross-sell")
 
-    st.dataframe(
+linhas_cliente = set(
+    vendas_cliente["LINHA"]
+    .dropna()
+    .replace("", pd.NA)
+    .dropna()
+    .unique()
+)
+
+todas_linhas = set(
+    df_vendas["LINHA"]
+    .dropna()
+    .replace("", pd.NA)
+    .dropna()
+    .unique()
+)
+
+linhas_faltantes = list(todas_linhas - linhas_cliente)
+
+df_cross = pd.DataFrame({
+    "Linhas que o cliente ainda não compra (oportunidade)": linhas_faltantes
+})
+
+st.subheader("💡 Oportunidades de Cross-sell")
+
+st.dataframe(
     df_cross.reset_index(drop=True),
     use_container_width=True,
     hide_index=True
 )
-    
-    st.download_button(
-        "📄 Baixar relatório completo do cliente em PDF",
-        data=pdf,
-        file_name=f"relatorio_cliente_{cliente[col_razao]}.pdf",
-        mime="application/pdf"
-    )
 
 # =========================
 # KPIs
@@ -813,6 +830,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
