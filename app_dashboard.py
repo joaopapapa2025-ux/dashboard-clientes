@@ -392,7 +392,7 @@ if not vendas_cliente.empty:
 
     elementos.append(tabela_produtos)
 
-        else:
+else:
 
         elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
 
@@ -710,6 +710,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
