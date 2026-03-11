@@ -272,7 +272,24 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
                 f"R$ {row['VALOR']:,.2f}"
             ])
 
-        tabela_top = Table(dados_top, colWidths=[8*cm,4*cm,2*cm,3*cm])
+        tabela_top = Table(
+            dados_top,
+        colWidths=[9*cm,3.5*cm,2*cm,2.5*cm],
+        repeatRows=1
+)
+
+tabela_top.setStyle(TableStyle([
+
+    ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
+
+    ("GRID",(0,0),(-1,-1),0.25,colors.grey),
+
+    ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+
+    ("ALIGN",(2,1),(2,-1),"CENTER"),
+    ("ALIGN",(3,1),(3,-1),"RIGHT"),
+
+]))
 
         tabela_top.setStyle(TableStyle([
             ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
@@ -673,6 +690,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
