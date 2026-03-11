@@ -266,7 +266,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         for _,row in top_produtos.iterrows():
 
             dados_top.append([
-                Paragraph(str(row["DESC PRODUTO"]), styles["Normal"]),
+                Paragraph(str(row["DESC PRODUTO"]), styles["BodyText"])
                 row["LINHA"],
                 int(row["QTDE"]),
                 f"R$ {row['VALOR']:,.2f}"
@@ -690,6 +690,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
