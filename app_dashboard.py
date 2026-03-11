@@ -685,36 +685,25 @@ if "vendas_cliente" in locals() and not vendas_cliente.empty:
 
     st.dataframe(df_nao_compra, use_container_width=True)
 
-    # CROSS SELL
-
-    linhas_cliente = set(vendas_cliente["LINHA"].unique())
-    todas_linhas = set(df_vendas["LINHA"].unique())
-
-    linhas_faltantes = list(todas_linhas - linhas_cliente)
-
-    df_cross = pd.DataFrame({
-        "Linhas que o cliente ainda não compra (oportunidade)": linhas_faltantes
-    })
-
-    st.subheader("💡 Oportunidades de Cross-sell")
-
 linhas_cliente = set(
     vendas_cliente["LINHA"]
-    .dropna()
-    .replace("", pd.NA)
+    .astype(str)
+    .str.strip()
+    .replace(["", "nan", "None"], pd.NA)
     .dropna()
     .unique()
 )
 
 todas_linhas = set(
     df_vendas["LINHA"]
-    .dropna()
-    .replace("", pd.NA)
+    .astype(str)
+    .str.strip()
+    .replace(["", "nan", "None"], pd.NA)
     .dropna()
     .unique()
 )
 
-linhas_faltantes = list(todas_linhas - linhas_cliente)
+linhas_faltantes = sorted(list(todas_linhas - linhas_cliente))
 
 df_cross = pd.DataFrame({
     "Linhas que o cliente ainda não compra (oportunidade)": linhas_faltantes
@@ -723,7 +712,7 @@ df_cross = pd.DataFrame({
 st.subheader("💡 Oportunidades de Cross-sell")
 
 st.dataframe(
-    df_cross.reset_index(drop=True),
+    df_cross,
     use_container_width=True,
     hide_index=True
 )
@@ -830,6 +819,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
