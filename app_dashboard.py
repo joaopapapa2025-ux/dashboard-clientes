@@ -693,7 +693,7 @@ if "vendas_cliente" in locals() and not vendas_cliente.empty:
     )
 
     produtos_base = produtos_base[
-        (~produtos_base.str.contains("CONFERIR", na=False)) &
+        (~produtos_base.str.contains("CONFERIDO", na=False)) &
         (~produtos_base.str.contains("TESTE", na=False)) &
         (~produtos_base.str.contains("AJUSTE", na=False))
     ]
@@ -871,6 +871,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
