@@ -337,9 +337,9 @@ if not vendas_cliente.empty:
             ("GRID",(0,0),(-1,-1),0.5,colors.grey)
         ]))
 
-        elementos.append(Spacer(1,10))
-        elementos.append(tabela_resumo)
-        elementos.append(Spacer(1,20))
+    elementos.append(Spacer(1,10))
+    elementos.append(tabela_resumo)
+    elementos.append(Spacer(1,20))
 
     dados_produtos = [
             ["Data Pedido","NF","Produto","Linha","Qtd","Valor"]
@@ -710,6 +710,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
