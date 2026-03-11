@@ -600,6 +600,13 @@ if len(df_filtrado) == 1:
         ]
 
     pdf = gerar_pdf_cliente(cliente, vendas_cliente)
+    
+st.download_button(
+    label="📄 Baixar PDF do Cliente",
+    data=pdf,
+    file_name=f"relatorio_{cliente[col_razao]}.pdf",
+    mime="application/pdf"
+)
 
 # =========================
 # ANÁLISE DE COMPRAS DO CLIENTE
@@ -819,6 +826,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
