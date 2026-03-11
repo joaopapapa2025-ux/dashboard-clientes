@@ -698,7 +698,11 @@ if "vendas_cliente" in locals() and not vendas_cliente.empty:
 
     st.subheader("💡 Oportunidades de Cross-sell")
 
-    st.dataframe(df_cross.reset_index(drop=True), use_container_width=True)
+    st.dataframe(
+    df_cross.reset_index(drop=True),
+    use_container_width=True,
+    hide_index=True
+)
     
     st.download_button(
         "📄 Baixar relatório completo do cliente em PDF",
@@ -809,6 +813,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
