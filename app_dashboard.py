@@ -333,7 +333,7 @@ if not vendas_cliente.empty:
 
     tabela_resumo = Table(resumo_comercial, colWidths=[8*cm,8*cm])
 
-        tabela_resumo.setStyle(TableStyle([
+    tabela_resumo.setStyle(TableStyle([
             ("GRID",(0,0),(-1,-1),0.5,colors.grey)
         ]))
 
@@ -710,6 +710,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
