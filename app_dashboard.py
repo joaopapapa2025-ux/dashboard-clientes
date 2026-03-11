@@ -174,6 +174,10 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
     buffer = BytesIO()
     styles = getSampleStyleSheet()
+
+    style_tabela = styles["BodyText"]
+    style_tabela.leading = 14
+
     elementos = []
 
     titulo = Paragraph("Relatório de Cliente - PAPAPÁ", styles["Title"])
@@ -193,7 +197,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ["Cidade", f"{cliente[col_cidade]} - {cliente[col_uf]}"],
         ["Vendedor", cliente[col_vendedor]],
         ["Categoria", cliente[col_categoria]],
-        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}"],
+        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}],
         ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
 
     ]
@@ -205,7 +209,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     ]))
 
     elementos.append(tabela_cliente)
-    elementos.append(Spacer(1,30))
+    elementos.append(Spacer(1,25))
 
     elementos.append(Paragraph("Histórico de Compras", styles["Heading2"]))
 
@@ -254,7 +258,52 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         elementos.append(Spacer(1,10))
         elementos.append(tabela_resumo)
-        elementos.append(Spacer(1,20))
+        elementos.append(Spacer(1,25))
+
+        # =========================
+        # HISTÓRICO POR PEDIDO
+        # =========================
+
+        elementos.append(Paragraph("Histórico por Pedido", styles["Heading3"]))
+
+        pedidos = (
+            vendas_cliente
+            .groupby(["DATA PEDIDO","NUMERO NF"])["VALOR"]
+            .sum()
+            .reset_index()
+            .sort_values("DATA PEDIDO", ascending=False)
+        )
+
+        dados_pedidos = [["Data","NF","Valor Pedido"]]
+
+        for _,row in pedidos.iterrows():
+
+            data = ""
+            if not pd.isna(row["DATA PEDIDO"]):
+                data = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
+
+            nf = str(row["NUMERO NF"])
+
+            valor = f"R$ {row['VALOR']:,.2f}"
+
+            dados_pedidos.append([data,nf,valor])
+
+        tabela_pedidos = Table(
+            dados_pedidos,
+            colWidths=[4*cm,4*cm,4*cm],
+            repeatRows=1
+        )
+
+        tabela_pedidos.setStyle(TableStyle([
+
+            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
+            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
+            ("ALIGN",(2,1),(2,-1),"RIGHT")
+
+        ]))
+
+        elementos.append(tabela_pedidos)
+        elementos.append(Spacer(1,25))
 
         # =========================
         # TOP PRODUTOS
@@ -270,8 +319,8 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
             dados_top.append([
 
-                Paragraph(str(row["DESC PRODUTO"]), styles["BodyText"]),
-                row["LINHA"],
+                Paragraph(str(row["DESC PRODUTO"]), style_tabela),
+                Paragraph(str(row["LINHA"]), style_tabela),
                 int(row["QTDE"]),
                 f"R$ {row['VALOR']:,.2f}"
 
@@ -279,7 +328,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
         tabela_top = Table(
             dados_top,
-            colWidths=[9*cm,3.5*cm,2*cm,2.5*cm],
+            colWidths=[8*cm,3.5*cm,2*cm,2.5*cm],
             repeatRows=1
         )
 
@@ -287,97 +336,16 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
             ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
             ("GRID",(0,0),(-1,-1),0.25,colors.grey),
+
             ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
 
             ("ALIGN",(2,1),(2,-1),"CENTER"),
-            ("ALIGN",(3,1),(3,-1),"RIGHT"),
+            ("ALIGN",(3,1),(3,-1),"RIGHT")
 
         ]))
 
         elementos.append(tabela_top)
         elementos.append(Spacer(1,25))
-
-        # =========================
-        # DISTRIBUIÇÃO POR LINHA
-        # =========================
-
-        elementos.append(Paragraph("Distribuição por Linha de Produto", styles["Heading3"]))
-
-        dist_linha = (
-            vendas_cliente
-            .groupby("LINHA")[["VALOR"]]
-            .sum()
-            .reset_index()
-            .sort_values("VALOR", ascending=False)
-        )
-
-        dados_linha = [["Linha","Valor"]]
-
-        for _,row in dist_linha.iterrows():
-
-            dados_linha.append([
-                row["LINHA"],
-                f"R$ {row['VALOR']:,.2f}"
-            ])
-
-        tabela_linha = Table(dados_linha, colWidths=[10*cm,5*cm])
-
-        tabela_linha.setStyle(TableStyle([
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey)
-        ]))
-
-        elementos.append(tabela_linha)
-        elementos.append(Spacer(1,25))
-
-        # =========================
-        # HISTÓRICO COMPLETO
-        # =========================
-
-        dados_produtos = [
-            ["Data Pedido","NF","Produto","Linha","Qtd","Valor"]
-        ]
-
-        for _,row in vendas_cliente.iterrows():
-
-            data_pedido = ""
-            if not pd.isna(row["DATA PEDIDO"]):
-                data_pedido = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
-
-            nf = str(row["NUMERO NF"]) if not pd.isna(row["NUMERO NF"]) else ""
-
-            produto = Paragraph(str(row["DESC PRODUTO"]), styles["BodyText"])
-            linha = Paragraph(str(row["LINHA"]), styles["BodyText"])
-
-            qtd = int(row["QTDE"]) if not pd.isna(row["QTDE"]) else ""
-            valor = f"R$ {row['VALOR']:,.2f}" if not pd.isna(row["VALOR"]) else ""
-
-            dados_produtos.append([
-                data_pedido,
-                nf,
-                produto,
-                linha,
-                qtd,
-                valor
-            ])
-
-        tabela_produtos = Table(
-            dados_produtos,
-            colWidths=[2.5*cm,2.5*cm,7*cm,3.5*cm,2*cm,2.5*cm],
-            repeatRows=1
-        )
-
-        tabela_produtos.setStyle(TableStyle([
-
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-
-            ("ALIGN",(4,1),(4,-1),"CENTER"),
-            ("ALIGN",(5,1),(5,-1),"RIGHT")
-
-        ]))
-
-        elementos.append(tabela_produtos)
 
     else:
 
@@ -698,6 +666,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
