@@ -696,7 +696,7 @@ todos_produtos = set(produtos_base.unique())
 
 produtos_nao_compra = list(todos_produtos - produtos_cliente)
 
-        df_nao_compra = pd.DataFrame({
+    df_nao_compra = pd.DataFrame({
             "Produtos que o cliente ainda não compra": produtos_nao_compra
         }).head(20)
 
@@ -840,6 +840,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
