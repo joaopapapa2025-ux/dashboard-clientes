@@ -785,7 +785,7 @@ st.divider()
 # =========================
 
 st.divider()
-st.subheader("📦 Análise Geral de Mix e Produtos (Base Filtrada)")
+st.subheader("📦 Análise Geral de Mix e Produtos")
 
 if not df_vendas.empty:
     # Filtramos as vendas apenas dos clientes que estão aparecendo no df_filtrado
@@ -926,6 +926,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
