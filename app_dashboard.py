@@ -841,48 +841,55 @@ else:
 # ANÁLISE GERAL DE MIX (Mapeamento via Catálogo)
 # =========================
 
+# =========================
+# ANÁLISE GERAL DE MIX (COM TRAVAS E MAPEAMENTO DE CATÁLOGO)
+# =========================
+
 st.divider()
-st.subheader("📦 Análise Geral de Mix e Produtos (Base Filtrada)")
+st.subheader("📦 Análise Geral de Mix e Produtos")
 
 if not df_vendas.empty:
-    # Filtramos as vendas apenas dos clientes que estão no df_filtrado
+    # 1. Filtro Inicial: Apenas clientes visíveis nos filtros laterais
     cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
 
+    # 2. TRAVA DE SEGURANÇA: Remove produtos com a palavra "CONFERIDO"
+    vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.contains("CONFERIDO", case=False, na=False)]
+
     if not vendas_geral.empty:
-        # --- LÓGICA DE CLASSIFICAÇÃO (Baseada no Catálogo e PDF de melhorias) ---
+        # 3. MAPEAMENTO DINÂMICO (Baseado no Catálogo Papapá e PDF de melhorias)
         def mapear_catalogo(nome):
             nome = str(nome).upper()
-            # Categorias do Catálogo
             if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO", "COMIDINHA"]): return "Papinhas e Sopinhas"
-            if any(x in nome for x in ["PUFFS", "BISCOITO", "SNACK", "PALITINHO", "MILHO"]): return "Snacks"
+            if any(x in nome for x in ["PUFFS", "BISCOITO", "SNACK", "PALITINHO", "MILHO", "DENTIÇÃO", "BISCOTTI"]): return "Snacks"
             if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "Macarrões"
             if any(x in nome for x in ["CEREAL", "AVEIA", "MUCILON"]): return "Cereais"
             return "Outros"
 
         def mapear_sabor(nome):
             nome = str(nome).upper()
-            # Lógica Doce vs Salgado (conforme PDF item 5)
-            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO"]
+            # Itens doces comuns no catálogo Papapá
+            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA"]
             if any(x in nome for x in doces): return "Doce"
             return "Salgado"
 
-        # Criando as colunas dinâmicas que não existem na planilha
+        # Aplicando as novas colunas que não existem na planilha original
         vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo)
         vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
 
-        # --- GRÁFICOS ---
+        # 4. DASHBOARD VISUAL (3 Colunas)
         col_m1, col_m2, col_m3 = st.columns(3)
 
         with col_m1:
-            # Pizza: Categorias do Catálogo
+            # Pizza: Categorias do Catálogo (Pedido: Papinhas, Snacks, Macarrão, Cereais)
             mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
             fig_cat = px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", 
-                             title="Mix por Categoria (Catálogo)", hole=0.4)
+                             title="Mix por Categoria (Catálogo)", 
+                             hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
             st.plotly_chart(fig_cat, use_container_width=True)
 
         with col_m2:
-            # Pizza: Doce vs Salgado (Pedido no PDF)
+            # Pizza: Doce vs Salgado (Melhoria 5 do PDF)
             mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
             fig_sabor = px.pie(mix_sabor, names="SABOR", values="VALOR", 
                                title="Divisão Doce vs Salgado",
@@ -890,30 +897,40 @@ if not df_vendas.empty:
             st.plotly_chart(fig_sabor, use_container_width=True)
 
         with col_m3:
-            # Top 10 Produtos Geral (Ranking Brasil)
-            top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
-            fig_top = px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Produtos")
+            # Ranking Brasil (Melhoria 2 do PDF)
+            top_10 = (vendas_geral.groupby("DESC PRODUTO")["VALOR"]
+                      .sum().reset_index()
+                      .sort_values("VALOR", ascending=False).head(10))
+            fig_top = px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", 
+                             title="Top 10 Produtos (Geral)",
+                             color_discrete_sequence=["#FF4B4B"])
             fig_top.update_layout(yaxis={'categoryorder':'total ascending'})
             st.plotly_chart(fig_top, use_container_width=True)
 
-        # --- RANKING DE PERFORMANCE POR CATEGORIA (Melhoria 4 do PDF) ---
-        st.markdown("#### 🏆 Performance por Categoria")
-        cat_selecionada = st.selectbox("Escolha uma categoria para ver os extremos:", 
-                                       options=sorted(vendas_geral["CAT_CATALOGO"].unique()))
+        # 5. PERFORMANCE POR CATEGORIA (Melhoria 4 do PDF)
+        st.markdown("---")
+        st.markdown("#### 🏆 Destaques por Categoria")
+        
+        lista_categorias = sorted(vendas_geral["CAT_CATALOGO"].unique())
+        cat_selecionada = st.selectbox("Selecione uma categoria para analisar os extremos:", options=lista_categorias)
         
         df_extremos = vendas_geral[vendas_geral["CAT_CATALOGO"] == cat_selecionada]
         ranking = df_extremos.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
 
         if not ranking.empty:
             c_best, c_worst = st.columns(2)
-            c_best.metric("⭐ Produto Campeão", ranking["DESC PRODUTO"].iloc[0], 
+            with c_best:
+                st.metric("⭐ Produto Campeão", ranking["DESC PRODUTO"].iloc[0], 
                           f"R$ {ranking['VALOR'].iloc[0]:,.2f}")
-            c_worst.metric("⚠️ Menor Venda", ranking["DESC PRODUTO"].iloc[-1], 
+            with c_worst:
+                # Delta negativo apenas para ilustrar que é o menor
+                st.metric("⚠️ Menor Faturamento", ranking["DESC PRODUTO"].iloc[-1], 
                            f"R$ {ranking['VALOR'].iloc[-1]:,.2f}", delta_color="inverse")
 
     else:
-        st.info("Sem dados de vendas para os filtros aplicados.")
-
+        st.info("Nenhuma venda encontrada para os filtros atuais (removendo itens 'CONFERIDO').")
+else:
+    st.warning("Base de vendas (Sheet 1) não encontrada ou vazia.")
 # =========================
 # GRÁFICO SEGMENTO
 # =========================
@@ -1003,6 +1020,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
