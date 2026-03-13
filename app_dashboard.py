@@ -619,42 +619,62 @@ if len(df_filtrado) == 1:
 # COMENTÁRIOS DO CLIENTE
 # =========================
 
-if len(df_filtrado) == 1:
+st.subheader("📝 Comentários do Vendedor")
 
-    st.subheader("📝 Comentários do Vendedor")
+cnpj_cliente = cliente["CNPJ_LIMPO"]
 
-    cnpj_cliente = cliente["CNPJ_LIMPO"]
+# garantir lista de comentários
+if cnpj_cliente not in comentarios:
+    comentarios[cnpj_cliente] = []
 
-    comentario_atual = comentarios.get(cnpj_cliente, "")
+novo_comentario = st.text_area(
+    "Registrar nova observação comercial",
+    value="",
+    height=120
+)
 
-    novo_comentario = st.text_area(
-        "Registrar observação comercial",
-        value=comentario_atual,
-        height=120
-    )
+if st.button("Salvar comentário"):
 
-    if st.button("Salvar comentário"):
+    if novo_comentario.strip() != "":
 
-        comentarios[cnpj_cliente] = novo_comentario
+        registro = {
+            "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "texto": novo_comentario
+        }
+
+        comentarios[cnpj_cliente].append(registro)
+
         salvar_comentarios(comentarios)
 
-        st.success("Comentário salvo com sucesso!")
+        st.success("Comentário registrado!")
 
-    if not df_vendas.empty:
+        st.rerun()
 
-        vendas_cliente = df_vendas[
-            df_vendas["CNPJ_LIMPO"] == cliente["CNPJ_LIMPO"]
-        ]
+# =========================
+# HISTÓRICO DE COMENTÁRIOS
+# =========================
 
-    # GERAR PDF
-    pdf = gerar_pdf_cliente(cliente, vendas_cliente)
+if comentarios[cnpj_cliente]:
 
-    st.download_button(
-        label="📄 Baixar PDF do Cliente",
-        data=pdf,
-        file_name=f"relatorio_{cliente[col_razao]}.pdf",
-        mime="application/pdf"
-    )
+    st.markdown("### 📜 Histórico")
+
+    for c in reversed(comentarios[cnpj_cliente]):
+
+        st.markdown(
+            f"""
+            <div style="
+            background:#f6f6f6;
+            padding:10px;
+            border-radius:8px;
+            margin-bottom:8px">
+
+            <b>{c['data']}</b><br>
+            {c['texto']}
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     # =========================
     # ANÁLISE DE COMPRAS
@@ -918,6 +938,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
