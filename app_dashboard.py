@@ -781,7 +781,7 @@ k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 st.divider()
 
 # =========================================================
-# ANÁLISE DE MIX - VERSÃO À PROVA DE ERROS (SEM NEGATIVOS)
+# ANÁLISE DE MIX - VERSÃO BLINDADA (SEM MÉTRICAS/SEM NEGATIVOS)
 # =========================================================
 
 st.divider()
@@ -793,7 +793,7 @@ if not df_vendas.empty:
     vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
     vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.contains("CONFERIDO", case=False, na=False)]
 
-    # 2. MAPEAMENTO DO CATÁLOGO
+    # 2. MAPEAMENTO COMPLETO (Garante que todas as categorias apareçam)
     def mapear_catalogo(nome):
         nome = str(nome).upper()
         if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO", "COMIDINHA"]): return "Papinhas e Sopinhas"
@@ -804,56 +804,43 @@ if not df_vendas.empty:
 
     vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo)
 
-    # 3. GRÁFICOS (Pizza, Sabor, Idade colorida, Top 10)
-    # [Mantendo a lógica dos gráficos anteriores que você aprovou...]
-    c1, c2 = st.columns(2)
-    with c1:
+    # 3. GRÁFICOS LADO A LADO
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
         mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
-        st.plotly_chart(px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Mix por Categoria", hole=0.4), use_container_width=True)
-    with c2:
-        mix_sabor = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index() # Lógica simplificada para sabor
-        st.plotly_chart(px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Doce vs Salgado"), use_container_width=True)
-
-    c3, c4 = st.columns(2)
-    with c3:
-        # Gráfico coloridinho por idade
-        vendas_geral["IDADE"] = "6 meses+" # Simplificado para o exemplo
-        mix_idade = vendas_geral.groupby("IDADE")["VALOR"].sum().reset_index()
-        st.plotly_chart(px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", title="Vendas por Idade"), use_container_width=True)
-    with c4:
-        top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
-        st.plotly_chart(px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Produtos"), use_container_width=True)
-
-    # 4. DESTAQUES POR CATEGORIA (O QUE CORRIGE O NEGATIVO)
-    st.markdown("---")
-    st.markdown("#### 🏆 Performance por Categoria do Catálogo")
+        st.plotly_chart(px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Mix por Categoria", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel), use_container_width=True)
     
-    # LISTA COMPLETA DAS CATEGORIAS DO CATÁLOGO
-    categorias_do_catalogo = ["Papinhas e Sopinhas", "Snacks", "Macarrões", "Cereais"]
-    cat_sel = st.selectbox("Selecione a Categoria:", options=categorias_do_catalogo)
+    with col_g2:
+        top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
+        st.plotly_chart(px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Geral"), use_container_width=True)
+
+    # 4. PERFORMANCE POR CATEGORIA (BLINDAGEM TOTAL CONTRA NEGATIVOS)
+    st.markdown("---")
+    st.markdown("#### 🏆 Performance por Categoria")
+    
+    # Forçando a lista a ter todas as categorias do seu catálogo
+    categorias_full = ["Papinhas e Sopinhas", "Snacks", "Macarrões", "Cereais"]
+    cat_sel = st.selectbox("Selecione a Categoria para analisar:", options=categorias_full)
     
     df_cat = vendas_geral[vendas_geral["CAT_CATALOGO"] == cat_sel]
     
     if not df_cat.empty:
         rank = df_cat.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
+        rank["VALOR_FORMATADO"] = rank["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
+
+        c_esq, c_dir = st.columns(2)
         
-        col_esq, col_dir = st.columns(2)
-        
-        # PRODUTO CAMPEÃO
-        with col_esq:
-            st.success(f"⭐ **CAMPEÃO: {cat_sel}**")
-            st.markdown(f"**{rank['DESC PRODUTO'].iloc[0]}**")
-            # O truque: Escrever o valor como um título H2 isolado
-            st.markdown(f"## R$ {rank['VALOR'].iloc[0]:,.2f}")
+        with c_esq:
+            st.success(f"⭐ **PRODUTOS MAIS VENDIDOS: {cat_sel.upper()}**")
+            # Mostra o top 3 em formato de tabela simples (impossível dar negativo)
+            st.table(rank[["DESC PRODUTO", "VALOR_FORMATADO"]].head(3).rename(columns={"DESC PRODUTO": "Produto", "VALOR_FORMATADO": "Faturamento"}))
             
-        # MENOR FATURAMENTO
-        with col_dir:
-            st.error(f"⚠️ **MENOR FATURAMENTO: {cat_sel}**")
-            st.markdown(f"**{rank['DESC PRODUTO'].iloc[-1]}**")
-            # O truque: Escrever o valor como um título H2 isolado
-            st.markdown(f"## R$ {rank['VALOR'].iloc[-1]:,.2f}")
+        with c_dir:
+            st.error(f"⚠️ **MENORES VENDAS: {cat_sel.upper()}**")
+            # Mostra os 3 últimos (impossível dar negativo)
+            st.table(rank[["DESC PRODUTO", "VALOR_FORMATADO"]].tail(3).sort_values("VALOR_FORMATADO").rename(columns={"DESC PRODUTO": "Produto", "VALOR_FORMATADO": "Faturamento"}))
     else:
-        st.warning(f"Sem dados de faturamento para {cat_sel} nos filtros aplicados.")
+        st.warning(f"Não foram encontradas vendas para a categoria '{cat_sel}' com os filtros atuais.")
         
 # =========================
 # GRÁFICO SEGMENTO
@@ -944,6 +931,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
