@@ -582,7 +582,6 @@ if len(df_filtrado) == 1:
 
     st.markdown("### 🏢 Detalhes do Cliente")
     
-    # Criamos duas colunas: Info do Cliente e CRM
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
@@ -599,12 +598,10 @@ if len(df_filtrado) == 1:
             """, unsafe_allow_html=True
         )
 
-        # Botão WhatsApp
         telefone = limpar_telefone(cliente[col_telefone])
         if telefone:
             st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{telefone}")
 
-        # Botão PDF
         if not df_vendas.empty:
             vendas_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
             pdf = gerar_pdf_cliente(cliente, vendas_cliente)
@@ -618,23 +615,17 @@ if len(df_filtrado) == 1:
     with col_crm:
         st.subheader("📝 Notas e Histórico de Contato")
         
-        # Campo para novo comentário
         novo_txt = st.text_area("Novo comentário:", placeholder="O que foi conversado?", key="txt_area_crm")
         
         if st.button("Salvar Comentário"):
             if novo_txt.strip():
-                # Preparar o registro
                 agora = datetime.now().strftime("%d/%m/%Y %H:%M")
                 novo_registro = {"texto": novo_txt, "data": agora}
                 
-                # Atualizar base de comentários
-                if id_cliente not in comentarios:
+                if id_cliente not in comentarios or not isinstance(comentarios[id_cliente], list):
                     comentarios[id_cliente] = []
                 
-                # Adiciona no início da lista (mais recentes primeiro)
                 comentarios[id_cliente].insert(0, novo_registro)
-                
-                # Salvar no arquivo JSON
                 salvar_comentarios(comentarios)
                 st.success("Salvo!")
                 st.rerun()
@@ -643,24 +634,21 @@ if len(df_filtrado) == 1:
 
         st.divider()
 
-        # Exibir comentários existentes
-        if id_cliente in comentarios and comentarios[id_cliente]:
+        if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
             for idx, item in enumerate(comentarios[id_cliente]):
                 with st.container():
-                    c1, c2 = st.columns([0.85, 0.15])
-                    c1.caption(f"📅 {item['data']}")
-                    c1.write(item['texto'])
-                    
-                    # Botão excluir (chave única para não dar conflito)
-                    if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
-                        comentarios[id_cliente].pop(idx)
-                        salvar_comentarios(comentarios)
-                        st.rerun()
-                st.markdown("<hr style='margin:5px 0; opacity:0.2'>", unsafe_allow_html=True)
+                    if isinstance(item, dict) and 'data' in item:
+                        c1, c2 = st.columns([0.85, 0.15])
+                        c1.caption(f"📅 {item['data']}")
+                        c1.write(item['texto'])
+                        
+                        if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
+                            comentarios[id_cliente].pop(idx)
+                            salvar_comentarios(comentarios)
+                            st.rerun()
+                        st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
         else:
             st.info("Nenhum comentário registrado.")
-
-    st.divider()
 
 # =========================
 # KPIs
@@ -764,6 +752,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
