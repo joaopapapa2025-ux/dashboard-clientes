@@ -781,7 +781,7 @@ k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 st.divider()
 
 # =========================
-# ANÁLISE GERAL DE MIX (CORRIGIDO SEM NEGATIVOS)
+# ANÁLISE DE MIX (COLORIDO + CARDS SEM NEGATIVO)
 # =========================
 
 st.divider()
@@ -818,25 +818,34 @@ if not df_vendas.empty:
         vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
         vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
 
-        # 3. GRÁFICOS (Pizza e Sabores)
+        # 3. GRÁFICOS - LINHA 1 (Pizza e Sabores)
         c1, c2 = st.columns(2)
         with c1:
             mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
-            st.plotly_chart(px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Mix por Categoria", hole=0.4), use_container_width=True)
+            fig_cat = px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Mix por Categoria", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig_cat, use_container_width=True)
         with c2:
             mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
-            st.plotly_chart(px.pie(mix_sabor, names="SABOR", values="VALOR", title="Doce vs Salgado", color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"}), use_container_width=True)
+            fig_sabor = px.pie(mix_sabor, names="SABOR", values="VALOR", title="Doce vs Salgado", color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"})
+            st.plotly_chart(fig_sabor, use_container_width=True)
 
-        # 4. GRÁFICOS (Idade e Top 10)
+        # 4. GRÁFICOS - LINHA 2 (Idade Colorida e Top 10)
         c3, c4 = st.columns(2)
         with c3:
             mix_idade = vendas_geral.groupby("IDADE")["VALOR"].sum().reset_index()
-            st.plotly_chart(px.bar(mix_idade, x="IDADE", y="VALOR", title="Vendas por Idade"), use_container_width=True)
+            # Gráfico coloridinho por idade
+            fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", 
+                               title="Vendas por Idade Recomendada",
+                               color_discrete_sequence=px.colors.qualitative.Bold)
+            fig_idade.update_layout(showlegend=False)
+            st.plotly_chart(fig_idade, use_container_width=True)
         with c4:
             top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
-            st.plotly_chart(px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Produtos"), use_container_width=True)
+            fig_top = px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Produtos", color_discrete_sequence=["#FF4B4B"])
+            fig_top.update_layout(yaxis={'categoryorder':'total ascending'})
+            st.plotly_chart(fig_top, use_container_width=True)
 
-        # 5. PERFORMANCE POR CATEGORIA (RESOLUÇÃO DO ERRO DA IMAGEM)
+        # 5. PERFORMANCE POR CATEGORIA (Cards Manuais - Fim do faturamento negativo)
         st.markdown("---")
         st.markdown("#### 🏆 Destaques por Categoria")
         
@@ -847,23 +856,23 @@ if not df_vendas.empty:
         if not rank.empty:
             col_b, col_w = st.columns(2)
             
-            # Produto Campeão
+            # Card Verde: Campeão
             with col_b:
                 st.markdown(f"""
-                <div style="padding:15px; border-radius:10px; border-left: 5px solid #28a745; background-color: #f8f9fa;">
-                    <small>⭐ PRODUTO CAMPEÃO</small><br>
-                    <b style="font-size: 1.1em;">{rank['DESC PRODUTO'].iloc[0]}</b><br>
-                    <span style="color: #28a745; font-size: 1.2em; font-weight: bold;">R$ {rank['VALOR'].iloc[0]:,.2f}</span>
+                <div style="padding:15px; border-radius:10px; border-left: 6px solid #28a745; background-color: #f8f9fa; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
+                    <small style="color: #666; font-weight: bold;">⭐ PRODUTO CAMPEÃO</small><br>
+                    <div style="margin: 5px 0; font-size: 1.1em; line-height: 1.2;"><b>{rank['DESC PRODUTO'].iloc[0]}</b></div>
+                    <span style="color: #28a745; font-size: 1.3em; font-weight: bold;">R$ {rank['VALOR'].iloc[0]:,.2f}</span>
                 </div>
                 """, unsafe_allow_html=True)
             
-            # Menor Faturamento
+            # Card Vermelho: Menor Faturamento (sem seta negativa)
             with col_w:
                 st.markdown(f"""
-                <div style="padding:15px; border-radius:10px; border-left: 5px solid #dc3545; background-color: #f8f9fa;">
-                    <small>⚠️ MENOR FATURAMENTO</small><br>
-                    <b style="font-size: 1.1em;">{rank['DESC PRODUTO'].iloc[-1]}</b><br>
-                    <span style="color: #dc3545; font-size: 1.2em; font-weight: bold;">R$ {rank['VALOR'].iloc[-1]:,.2f}</span>
+                <div style="padding:15px; border-radius:10px; border-left: 6px solid #dc3545; background-color: #f8f9fa; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
+                    <small style="color: #666; font-weight: bold;">⚠️ MENOR FATURAMENTO</small><br>
+                    <div style="margin: 5px 0; font-size: 1.1em; line-height: 1.2;"><b>{rank['DESC PRODUTO'].iloc[-1]}</b></div>
+                    <span style="color: #dc3545; font-size: 1.3em; font-weight: bold;">R$ {rank['VALOR'].iloc[-1]:,.2f}</span>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -959,6 +968,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
