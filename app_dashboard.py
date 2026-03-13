@@ -623,7 +623,6 @@ st.subheader("📝 Comentários do Vendedor")
 
 cnpj_cliente = cliente["CNPJ_LIMPO"]
 
-# garantir lista de comentários
 if cnpj_cliente not in comentarios:
     comentarios[cnpj_cliente] = []
 
@@ -649,6 +648,46 @@ if st.button("Salvar comentário"):
         st.success("Comentário registrado!")
 
         st.rerun()
+
+# HISTÓRICO
+
+if comentarios[cnpj_cliente]:
+
+    st.markdown("### 📜 Histórico")
+
+    for i in range(len(comentarios[cnpj_cliente]) - 1, -1, -1):
+
+        c = comentarios[cnpj_cliente][i]
+
+        col1, col2 = st.columns([10,1])
+
+        with col1:
+
+            st.markdown(
+                f"""
+                <div style="
+                background:#f6f6f6;
+                padding:10px;
+                border-radius:8px;
+                margin-bottom:8px">
+
+                <b>{c['data']}</b><br>
+                {c['texto']}
+
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col2:
+
+            if st.button("🗑", key=f"delete_{cnpj_cliente}_{i}"):
+
+                comentarios[cnpj_cliente].pop(i)
+
+                salvar_comentarios(comentarios)
+
+                st.rerun()
 
 # =========================
 # HISTÓRICO DE COMENTÁRIOS
@@ -954,6 +993,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
