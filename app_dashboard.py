@@ -684,7 +684,7 @@ if comentarios[cnpj_cliente]:
 
         with col2:
 
-            if st.button("🗑", key=f"delete_{i}"):
+            if st.button("🗑", key=f"delete_{cnpj_cliente}_{i}"):
 
                 comentarios[cnpj_cliente].pop(i)
 
@@ -954,6 +954,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
