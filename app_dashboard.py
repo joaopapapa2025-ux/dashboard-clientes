@@ -781,7 +781,7 @@ k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 st.divider()
 
 # =========================
-# ANÁLISE DE MIX (COLORIDO + CARDS SEM NEGATIVO)
+# ANÁLISE DE MIX (COLORIDO + DESTAQUES BLINDADOS)
 # =========================
 
 st.divider()
@@ -845,7 +845,7 @@ if not df_vendas.empty:
             fig_top.update_layout(yaxis={'categoryorder':'total ascending'})
             st.plotly_chart(fig_top, use_container_width=True)
 
-        # 5. PERFORMANCE POR CATEGORIA (Cards Manuais - Fim do faturamento negativo)
+        # 5. DESTAQUES POR CATEGORIA (BLINDAGEM TOTAL CONTRA NEGATIVOS)
         st.markdown("---")
         st.markdown("#### 🏆 Destaques por Categoria")
         
@@ -856,25 +856,13 @@ if not df_vendas.empty:
         if not rank.empty:
             col_b, col_w = st.columns(2)
             
-            # Card Verde: Campeão
             with col_b:
-                st.markdown(f"""
-                <div style="padding:15px; border-radius:10px; border-left: 6px solid #28a745; background-color: #f8f9fa; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
-                    <small style="color: #666; font-weight: bold;">⭐ PRODUTO CAMPEÃO</small><br>
-                    <div style="margin: 5px 0; font-size: 1.1em; line-height: 1.2;"><b>{rank['DESC PRODUTO'].iloc[0]}</b></div>
-                    <span style="color: #28a745; font-size: 1.3em; font-weight: bold;">R$ {rank['VALOR'].iloc[0]:,.2f}</span>
-                </div>
-                """, unsafe_allow_html=True)
+                st.success(f"⭐ **CAMPEÃO:** \n{rank['DESC PRODUTO'].iloc[0]}")
+                st.markdown(f"### R$ {rank['VALOR'].iloc[0]:,.2f}")
             
-            # Card Vermelho: Menor Faturamento (sem seta negativa)
             with col_w:
-                st.markdown(f"""
-                <div style="padding:15px; border-radius:10px; border-left: 6px solid #dc3545; background-color: #f8f9fa; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
-                    <small style="color: #666; font-weight: bold;">⚠️ MENOR FATURAMENTO</small><br>
-                    <div style="margin: 5px 0; font-size: 1.1em; line-height: 1.2;"><b>{rank['DESC PRODUTO'].iloc[-1]}</b></div>
-                    <span style="color: #dc3545; font-size: 1.3em; font-weight: bold;">R$ {rank['VALOR'].iloc[-1]:,.2f}</span>
-                </div>
-                """, unsafe_allow_html=True)
+                st.error(f"⚠️ **MENOR VENDA:** \n{rank['DESC PRODUTO'].iloc[-1]}")
+                st.markdown(f"### R$ {rank['VALOR'].iloc[-1]:,.2f}")
 
     else:
         st.info("Nenhuma venda encontrada nos filtros atuais.")
@@ -968,6 +956,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
