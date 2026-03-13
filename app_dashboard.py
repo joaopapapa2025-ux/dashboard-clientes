@@ -838,6 +838,84 @@ else:
     st.warning("Base de vendas não carregada.")
 
 # =========================
+# ANÁLISE POR CATEGORIA DE CATÁLOGO (NOVO)
+# =========================
+
+st.divider()
+st.subheader("📦 Perfil de Vendas por Categoria de Produto")
+
+if not df_vendas.empty:
+    # 1. Definir a lógica de classificação baseada no catálogo
+    def classificar_produto(nome):
+        nome = str(nome).upper()
+        if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO"]):
+            return "Papinhas e Sopinhas"
+        elif any(x in nome for x in ["PUFFS", "BISCOITO", "SNACK", "MILHO"]):
+            return "Snacks"
+        elif any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"):
+            return "Macarrão"
+        elif any(x in nome for x in ["CEREAL", "AVEIA", "MUCILON"]):
+            return "Cereais"
+        else:
+            return "Outros"
+
+    # Aplicar classificação na base geral filtrada
+    cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
+    vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
+    
+    if not vendas_geral.empty:
+        vendas_geral["CATEGORIA_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(classificar_produto)
+
+        # 2. Criar os Gráficos
+        c1, c2 = st.columns(2)
+
+        with c1:
+            # Gráfico de Pizza: Divisão por Tipo (Substituindo Sólidos/Líquidos)
+            vendas_por_tipo = vendas_geral.groupby("CATEGORIA_CATALOGO")["VALOR"].sum().reset_index()
+            fig_tipo = px.pie(
+                vendas_por_tipo, 
+                values='VALOR', 
+                names='CATEGORIA_CATALOGO',
+                title="Distribuição por Tipo de Produto (Catálogo)",
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            st.plotly_chart(fig_tipo, use_container_width=True)
+
+        with c2:
+            # Ranking de Produtos mais vendidos no Brasil (Melhoria 2 do arquivo)
+            top_br = (
+                vendas_geral.groupby("DESC PRODUTO")["VALOR"]
+                .sum()
+                .reset_index()
+                .sort_values("VALOR", ascending=False)
+                .head(10)
+            )
+            fig_br = px.bar(
+                top_br,
+                x="VALOR",
+                y="DESC PRODUTO",
+                orientation="h",
+                title="Top 10 Produtos (Base Filtrada)",
+                labels={"VALOR": "Total em Vendas", "DESC PRODUTO": "Produto"}
+            )
+            fig_br.update_layout(yaxis={'categoryorder':'total ascending'})
+            st.plotly_chart(fig_br, use_container_width=True)
+
+        # 3. Tabela de Oportunidade por Categoria (Melhoria 4 do arquivo)
+        st.write("---")
+        st.caption("Melhores e Piores Produtos por Categoria")
+        
+        cat_escolhida = st.selectbox("Selecione uma categoria para analisar:", vendas_geral["CATEGORIA_CATALOGO"].unique())
+        
+        df_cat = vendas_geral[vendas_geral["CATEGORIA_CATALOGO"] == cat_escolhida]
+        rank_cat = df_cat.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
+        
+        col_melhor, col_pior = st.columns(2)
+        col_melhor.success(f"Top 3 da Categoria: {rank_cat['DESC PRODUTO'].iloc[0] if not rank_cat.empty else 'N/A'}")
+        col_pior.error(f"Menos vendido da Categoria: {rank_cat['DESC PRODUTO'].iloc[-1] if not rank_cat.empty else 'N/A'}")
+
+# =========================
 # GRÁFICO SEGMENTO
 # =========================
 
@@ -926,6 +1004,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
