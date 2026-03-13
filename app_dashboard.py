@@ -593,6 +593,29 @@ if len(df_filtrado) == 1:
 
     st.divider()
 
+    # =========================
+# COMENTÁRIOS DO CLIENTE
+# =========================
+
+st.subheader("📝 Comentários do Vendedor")
+
+cnpj_cliente = cliente["CNPJ_LIMPO"]
+
+comentario_atual = comentarios.get(cnpj_cliente, "")
+
+novo_comentario = st.text_area(
+    "Registrar observação comercial",
+    value=comentario_atual,
+    height=120
+)
+
+if st.button("Salvar comentário"):
+
+    comentarios[cnpj_cliente] = novo_comentario
+    salvar_comentarios(comentarios)
+
+    st.success("Comentário salvo com sucesso!")
+
     if not df_vendas.empty:
 
         vendas_cliente = df_vendas[
@@ -871,6 +894,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
