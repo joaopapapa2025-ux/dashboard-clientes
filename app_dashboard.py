@@ -625,31 +625,31 @@ if len(df_filtrado) == 1:
 
     cnpj_cliente = cliente["CNPJ_LIMPO"]
 
-if cnpj_cliente not in comentarios:
-    comentarios[cnpj_cliente] = []
+    if cnpj_cliente not in comentarios:
+        comentarios[cnpj_cliente] = []
 
-novo_comentario = st.text_area(
-    "Registrar nova observação comercial",
-    value="",
-    height=120
-)
+    novo_comentario = st.text_area(
+        "Registrar nova observação comercial",
+        value="",
+        height=120
+    )
 
-if st.button("Salvar comentário"):
+    if st.button("Salvar comentário"):
 
-    if novo_comentario.strip() != "":
+        if novo_comentario.strip() != "":
 
-        registro = {
-            "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "texto": novo_comentario
-        }
+            registro = {
+                "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "texto": novo_comentario
+            }
 
-        comentarios[cnpj_cliente].append(registro)
+            comentarios[cnpj_cliente].append(registro)
 
-        salvar_comentarios(comentarios)
+            salvar_comentarios(comentarios)
 
-        st.success("Comentário registrado!")
+            st.success("Comentário registrado!")
 
-        st.rerun()
+            st.rerun()
 
 # =========================
 # HISTÓRICO DE COMENTÁRIOS
@@ -955,6 +955,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
