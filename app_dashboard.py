@@ -167,6 +167,28 @@ labels = [
 df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
 
 # =========================
+# COMENTÁRIOS POR CLIENTE
+# =========================
+
+ARQUIVO_COMENTARIOS = "comentarios_clientes.json"
+
+def carregar_comentarios():
+
+    try:
+        with open(ARQUIVO_COMENTARIOS, "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def salvar_comentarios(comentarios):
+
+    with open(ARQUIVO_COMENTARIOS, "w") as f:
+        json.dump(comentarios, f, indent=4)
+
+# carregar comentários existentes
+comentarios = carregar_comentarios()
+
+# =========================
 # FUNÇÃO GERAR PDF
 # =========================
 
@@ -896,6 +918,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
