@@ -658,23 +658,39 @@ if comentarios[cnpj_cliente]:
 
     st.markdown("### 📜 Histórico")
 
-    for c in reversed(comentarios[cnpj_cliente]):
+    for i in range(len(comentarios[cnpj_cliente]) - 1, -1, -1):
 
-        st.markdown(
-            f"""
-            <div style="
-            background:#f6f6f6;
-            padding:10px;
-            border-radius:8px;
-            margin-bottom:8px">
+        c = comentarios[cnpj_cliente][i]
 
-            <b>{c['data']}</b><br>
-            {c['texto']}
+        col1, col2 = st.columns([10,1])
 
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        with col1:
+
+            st.markdown(
+                f"""
+                <div style="
+                background:#f6f6f6;
+                padding:10px;
+                border-radius:8px;
+                margin-bottom:8px">
+
+                <b>{c['data']}</b><br>
+                {c['texto']}
+
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col2:
+
+            if st.button("🗑", key=f"delete_{i}"):
+
+                comentarios[cnpj_cliente].pop(i)
+
+                salvar_comentarios(comentarios)
+
+                st.rerun()
 
     # =========================
     # ANÁLISE DE COMPRAS
@@ -938,6 +954,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
