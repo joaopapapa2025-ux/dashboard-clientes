@@ -615,84 +615,6 @@ if len(df_filtrado) == 1:
 
     st.divider()
 
-# =========================
-# COMENTÁRIOS DO CLIENTE
-# =========================
-
-if len(df_filtrado) == 1:
-
-    st.subheader("📝 Comentários do Vendedor")
-
-    cnpj_cliente = cliente["CNPJ_LIMPO"]
-
-    if cnpj_cliente not in comentarios:
-        comentarios[cnpj_cliente] = []
-
-    novo_comentario = st.text_area(
-        "Registrar nova observação comercial",
-        value="",
-        height=120
-    )
-
-    if st.button("Salvar comentário"):
-
-        if novo_comentario.strip() != "":
-
-            registro = {
-                "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "texto": novo_comentario
-            }
-
-            comentarios[cnpj_cliente].append(registro)
-
-            salvar_comentarios(comentarios)
-
-            st.success("Comentário registrado!")
-
-            st.rerun()
-
-# =========================
-# HISTÓRICO DE COMENTÁRIOS
-# =========================
-
-if comentarios[cnpj_cliente]:
-
-    st.markdown("### 📜 Histórico")
-
-    for i in range(len(comentarios[cnpj_cliente]) - 1, -1, -1):
-
-        c = comentarios[cnpj_cliente][i]
-
-        col1, col2 = st.columns([10,1])
-
-        with col1:
-
-            st.markdown(
-                f"""
-                <div style="
-                background:#f6f6f6;
-                padding:10px;
-                border-radius:8px;
-                margin-bottom:8px">
-
-                <b>{c['data']}</b><br>
-                {c['texto']}
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        with col2:
-
-            if st.button("🗑", key=f"delete_{cnpj_cliente}_{i}"):
-
-                comentarios[cnpj_cliente].pop(i)
-
-                salvar_comentarios(comentarios)
-
-                st.rerun()
-
     # =========================
     # ANÁLISE DE COMPRAS
     # =========================
@@ -955,6 +877,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
