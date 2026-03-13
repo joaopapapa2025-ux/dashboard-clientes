@@ -703,7 +703,13 @@ if len(df_filtrado) == 1:
         # PRODUTOS QUE NÃO COMPRA
 
         produtos_cliente = set(vendas_cliente["DESC PRODUTO"].unique())
-        todos_produtos = set(df_vendas["DESC PRODUTO"].unique())
+        todos_produtos = set(
+    df_vendas[
+        (~df_vendas["DESC PRODUTO"].str.upper().str.contains("CONFERIDO", na=False)) &
+        (~df_vendas["DESC PRODUTO"].str.upper().str.contains("TESTE", na=False)) &
+        (~df_vendas["DESC PRODUTO"].str.upper().str.contains("AJUSTE", na=False))
+    ]["DESC PRODUTO"].unique()
+)
 
         produtos_nao_compra = list(todos_produtos - produtos_cliente)
 
@@ -851,6 +857,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
