@@ -781,6 +781,63 @@ k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 st.divider()
 
 # =========================
+# ANÁLISE DE MIX GERAL (BASE FILTRADA)
+# =========================
+
+st.divider()
+st.subheader("📦 Análise Geral de Mix e Produtos (Base Filtrada)")
+
+if not df_vendas.empty:
+    # Filtramos as vendas apenas dos clientes que estão aparecendo no df_filtrado
+    cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
+    vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)]
+
+    if not vendas_geral.empty:
+        col_mix1, col_mix2 = st.columns(2)
+
+        with col_mix1:
+            # MIX POR LINHA GERAL
+            mix_linha_geral = (
+                vendas_geral
+                .groupby("LINHA")["VALOR"]
+                .sum()
+                .reset_index()
+                .sort_values("VALOR", ascending=False)
+            )
+            fig_mix_geral = px.pie(
+                mix_linha_geral,
+                names="LINHA",
+                values="VALOR",
+                title="Mix de Vendas por Linha (Geral)"
+            )
+            st.plotly_chart(fig_mix_geral, use_container_width=True)
+
+        with col_mix2:
+            # TOP 10 PRODUTOS GERAL
+            top_produtos_geral = (
+                vendas_geral
+                .groupby("DESC PRODUTO")["VALOR"]
+                .sum()
+                .reset_index()
+                .sort_values("VALOR", ascending=False)
+                .head(10)
+            )
+            fig_top_geral = px.bar(
+                top_produtos_geral,
+                x="VALOR",
+                y="DESC PRODUTO",
+                orientation="h",
+                title="Top 10 Produtos Mais Vendidos (Geral)",
+                color_discrete_sequence=["#FF4B4B"]
+            )
+            fig_top_geral.update_layout(yaxis={'categoryorder':'total ascending'})
+            st.plotly_chart(fig_top_geral, use_container_width=True)
+    else:
+        st.info("Nenhum dado de venda encontrado para os filtros selecionados.")
+else:
+    st.warning("Base de vendas não carregada.")
+
+# =========================
 # GRÁFICO SEGMENTO
 # =========================
 
@@ -869,6 +926,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
