@@ -780,9 +780,9 @@ k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 
 st.divider()
 
-# =========================
-# ANÁLISE DE MIX (COLORIDO + DESTAQUES BLINDADOS)
-# =========================
+# =========================================================
+# ANÁLISE DE MIX (COLORIDO + DESTAQUES BLINDADOS + LISTA COMPLETA)
+# =========================================================
 
 st.divider()
 st.subheader("📦 Análise Geral de Mix e Produtos")
@@ -794,7 +794,7 @@ if not df_vendas.empty:
     vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.contains("CONFERIDO", case=False, na=False)]
 
     if not vendas_geral.empty:
-        # 2. MAPEAMENTO DINÂMICO
+        # 2. MAPEAMENTO DINÂMICO (Lógica do Catálogo)
         def mapear_catalogo(nome):
             nome = str(nome).upper()
             if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO", "COMIDINHA"]): return "Papinhas e Sopinhas"
@@ -833,7 +833,6 @@ if not df_vendas.empty:
         c3, c4 = st.columns(2)
         with c3:
             mix_idade = vendas_geral.groupby("IDADE")["VALOR"].sum().reset_index()
-            # Gráfico coloridinho por idade
             fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", 
                                title="Vendas por Idade Recomendada",
                                color_discrete_sequence=px.colors.qualitative.Bold)
@@ -845,24 +844,41 @@ if not df_vendas.empty:
             fig_top.update_layout(yaxis={'categoryorder':'total ascending'})
             st.plotly_chart(fig_top, use_container_width=True)
 
-        # 5. DESTAQUES POR CATEGORIA (BLINDAGEM TOTAL CONTRA NEGATIVOS)
+        # 5. DESTAQUES POR CATEGORIA (BLINDAGEM TOTAL - HTML PURO)
         st.markdown("---")
         st.markdown("#### 🏆 Destaques por Categoria")
         
-        cat_sel = st.selectbox("Escolha uma categoria:", options=sorted(vendas_geral["CAT_CATALOGO"].unique()))
+        # Garantindo que apareçam todas as categorias na lista
+        lista_opcoes = sorted(vendas_geral["CAT_CATALOGO"].unique())
+        cat_sel = st.selectbox("Escolha uma categoria para detalhar:", options=lista_opcoes)
+        
         df_ext = vendas_geral[vendas_geral["CAT_CATALOGO"] == cat_sel]
         rank = df_ext.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
 
         if not rank.empty:
             col_b, col_w = st.columns(2)
             
+            # Card do Campeão (Verde)
             with col_b:
-                st.success(f"⭐ **CAMPEÃO:** \n{rank['DESC PRODUTO'].iloc[0]}")
-                st.markdown(f"### R$ {rank['VALOR'].iloc[0]:,.2f}")
+                html_campeao = f"""
+                <div style="background-color: #d4edda; border: 2px solid #c3e6cb; padding: 20px; border-radius: 10px; text-align: center;">
+                    <h5 style="color: #155724; margin: 0;">⭐ PRODUTO CAMPEÃO</h5>
+                    <p style="color: #155724; font-size: 1.1em; font-weight: bold; margin: 10px 0;">{rank['DESC PRODUTO'].iloc[0]}</p>
+                    <h2 style="color: #155724; margin: 0;">R$ {rank['VALOR'].iloc[0]:,.2f}</h2>
+                </div>
+                """
+                st.markdown(html_campeao, unsafe_allow_html=True)
             
+            # Card da Menor Venda (Vermelho) - SEM MÉTRICA, SEM NEGATIVO
             with col_w:
-                st.error(f"⚠️ **MENOR VENDA:** \n{rank['DESC PRODUTO'].iloc[-1]}")
-                st.markdown(f"### R$ {rank['VALOR'].iloc[-1]:,.2f}")
+                html_menor = f"""
+                <div style="background-color: #f8d7da; border: 2px solid #f5c6cb; padding: 20px; border-radius: 10px; text-align: center;">
+                    <h5 style="color: #721c24; margin: 0;">⚠️ MENOR FATURAMENTO</h5>
+                    <p style="color: #721c24; font-size: 1.1em; font-weight: bold; margin: 10px 0;">{rank['DESC PRODUTO'].iloc[-1]}</p>
+                    <h2 style="color: #721c24; margin: 0;">R$ {rank['VALOR'].iloc[-1]:,.2f}</h2>
+                </div>
+                """
+                st.markdown(html_menor, unsafe_allow_html=True)
 
     else:
         st.info("Nenhuma venda encontrada nos filtros atuais.")
@@ -956,6 +972,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
