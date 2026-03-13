@@ -615,6 +615,22 @@ if len(df_filtrado) == 1:
 
     st.divider()
 
+    if not df_vendas.empty:
+
+        vendas_cliente = df_vendas[
+            df_vendas["CNPJ_LIMPO"] == cliente["CNPJ_LIMPO"]
+        ]
+
+    # GERAR PDF
+    pdf = gerar_pdf_cliente(cliente, vendas_cliente)
+
+    st.download_button(
+        label="📄 Baixar PDF do Cliente",
+        data=pdf,
+        file_name=f"relatorio_{cliente[col_razao]}.pdf",
+        mime="application/pdf"
+    )
+
     # =========================
     # ANÁLISE DE COMPRAS
     # =========================
@@ -684,96 +700,54 @@ if len(df_filtrado) == 1:
 
         st.plotly_chart(fig_evolucao, use_container_width=True)
 
-# =========================
-# PRODUTOS QUE O CLIENTE NÃO COMPRA
-# =========================
+        # PRODUTOS QUE NÃO COMPRA
 
-if "vendas_cliente" in locals() and not vendas_cliente.empty:
+        produtos_cliente = set(vendas_cliente["DESC PRODUTO"].unique())
+        todos_produtos = set(df_vendas["DESC PRODUTO"].unique())
 
-    # LIMPAR BASE DE PRODUTOS
-    produtos_base = (
-        df_vendas["DESC PRODUTO"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
+        produtos_nao_compra = list(todos_produtos - produtos_cliente)
 
-    produtos_base = produtos_base[
-        (~produtos_base.str.contains("CONFERIDO", na=False)) &
-        (~produtos_base.str.contains("TESTE", na=False)) &
-        (~produtos_base.str.contains("AJUSTE", na=False))
-    ]
+        df_nao_compra = pd.DataFrame({
+            "Produtos que o cliente ainda não compra": produtos_nao_compra
+        }).head(20)
 
-    todos_produtos = set(produtos_base.unique())
+        st.subheader("🚨 Produtos que o cliente ainda não compra")
 
-    # LIMPAR PRODUTOS DO CLIENTE
-    produtos_cliente = (
-        vendas_cliente["DESC PRODUTO"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
+        st.dataframe(df_nao_compra, use_container_width=True)
 
-    produtos_cliente = produtos_cliente[
-        (~produtos_cliente.str.contains("CONFERIR", na=False)) &
-        (~produtos_cliente.str.contains("TESTE", na=False)) &
-        (~produtos_cliente.str.contains("AJUSTE", na=False))
-    ]
+        # CROSS SELL
 
-    produtos_cliente = set(produtos_cliente.unique())
+        linhas_cliente = set(
+            vendas_cliente["LINHA"]
+            .astype(str)
+            .str.strip()
+            .replace(["", "nan", "None"], pd.NA)
+            .dropna()
+            .unique()
+        )
 
-    # CALCULAR DIFERENÇA
-    produtos_nao_compra = sorted(list(todos_produtos - produtos_cliente))
+        todas_linhas = set(
+            df_vendas["LINHA"]
+            .astype(str)
+            .str.strip()
+            .replace(["", "nan", "None"], pd.NA)
+            .dropna()
+            .unique()
+        )
 
-    df_nao_compra = pd.DataFrame({
-        "Produtos que o cliente ainda não compra": produtos_nao_compra
-    })
+        linhas_faltantes = sorted(list(todas_linhas - linhas_cliente))
 
-    st.subheader("🚨 Produtos que o cliente ainda não compra")
+        df_cross = pd.DataFrame({
+            "Linhas que o cliente ainda não compra (oportunidade)": linhas_faltantes
+        })
 
-    st.dataframe(
-        df_nao_compra.head(20),
-        use_container_width=True,
-        hide_index=True
-    )
+        st.subheader("💡 Oportunidades de Cross-sell")
 
-# =========================
-# CROSS SELL
-# =========================
-
-if "vendas_cliente" in locals() and not vendas_cliente.empty:
-
-    linhas_cliente = set(
-        vendas_cliente["LINHA"]
-        .astype(str)
-        .str.strip()
-        .replace(["", "nan", "None"], pd.NA)
-        .dropna()
-        .unique()
-    )
-
-    todas_linhas = set(
-        df_vendas["LINHA"]
-        .astype(str)
-        .str.strip()
-        .replace(["", "nan", "None"], pd.NA)
-        .dropna()
-        .unique()
-    )
-
-    linhas_faltantes = sorted(list(todas_linhas - linhas_cliente))
-
-    df_cross = pd.DataFrame({
-        "Linhas que o cliente ainda não compra (oportunidade)": linhas_faltantes
-    })
-
-    st.subheader("💡 Oportunidades de Cross-sell")
-
-    st.dataframe(
-        df_cross,
-        use_container_width=True,
-        hide_index=True
-    )
+        st.dataframe(
+            df_cross,
+            use_container_width=True,
+            hide_index=True
+        )
 
 # =========================
 # KPIs
@@ -877,6 +851,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
