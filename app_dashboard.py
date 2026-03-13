@@ -702,54 +702,18 @@ if len(df_filtrado) == 1:
 
         # PRODUTOS QUE NÃO COMPRA
 
-        if "vendas_cliente" in locals() and not vendas_cliente.empty:
+        produtos_cliente = set(vendas_cliente["DESC PRODUTO"].unique())
+        todos_produtos = set(df_vendas["DESC PRODUTO"].unique())
 
-    # LIMPAR BASE DE PRODUTOS
-    produtos_base = (
-        df_vendas["DESC PRODUTO"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
+        produtos_nao_compra = list(todos_produtos - produtos_cliente)
 
-    produtos_base = produtos_base[
-        (~produtos_base.str.contains("CONFERIDO", na=False)) &
-        (~produtos_base.str.contains("TESTE", na=False)) &
-        (~produtos_base.str.contains("AJUSTE", na=False))
-    ]
+        df_nao_compra = pd.DataFrame({
+            "Produtos que o cliente ainda não compra": produtos_nao_compra
+        }).head(20)
 
-    todos_produtos = set(produtos_base.unique())
+        st.subheader("🚨 Produtos que o cliente ainda não compra")
 
-    # LIMPAR PRODUTOS DO CLIENTE
-    produtos_cliente = (
-        vendas_cliente["DESC PRODUTO"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
-
-    produtos_cliente = produtos_cliente[
-        (~produtos_cliente.str.contains("CONFERIDO", na=False)) &
-        (~produtos_cliente.str.contains("TESTE", na=False)) &
-        (~produtos_cliente.str.contains("AJUSTE", na=False))
-    ]
-
-    produtos_cliente = set(produtos_cliente.unique())
-
-    # CALCULAR DIFERENÇA
-    produtos_nao_compra = sorted(list(todos_produtos - produtos_cliente))
-
-    df_nao_compra = pd.DataFrame({
-        "Produtos que o cliente ainda não compra": produtos_nao_compra
-    })
-
-    st.subheader("🚨 Produtos que o cliente ainda não compra")
-
-    st.dataframe(
-        df_nao_compra.head(20),
-        use_container_width=True,
-        hide_index=True
-    )
+        st.dataframe(df_nao_compra, use_container_width=True)
 
         # CROSS SELL
 
@@ -887,6 +851,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
