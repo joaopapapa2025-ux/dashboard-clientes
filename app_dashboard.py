@@ -628,7 +628,7 @@ if len(df_filtrado) == 1:
         # Campo para novo comentário
         novo_txt = st.text_area("Novo registro:", placeholder="O que foi conversado?", key="txt_area_crm")
         
-if st.button("Salvar Comentário"):
+    if st.button("Salvar Comentário"):
             if novo_txt.strip():
                 # Ajusta para o horário de Brasília (UTC-3)
                 agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
@@ -646,7 +646,7 @@ if st.button("Salvar Comentário"):
             else:
                 st.warning("O campo de comentário está vazio.")
 
-        st.divider()
+    st.divider()
 
         # Listagem de comentários com botão de excluir
         if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
@@ -869,6 +869,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
