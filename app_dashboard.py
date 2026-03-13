@@ -780,9 +780,9 @@ k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
 
 st.divider()
 
-# =========================================================
-# ANÁLISE DE MIX (COLORIDO + DESTAQUES BLINDADOS + LISTA COMPLETA)
-# =========================================================
+# =========================
+# ANÁLISE DE MIX (VERSÃO FINAL - ZERO NEGATIVOS)
+# =========================
 
 st.divider()
 st.subheader("📦 Análise Geral de Mix e Produtos")
@@ -793,95 +793,91 @@ if not df_vendas.empty:
     vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
     vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.contains("CONFERIDO", case=False, na=False)]
 
-    if not vendas_geral.empty:
-        # 2. MAPEAMENTO DINÂMICO (Lógica do Catálogo)
-        def mapear_catalogo(nome):
-            nome = str(nome).upper()
-            if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO", "COMIDINHA"]): return "Papinhas e Sopinhas"
-            if any(x in nome for x in ["PUFFS", "BISCOITO", "SNACK", "PALITINHO", "MILHO", "DENTIÇÃO", "BISCOTTI"]): return "Snacks"
-            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "Macarrões"
-            if any(x in nome for x in ["CEREAL", "AVEIA", "MUCILON"]): return "Cereais"
-            return "Outros"
+    # 2. MAPEAMENTO DINÂMICO
+    def mapear_catalogo(nome):
+        nome = str(nome).upper()
+        if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO", "COMIDINHA"]): return "Papinhas e Sopinhas"
+        if any(x in nome for x in ["PUFFS", "BISCOITO", "SNACK", "PALITINHO", "MILHO", "DENTIÇÃO", "BISCOTTI"]): return "Snacks"
+        if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "Macarrões"
+        if any(x in nome for x in ["CEREAL", "AVEIA", "MUCILON"]): return "Cereais"
+        return "Outros"
 
-        def mapear_sabor(nome):
-            nome = str(nome).upper()
-            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA"]
-            return "Doce" if any(x in nome for x in doces) else "Salgado"
+    vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo)
+    
+    # Mapeamentos de Sabor e Idade para os gráficos
+    def mapear_sabor(nome):
+        nome = str(nome).upper()
+        doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA"]
+        return "Doce" if any(x in nome for x in doces) else "Salgado"
 
-        def mapear_idade(nome):
-            nome = str(nome).upper()
-            if "12" in nome or "CEREAL" in nome: return "12 meses+"
-            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "8 meses+"
-            return "6 meses+"
+    def mapear_idade(nome):
+        nome = str(nome).upper()
+        if "12" in nome or "CEREAL" in nome: return "12 meses+"
+        if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "8 meses+"
+        return "6 meses+"
 
-        vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo)
-        vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
-        vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
+    vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
+    vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
 
-        # 3. GRÁFICOS - LINHA 1 (Pizza e Sabores)
-        c1, c2 = st.columns(2)
-        with c1:
-            mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
-            fig_cat = px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Mix por Categoria", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
-            st.plotly_chart(fig_cat, use_container_width=True)
-        with c2:
-            mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
-            fig_sabor = px.pie(mix_sabor, names="SABOR", values="VALOR", title="Doce vs Salgado", color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"})
-            st.plotly_chart(fig_sabor, use_container_width=True)
+    # 3. GRÁFICOS (Pizza, Sabor, Idade, Top 10)
+    c1, c2 = st.columns(2)
+    with c1:
+        mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
+        st.plotly_chart(px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Mix por Categoria", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel), use_container_width=True)
+    with c2:
+        mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
+        st.plotly_chart(px.pie(mix_sabor, names="SABOR", values="VALOR", title="Doce vs Salgado", color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"}), use_container_width=True)
 
-        # 4. GRÁFICOS - LINHA 2 (Idade Colorida e Top 10)
-        c3, c4 = st.columns(2)
-        with c3:
-            mix_idade = vendas_geral.groupby("IDADE")["VALOR"].sum().reset_index()
-            fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", 
-                               title="Vendas por Idade Recomendada",
-                               color_discrete_sequence=px.colors.qualitative.Bold)
-            fig_idade.update_layout(showlegend=False)
-            st.plotly_chart(fig_idade, use_container_width=True)
-        with c4:
-            top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
-            fig_top = px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Produtos", color_discrete_sequence=["#FF4B4B"])
-            fig_top.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_top, use_container_width=True)
+    c3, c4 = st.columns(2)
+    with c3:
+        mix_idade = vendas_geral.groupby("IDADE")["VALOR"].sum().reset_index()
+        fig_id = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", title="Vendas por Idade", color_discrete_sequence=px.colors.qualitative.Bold)
+        fig_id.update_layout(showlegend=False)
+        st.plotly_chart(fig_id, use_container_width=True)
+    with c4:
+        top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
+        st.plotly_chart(px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Produtos"), use_container_width=True)
 
-        # 5. DESTAQUES POR CATEGORIA (BLINDAGEM TOTAL - HTML PURO)
-        st.markdown("---")
-        st.markdown("#### 🏆 Destaques por Categoria")
-        
-        # Garantindo que apareçam todas as categorias na lista
-        lista_opcoes = sorted(vendas_geral["CAT_CATALOGO"].unique())
-        cat_sel = st.selectbox("Escolha uma categoria para detalhar:", options=lista_opcoes)
-        
-        df_ext = vendas_geral[vendas_geral["CAT_CATALOGO"] == cat_sel]
-        rank = df_ext.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
+    # 4. DESTAQUES POR CATEGORIA (BLINDAGEM CONTRA NEGATIVOS)
+    st.markdown("---")
+    st.markdown("#### 🏆 Destaques por Categoria")
+    
+    # LISTA FIXA DO CATÁLOGO (Para aparecerem todas)
+    categorias_fixas = ["Papinhas e Sopinhas", "Snacks", "Macarrões", "Cereais"]
+    cat_sel = st.selectbox("Escolha uma categoria:", options=categorias_fixas)
+    
+    df_ext = vendas_geral[vendas_geral["CAT_CATALOGO"] == cat_sel]
+    rank = df_ext.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
 
-        if not rank.empty:
-            col_b, col_w = st.columns(2)
-            
-            # Card do Campeão (Verde)
-            with col_b:
-                html_campeao = f"""
-                <div style="background-color: #d4edda; border: 2px solid #c3e6cb; padding: 20px; border-radius: 10px; text-align: center;">
-                    <h5 style="color: #155724; margin: 0;">⭐ PRODUTO CAMPEÃO</h5>
-                    <p style="color: #155724; font-size: 1.1em; font-weight: bold; margin: 10px 0;">{rank['DESC PRODUTO'].iloc[0]}</p>
-                    <h2 style="color: #155724; margin: 0;">R$ {rank['VALOR'].iloc[0]:,.2f}</h2>
+    col_b, col_w = st.columns(2)
+
+    if not rank.empty:
+        # Card Verde (Campeão)
+        with col_b:
+            valor_c = f"{rank['VALOR'].iloc[0]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            st.markdown(f"""
+                <div style="background-color: #d4edda; padding: 20px; border-radius: 10px; border-left: 8px solid #28a745;">
+                    <span style="color: #155724; font-weight: bold; font-size: 0.9em;">⭐ PRODUTO CAMPEÃO</span><br>
+                    <span style="color: #155724; font-size: 1.1em; display: block; margin: 10px 0;">{rank['DESC PRODUTO'].iloc[0]}</span>
+                    <span style="color: #155724; font-size: 1.8em; font-weight: 900;">R$ {valor_c}</span>
                 </div>
-                """
-                st.markdown(html_campeao, unsafe_allow_html=True)
-            
-            # Card da Menor Venda (Vermelho) - SEM MÉTRICA, SEM NEGATIVO
-            with col_w:
-                html_menor = f"""
-                <div style="background-color: #f8d7da; border: 2px solid #f5c6cb; padding: 20px; border-radius: 10px; text-align: center;">
-                    <h5 style="color: #721c24; margin: 0;">⚠️ MENOR FATURAMENTO</h5>
-                    <p style="color: #721c24; font-size: 1.1em; font-weight: bold; margin: 10px 0;">{rank['DESC PRODUTO'].iloc[-1]}</p>
-                    <h2 style="color: #721c24; margin: 0;">R$ {rank['VALOR'].iloc[-1]:,.2f}</h2>
+            """, unsafe_allow_html=True)
+        
+        # Card Vermelho (Menor Venda)
+        with col_w:
+            valor_m = f"{rank['VALOR'].iloc[-1]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            st.markdown(f"""
+                <div style="background-color: #f8d7da; padding: 20px; border-radius: 10px; border-left: 8px solid #dc3545;">
+                    <span style="color: #721c24; font-weight: bold; font-size: 0.9em;">⚠️ MENOR FATURAMENTO</span><br>
+                    <span style="color: #721c24; font-size: 1.1em; display: block; margin: 10px 0;">{rank['DESC PRODUTO'].iloc[-1]}</span>
+                    <span style="color: #721c24; font-size: 1.8em; font-weight: 900;">R$ {valor_m}</span>
                 </div>
-                """
-                st.markdown(html_menor, unsafe_allow_html=True)
-
+            """, unsafe_allow_html=True)
     else:
-        st.info("Nenhuma venda encontrada nos filtros atuais.")
+        st.warning(f"Não há dados de vendas para {cat_sel} nesta seleção.")
+
+else:
+    st.info("Aguardando dados de vendas...")
         
 # =========================
 # GRÁFICO SEGMENTO
@@ -972,6 +968,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
