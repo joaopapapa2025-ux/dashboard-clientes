@@ -591,7 +591,7 @@ if len(df_filtrado) == 1:
     # Criamos duas colunas para o topo: Info à esquerda e CRM à direita
     col_info, col_crm = st.columns([1, 1])
 
-with col_info:
+    with col_info:
         # --- LÓGICA DE BUSCA DO LEAD TIME ---
         prazo_html = ""
         try:
