@@ -665,43 +665,61 @@ if len(df_filtrado) == 1:
         else:
             st.info("Nenhum histórico registrado para este cliente.")
 
-    # ==========================================
+# ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
 # ==========================================
 
-# 1. Carregamento da base de Lead Time (ajuste o nome do arquivo se necessário)
+# 1. Carregamento da base de Lead Time (Ajustado para o nome do seu arquivo CSV)
 try:
-    df_lead_time = pd.read_csv("Tabela lead time operacao e comercial.xlsx - tabela de lead time.csv", skipinitialspace=True)
-    # Limpeza básica de colunas vazias e renomeação
-    df_lead_time = df_lead_time.dropna(subset=['Cidade', 'UF'])
-except:
-    st.error("Não foi possível carregar a base de Lead Time.")
+    # Lendo o arquivo enviado (ajustando o cabeçalho pois o snippet mostrou que começa na linha 2)
+    df_lead_time = pd.read_csv("Tabela lead time operacao e comercial.xlsx - tabela de lead time.csv", skiprows=2)
+    
+    # Limpeza: Remover colunas sem nome e garantir nomes corretos
+    df_lead_time = df_lead_time.loc[:, ~df_lead_time.columns.str.contains('^Unnamed')]
+    # Garantir que as colunas essenciais existem
+    df_lead_time.columns = ['Cidade', 'UF', 'Lead_Time_Total', 'Lead_Time_Transp'] + list(df_lead_time.columns[4:])
+except Exception as e:
+    st.error(f"Erro ao carregar base de Lead Time: {e}")
+    df_lead_time = pd.DataFrame()
 
-# 2. Dentro do bloco onde você filtra o cliente individual:
-if id_cliente:
-    # Pegamos os dados cadastrais do cliente selecionado
-    dados_cliente = df_filtrado[df_filtrado["CNPJ_LIMPO"] == id_cliente].iloc[0]
-    cidade_cliente = str(dados_cliente["CIDADE"]).upper().strip()
-    uf_cliente = str(dados_cliente["UF"]).upper().strip()
+# 2. Exibição do Lead Time (Verifique se 'id_cliente' é o nome da sua variável de filtro)
+# Se o seu filtro for algo como: id_cliente = st.sidebar.selectbox(..., key='cnpj_filter')
+if 'id_cliente' in locals() and id_cliente:
+    
+    # Pega os dados do cliente selecionado na sua base principal
+    # Certifique-se que df_filtrado contém as colunas CIDADE e UF
+    try:
+        dados_cadastrais = df_filtrado[df_filtrado["CNPJ_LIMPO"] == id_cliente].iloc[0]
+        cidade_alvo = str(dados_cadastrais["CIDADE"]).upper().strip()
+        uf_alvo = str(dados_cadastrais["UF"]).upper().strip()
 
-    # Busca o Lead Time correspondente
-    lead_info = df_lead_time[
-        (df_lead_time['Cidade'].str.upper().str.strip() == cidade_cliente) & 
-        (df_lead_time['UF'].str.upper().str.strip() == uf_cliente)
-    ]
+        if not df_lead_time.empty:
+            # Busca na tabela de lead time
+            busca = df_lead_time[
+                (df_lead_time['Cidade'].str.upper().str.strip() == cidade_alvo) & 
+                (df_lead_time['UF'].str.upper().str.strip() == uf_alvo)
+            ]
 
-    st.markdown("---")
-    col_lt1, col_lt2 = st.columns([1, 2])
-
-    with col_lt1:
-        if not lead_info.empty:
-            dias = lead_info['Lead time total'].values[0]
-            st.metric("🚚 Lead Time de Entrega", f"{dias} dias úteis")
-        else:
-            st.warning("⚠️ Lead Time não localizado para esta cidade.")
-
-    with col_lt2:
-        st.info(f"📍 **Rota Logística:** {cidade_cliente} - {uf_cliente}")
+            if not busca.empty:
+                lt_total = busca['Lead_Time_Total'].values[0]
+                lt_transp = busca['Lead_Time_Transp'].values[0]
+                
+                st.markdown("---")
+                st.subheader(f"🚚 Logística e Entrega: {cidade_alvo} - {uf_alvo}")
+                
+                c_lt1, c_lt2, c_lt3 = st.columns(3)
+                with c_lt1:
+                    st.metric("Lead Time Total", f"{lt_total} dias úteis")
+                with c_lt2:
+                    st.metric("Lead Time Transp.", f"{lt_transp} dias úteis")
+                with c_lt3:
+                    # Cálculo de processamento interno (Total - Transporte)
+                    proc = lt_total - lt_transp
+                    st.metric("Processamento Interno", f"{max(0, proc)} dias")
+            else:
+                st.warning(f"📍 Lead Time não mapeado para {cidade_alvo}/{uf_alvo} na planilha de logística.")
+    except Exception as e:
+        st.info("Selecione um cliente específico para visualizar o Lead Time de entrega.")
 
     # =========================
     # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
