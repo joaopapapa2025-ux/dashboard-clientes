@@ -247,24 +247,25 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
 dados_cliente = [
 
-    ["Razão Social", cliente[COL_RAZAO]],
-    ["Nome Fantasia", cliente[COL_RAZAO]],
-    ["CNPJ", cliente[COL_CNPJ]],
-    ["Telefone", cliente[COL_TELEFONE]],
-    ["Email", cliente[COL_EMAIL]],
-    ["Cidade", f"{cliente[COL_CIDADE]} - {cliente[COL_UF]}"],
-    ["Vendedor", cliente[COL_VENDEDOR]],
-    ["Categoria", cliente[COL_SEGMENTO]],
-    ["Faturamento 9M", f"R$ {cliente[COL_T_U_9_M]:,.2f}"],
-    ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
-]
+        ["Razão Social", cliente[COL_RAZAO]],
+        ["Nome Fantasia", cliente[COL_RAZAO]],
+        ["CNPJ", cliente[COL_CNPJ]],
+        ["Telefone", cliente[COL_TELEFONE]],
+        ["Email", cliente[COL_EMAIL]],
+        ["Cidade", f"{cliente[COL_CIDADE]} - {cliente[COL_UF]}"],
+        ["Vendedor", cliente[COL_VENDEDOR]],
+        ["Categoria", cliente[COL_SEGMENTO]],
+        ["Faturamento 9M", f"R$ {cliente[COL_T_U_9_M]:,.2f}"],
+        ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
 
-tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
+    ]
 
-tabela_cliente.setStyle(TableStyle([
-    ("BACKGROUND",(0,0),(0,-1),colors.lightgrey),
-    ("GRID",(0,0),(-1,-1),0.5,colors.grey)
-]))
+    tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
+
+    tabela_cliente.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(0,-1),colors.lightgrey),
+        ("GRID",(0,0),(-1,-1),0.5,colors.grey)
+    ]))
 
     elementos.append(tabela_cliente)
     elementos.append(Spacer(1,25))
