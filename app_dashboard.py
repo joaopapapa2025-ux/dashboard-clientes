@@ -860,17 +860,6 @@ if 'id_cliente' in locals() and id_cliente:
                     proc_interno = total_dias - transp_estimado
                 except:
                     total_dias, transp_estimado, proc_interno = 0, 0, 0
-
-                st.markdown("---")
-                st.subheader(f"🚚 Detalhamento Logístico: {dados_cadastrais[COL_CIDADE]}")
-                
-                c_lt1, c_lt2, c_lt3 = st.columns(3)
-                with c_lt1:
-                    st.metric("Prazo Total", f"{total_dias} dias úteis")
-                with c_lt2:
-                    st.metric("Estimativa Transporte", f"{transp_estimado} dias", help="Tempo previsto para a mercadoria em trânsito")
-                with c_lt3:
-                    st.metric("Processamento Interno", f"{proc_interno} dias", help="Tempo de separação e faturamento no CD")
             
             else:
                 # Caso não encontre na aba 'base', o card anterior (Parte 6) já mostra o erro simplificado
