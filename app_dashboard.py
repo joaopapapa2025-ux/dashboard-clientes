@@ -710,50 +710,34 @@ def carregar_notas():
         return pd.read_csv(ARQUIVO_NOTAS)
     return pd.DataFrame(columns=["CNPJ", "Data", "Nota"])
 
-# Função para salvar nota
-def salvar_nota(cnpj, texto):
-    if texto.strip() == "":
-        st.warning("A nota não pode estar vazia.")
-        return
-    
-    nova_nota = pd.DataFrame({
-        "CNPJ": [cnpj],
-        "Data": [datetime.now().strftime("%d/%m/%Y %H:%M")],
-        "Nota": [texto]
-    })
-    
-    df_notas_existentes = carregar_notas()
-    df_final = pd.concat([df_notas_existentes, nova_nota], ignore_index=True)
-    df_final.to_csv(ARQUIVO_NOTAS, index=False)
-    st.success("Nota salva com sucesso!")
-
-# Interface de Notas
 df_notas = carregar_notas()
 
-# Criamos um formulário para evitar que o Streamlit recarregue antes de terminar de digitar
-with st.form(key="form_notas", clear_on_submit=True):
+# Interface de Notas
+with st.container():
     nova_nota_texto = st.text_area("Adicionar nova atualização:")
-    botao_salvar = st.form_submit_button("Salvar Comentário")
+    if st.button("Salvar Comentário"):
+        if nova_nota_texto.strip() != "":
+            nova_nota = pd.DataFrame({
+                "CNPJ": [id_cliente],
+                "Data": [datetime.now().strftime("%d/%m/%Y %H:%M")],
+                "Nota": [nova_nota_texto]
+            })
+            
+            df_notas = pd.concat([df_notas, nova_nota], ignore_index=True)
+            df_notas.to_csv(ARQUIVO_NOTAS, index=False)
+            st.success("Nota salva!")
+            st.rerun()
+        else:
+            st.warning("Digite algo antes de salvar.")
 
-    if botao_salvar:
-        salvar_nota(id_cliente, nova_nota_texto)
-        # Forçamos o recarregamento para mostrar a nota nova na tabela abaixo
-        st.rerun()
-
-# Exibição das notas filtradas para o cliente atual
 st.markdown("**Histórico Recente:**")
 notas_cliente = df_notas[df_notas["CNPJ"] == id_cliente].sort_index(ascending=False)
 
 if not notas_cliente.empty:
     for i, row in notas_cliente.iterrows():
         st.info(f"📅 {row['Data']}\n\n{row['Nota']}")
-        # Botão para deletar nota específica (opcional)
-        if st.button(f"Excluir nota {i}", key=f"del_{i}"):
-            df_notas = df_notas.drop(i)
-            df_notas.to_csv(ARQUIVO_NOTAS, index=False)
-            st.rerun()
 else:
-    st.write("Nenhum histórico registrado para este cliente.")
+    st.write("Nenhum histórico registrado.")
             
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
