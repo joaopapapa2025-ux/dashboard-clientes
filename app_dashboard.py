@@ -1114,10 +1114,10 @@ with col_graf_cad2:
 # GRÁFICO FATURAMENTO (CORRIGIDO)
 # =========================
 
-st.markdown("---")
-col_graf_cad1, col_graf_cad2 = st.columns(2)
+    st.markdown("---")
+    col_graf_cad1, col_graf_cad2 = st.columns(2)
 
-with col_graf_cad1:
+    with col_graf_cad1:
     # Este bloco deve estar identado com 4 espaços
     resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
     resumo_segmento.columns = ["Segmento", "Quantidade"]
@@ -1134,7 +1134,7 @@ with col_graf_cad1:
     fig_seg.update_layout(showlegend=False)
     st.plotly_chart(fig_seg, use_container_width=True)
 
-with col_graf_cad2:
+    with col_graf_cad2:
     # O erro estava aqui. Todo este bloco precisa de identação:
     resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
     resumo_faturamento.columns = ["Faixa", "Quantidade"]
