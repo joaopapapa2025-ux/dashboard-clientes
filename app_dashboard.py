@@ -1109,9 +1109,11 @@ with col_graf_cad1:
     st.plotly_chart(fig_seg, use_container_width=True)
 
 with col_graf_cad2:
-    # =========================
-    # GRÁFICO FATURAMENTO
-    # =========================
+    
+# =========================
+# GRÁFICO FATURAMENTO (CORRIGIDO)
+# =========================
+with col_graf_cad2:
     resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
     resumo_faturamento.columns = ["Faixa", "Quantidade"]
 
@@ -1121,10 +1123,10 @@ with col_graf_cad2:
         values="Quantidade",
         title="Distribuição por Faixa de Faturamento",
         hole=0.4,
-        color_discrete_sequence=px.colors.qualitative.Reds
+        # CORREÇÃO: Usando a escala sequencial Reds do Plotly Express
+        color_discrete_sequence=px.colors.sequential.Reds_r 
     )
     st.plotly_chart(fig_fat, use_container_width=True)
-
 # =========================
 # MAPA DE CALOR (BRASIL)
 # =========================
