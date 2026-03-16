@@ -123,7 +123,7 @@ colunas_obrigatorias = [
     col_telefone,
     col_email,
     col_vendedor,
-    col_categoria,
+    col_segmento,
     col_faturamento
 ]
 
@@ -572,12 +572,12 @@ bairro_sel = st.sidebar.multiselect("Bairro", bairros, key="filtro_bairro")
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[col_bairro].isin(bairro_sel)]
 
-categorias = sorted(df_filtrado[col_categoria].dropna().unique())
+segmento = sorted(df_filtrado[col_segmento].dropna().unique())
 
-categoria_sel = st.sidebar.multiselect("Categoria", categorias, key="filtro_categoria")
+segmento_sel = st.sidebar.multiselect("Segmento", segmentos, key="filtro_segmento")
 
-if categoria_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(categoria_sel)]
+if segmento_sel:
+    df_filtrado = df_filtrado[df_filtrado[col_segmento].isin(segmento_sel)]
 
 faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
 
