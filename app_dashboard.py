@@ -56,7 +56,7 @@ if not st.session_state.acesso_liberado:
 # ARQUIVO BASE
 # =========================
 
-ARQUIVO_BASE = "base_clientes_segmentada_EXECUTIVO.xlsx"
+ARQUIVO_BASE = "Base Dashboard Inside Sales.xlsx"
 
 # =========================
 # CARREGAR BASE CLIENTES
