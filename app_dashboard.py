@@ -592,30 +592,29 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
 with col_info:
-        # --- 1. LÓGICA DE BUSCA DO LEAD TIME ---
+        # --- LÓGICA DE BUSCA DO LEAD TIME ---
         prazo_html = ""
         try:
-            # Carrega a aba de lead time
+            # Lendo o Excel (Aba 1 = Tabela de Lead Time)
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
             df_lt = df_lt.iloc[:, [1, 2, 3]]
             df_lt.columns = ['Cidade', 'UF', 'Total']
             
-            cidade_c = str(cliente[col_cidade]).upper().strip()
-            uf_c = str(cliente[col_uf]).upper().strip()
+            cid_alvo = str(cliente[col_cidade]).upper().strip()
+            uf_alvo = str(cliente[col_uf]).upper().strip()
             
-            # Busca ignorando maiúsculas/minúsculas
-            busca = df_lt[(df_lt['Cidade'].astype(str).str.upper().str.strip() == cidade_c) & 
-                          (df_lt['UF'].astype(str).str.upper().str.strip() == uf_c)]
+            busca = df_lt[(df_lt['Cidade'].astype(str).str.upper().str.strip() == cid_alvo) & 
+                          (df_lt['UF'].astype(str).str.upper().str.strip() == uf_alvo)]
             
             if not busca.empty:
-                total_dias = busca['Total'].values[0]
-                prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(total_dias)} dias úteis</b>"
+                v_prazo = busca['Total'].values[0]
+                prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
             else:
                 prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada</i>"
-        except Exception:
+        except:
             prazo_html = ""
 
-        # --- 2. QUADRO INFORMATIVO ---
+        # --- QUADRO DE INFORMAÇÕES ---
         st.markdown(
             f"""
             <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 1px solid #ddd">
@@ -630,22 +629,16 @@ with col_info:
             """, unsafe_allow_html=True
         )
 
-        telefone = limpar_telefone(cliente[col_telefone])
-        if telefone:
-            st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{telefone}")
-
-        # Filtro de vendas para o PDF
+        # Botão WhatsApp e PDF logo abaixo
+        t_limpo = limpar_telefone(cliente[col_telefone])
+        if t_limpo:
+            st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{t_limpo}")
+        
         if not df_vendas.empty:
-            vendas_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
-
-        # Botão PDF
-        pdf = gerar_pdf_cliente(cliente, vendas_cliente)
-        st.download_button(
-            label="📄 Baixar PDF do Cliente",
-            data=pdf,
-            file_name=f"relatorio_{cliente[col_razao]}.pdf",
-            mime="application/pdf"
-        )
+            v_cli = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
+            pdf_arq = gerar_pdf_cliente(cliente, v_cli)
+            st.download_button("📄 Baixar PDF do Cliente", data=pdf_arq, 
+                             file_name=f"relatorio_{cliente[col_razao]}.pdf", mime="application/pdf")
 
     with col_crm:
         st.subheader("📝 Notas e Histórico")
