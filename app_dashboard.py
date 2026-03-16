@@ -699,7 +699,7 @@ if len(df_filtrado) == 1:
         # 4. Campo de texto - IMPORTANTE: O value usa a variável de estado
         st.text_area(
             "Novo registro:", 
-            placeholder="O que foi conversado?", 
+            placeholder="Comentário", 
             key="txt_area_crm",
             value=st.session_state.texto_nota
         )
