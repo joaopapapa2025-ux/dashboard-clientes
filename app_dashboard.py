@@ -1057,7 +1057,7 @@ fig_cat = px.bar(
     resumo_categoria,
     x="Categoria",
     y="Quantidade",
-    title="Distribuição por Categoria"
+    title="Distribuição por Segmento"
 )
 
 st.plotly_chart(fig_cat, use_container_width=True)
