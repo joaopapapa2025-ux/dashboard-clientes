@@ -1086,13 +1086,14 @@ if not df_vendas.empty:
         st.info("Nenhuma venda encontrada para os clientes selecionados.")
         
 # =========================
-# GRÁFICO SEGMENTO
+# GRÁFICO SEGMENTO E FATURAMENTO
 # =========================
 
 st.markdown("---")
 col_graf_cad1, col_graf_cad2 = st.columns(2)
 
 with col_graf_cad1:
+    # Verifique se há exatamente 4 espaços antes de cada linha abaixo
     resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
     resumo_segmento.columns = ["Segmento", "Quantidade"]
 
@@ -1109,7 +1110,20 @@ with col_graf_cad1:
     st.plotly_chart(fig_seg, use_container_width=True)
 
 with col_graf_cad2:
-    
+    # Verifique se há exatamente 4 espaços antes de cada linha abaixo
+    resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+    resumo_faturamento.columns = ["Faixa", "Quantidade"]
+
+    fig_fat = px.pie(
+        resumo_faturamento,
+        names="Faixa",
+        values="Quantidade",
+        title="Distribuição por Faixa de Faturamento",
+        hole=0.4,
+        color_discrete_sequence=px.colors.sequential.Reds_r 
+    )
+    st.plotly_chart(fig_fat, use_container_width=True)
+
 # =========================
 # GRÁFICO FATURAMENTO (CORRIGIDO)
 # =========================
