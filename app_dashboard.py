@@ -694,46 +694,48 @@ if len(df_filtrado) == 1:
                                  file_name=f"relatorio_{id_cliente}.pdf", 
                                  mime="application/pdf", use_container_width=True)
     # --- COLUNA DIREITA: CRM ---
-    # ==========================================
+# ==========================================
 # NOTAS E HISTÓRICO (CORRIGIDO)
 # ==========================================
 
 with col_crm:
     st.subheader("📝 Notas e Histórico")
     
-    # Seletor de usuário
+    # 1. Seletor de usuário
     lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
     quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
 
-    # Função disparada pelo botão (on_click)
+    # 2. Função disparada pelo botão
     def clicar_salvar():
-        # Pega o valor atual do campo diretamente pelo estado do widget via KEY
-        texto_digitado = st.session_state.txt_area_crm
+        # Acessa o dicionário global de comentários
+        global comentarios
+        
+        # Pega o texto da área de texto via session_state
+        texto_digitado = st.session_state.get("txt_area_crm", "")
         
         if texto_digitado.strip():
             # Data e Hora (Brasília)
             agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-            
-            # Formata o texto final
             texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
             
-            # Garante que a chave do cliente existe no dicionário
+            # Garante que a chave do cliente existe
             if id_cliente not in comentarios:
                 comentarios[id_cliente] = []
             
-            # Insere no início da lista para aparecer primeiro o mais recente
+            # Adiciona o novo comentário no topo da lista
             comentarios[id_cliente].insert(0, {"texto": texto_final, "data": agora})
             
-            # Salva no arquivo físico imediatamente
+            # SALVAMENTO FÍSICO (Chama sua função de gravar no arquivo)
             salvar_comentarios(comentarios)
             
-            # Limpa o campo de texto resetando a key no session_state
-            st.session_state.txt_area_crm = ""
+            # Limpa o campo para o próximo uso
+            st.session_state["txt_area_crm"] = ""
+            st.toast("✅ Nota salva com sucesso!")
         else:
-            # Usamos toast ou warning para avisar que está vazio sem quebrar o fluxo
-            st.toast("⚠️ O campo de nota está vazio!")
+            st.warning("O campo está vazio.")
 
-    # Widget de texto - IMPORTANTE: sem o parâmetro 'value' para permitir o reset via key
+    # 3. Campo de entrada de texto
+    # Note: Não usamos o parâmetro 'value' aqui, deixamos o Streamlit gerenciar via 'key'
     st.text_area(
         "Novo registro:", 
         placeholder="Descreva a conversa...", 
@@ -741,23 +743,29 @@ with col_crm:
         height=120
     )
     
-    # O botão chama a função clicar_salvar antes de recarregar a página
+    # 4. Botão de Salvar
     st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
+    
     st.divider()
 
-    # Listagem do Histórico (Renderiza o que está no dicionário 'comentarios')
+    # 5. Listagem do Histórico (Renderização Direta)
+    # Verificamos se existem comentários para o ID atual
     if id_cliente in comentarios and len(comentarios[id_cliente]) > 0:
         for idx, item in enumerate(comentarios[id_cliente]):
             with st.container():
-                c1, c2 = st.columns([0.85, 0.15])
-                c1.caption(f"📅 {item['data']}")
-                c1.write(item['texto'])
+                # Layout de duas colunas: texto e botão de excluir
+                col_txt, col_del = st.columns([0.85, 0.15])
                 
-                # Botão de excluir específico para cada linha
-                if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
-                    comentarios[id_cliente].pop(idx)
-                    salvar_comentarios(comentarios)
-                    st.rerun()
+                with col_txt:
+                    st.caption(f"📅 {item['data']}")
+                    st.write(item['texto'])
+                
+                with col_del:
+                    # Chave única para cada botão de excluir para evitar conflitos
+                    if st.button("🗑️", key=f"btn_del_{id_cliente}_{idx}"):
+                        comentarios[id_cliente].pop(idx)
+                        salvar_comentarios(comentarios)
+                        st.rerun()
                 
                 st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
     else:
