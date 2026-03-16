@@ -630,9 +630,9 @@ if len(df_filtrado) == 1:
                     prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
                 else:
                     prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
-            else:
+                else:
                 prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada ({}-{})</i>".format(cidade_alvo, uf_alvo)
-        except Exception as e:
+                except Exception as e:
             prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro técnico: {e}</i>"
 
         # --- QUADRO DE INFORMAÇÕES ---
