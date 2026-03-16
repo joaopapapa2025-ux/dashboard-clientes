@@ -665,6 +665,44 @@ if len(df_filtrado) == 1:
         else:
             st.info("Nenhum histórico registrado para este cliente.")
 
+    # ==========================================
+# CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
+# ==========================================
+
+# 1. Carregamento da base de Lead Time (ajuste o nome do arquivo se necessário)
+try:
+    df_lead_time = pd.read_csv("Tabela lead time operacao e comercial.xlsx - tabela de lead time.csv", skipinitialspace=True)
+    # Limpeza básica de colunas vazias e renomeação
+    df_lead_time = df_lead_time.dropna(subset=['Cidade', 'UF'])
+except:
+    st.error("Não foi possível carregar a base de Lead Time.")
+
+# 2. Dentro do bloco onde você filtra o cliente individual:
+if id_cliente:
+    # Pegamos os dados cadastrais do cliente selecionado
+    dados_cliente = df_filtrado[df_filtrado["CNPJ_LIMPO"] == id_cliente].iloc[0]
+    cidade_cliente = str(dados_cliente["CIDADE"]).upper().strip()
+    uf_cliente = str(dados_cliente["UF"]).upper().strip()
+
+    # Busca o Lead Time correspondente
+    lead_info = df_lead_time[
+        (df_lead_time['Cidade'].str.upper().str.strip() == cidade_cliente) & 
+        (df_lead_time['UF'].str.upper().str.strip() == uf_cliente)
+    ]
+
+    st.markdown("---")
+    col_lt1, col_lt2 = st.columns([1, 2])
+
+    with col_lt1:
+        if not lead_info.empty:
+            dias = lead_info['Lead time total'].values[0]
+            st.metric("🚚 Lead Time de Entrega", f"{dias} dias úteis")
+        else:
+            st.warning("⚠️ Lead Time não localizado para esta cidade.")
+
+    with col_lt2:
+        st.info(f"📍 **Rota Logística:** {cidade_cliente} - {uf_cliente}")
+
     # =========================
     # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
     # =========================
@@ -956,6 +994,7 @@ st.download_button(
 st.subheader("Base de Clientes")
 
 st.dataframe(df_filtrado, use_container_width=True)
+
 
 
 
