@@ -561,12 +561,12 @@ if busca_tel:
 # FILTROS
 # =========================
 
-vendedores = sorted(df_filtrado[col_vendedor].dropna().unique())
+vendedores = sorted(df_filtrado[COL_VENDEDOR].dropna().unique())
 
 vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores, key="filtro_vendedor")
 
 if vendedor_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
+    df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
 
 ufs = sorted(df_filtrado[col_uf].dropna().unique())
 
