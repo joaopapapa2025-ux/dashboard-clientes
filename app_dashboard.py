@@ -1113,83 +1113,79 @@ if not df_vendas.empty:
         st.info("Nenhuma venda encontrada para os clientes selecionados.")
 
 # =========================
-# GRÁFICO SEGMENTO E FATURAMENTO (DISTRIBUÍDO)
+# GRÁFICOS E MAPA (SÓ APARECEM SE HOUVER MAIS DE 1 CLIENTE)
 # =========================
 
-st.markdown("---")
-st.subheader("📊 Distribuição Cadastral")
-col_graf_cad1, col_graf_cad2 = st.columns(2)
+if len(df_filtrado) > 1:
+    st.markdown("---")
+    st.subheader("📊 Distribuição Cadastral")
+    col_graf_cad1, col_graf_cad2 = st.columns(2)
 
-with col_graf_cad1:
-    # Verifique se há exatamente 4 espaços de recuo
-    resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
-    resumo_segmento.columns = ["Segmento", "Quantidade"]
+    with col_graf_cad1:
+        resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
+        resumo_segmento.columns = ["Segmento", "Quantidade"]
 
-    fig_seg = px.bar(
-        resumo_segmento,
-        x="Quantidade",
-        y="Segmento",
-        orientation="h",
-        title="Distribuição por Segmento",
-        color="Quantidade",
-        color_continuous_scale="Reds"
-    )
-    fig_seg.update_layout(showlegend=False)
-    st.plotly_chart(fig_seg, use_container_width=True)
+        fig_seg = px.bar(
+            resumo_segmento,
+            x="Quantidade",
+            y="Segmento",
+            orientation="h",
+            title="Distribuição por Segmento",
+            color="Quantidade",
+            color_continuous_scale="Reds"
+        )
+        fig_seg.update_layout(showlegend=False)
+        st.plotly_chart(fig_seg, use_container_width=True)
 
-with col_graf_cad2:
-    # Verifique se há exatamente 4 espaços de recuo
-    resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
-    resumo_faturamento.columns = ["Faixa", "Quantidade"]
+    with col_graf_cad2:
+        resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+        resumo_faturamento.columns = ["Faixa", "Quantidade"]
 
-    fig_fat = px.pie(
-        resumo_faturamento,
-        names="Faixa",
-        values="Quantidade",
-        title="Distribuição por Faixa de Faturamento",
-        hole=0.4,
-        color_discrete_sequence=px.colors.sequential.Reds_r 
-    )
-    st.plotly_chart(fig_fat, use_container_width=True)
-# =========================
-# MAPA DE CALOR (BRASIL)
-# =========================
+        fig_fat = px.pie(
+            resumo_faturamento,
+            names="Faixa",
+            values="Quantidade",
+            title="Distribuição por Faixa de Faturamento",
+            hole=0.4,
+            color_discrete_sequence=px.colors.sequential.Reds_r 
+        )
+        st.plotly_chart(fig_fat, use_container_width=True)
 
-st.subheader("🗺️ Presença Geográfica")
+    # MAPA DE CALOR (BRASIL)
+    st.subheader("🗺️ Presença Geográfica")
 
-resumo_estado = df_filtrado[COL_UF].value_counts().reset_index()
-resumo_estado.columns = ["UF", "Quantidade"]
+    resumo_estado = df_filtrado[COL_UF].value_counts().reset_index()
+    resumo_estado.columns = ["UF", "Quantidade"]
 
-# Link do GeoJSON para estados brasileiros
-url_geojson = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+    url_geojson = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
 
-try:
-    with urllib.request.urlopen(url_geojson) as response:
-        geojson_br = json.load(response)
+    try:
+        with urllib.request.urlopen(url_geojson) as response:
+            geojson_br = json.load(response)
 
-    fig_mapa = px.choropleth(
-        resumo_estado,
-        geojson=geojson_br,
-        locations="UF",
-        featureidkey="properties.sigla",
-        color="Quantidade",
-        color_continuous_scale="Reds",
-        title="Concentração de Clientes por Estado",
-        scope="south america", # Foca na América do Sul para melhor visualização
-        labels={"Quantidade": "Nº de Clientes"}
-    )
+        fig_mapa = px.choropleth(
+            resumo_estado,
+            geojson=geojson_br,
+            locations="UF",
+            featureidkey="properties.sigla",
+            color="Quantidade",
+            color_continuous_scale="Reds",
+            title="Concentração de Clientes por Estado",
+            scope="south america",
+            labels={"Quantidade": "Nº de Clientes"}
+        )
 
-    # Ajusta o zoom para focar apenas no Brasil
-    fig_mapa.update_geos(fitbounds="locations", visible=False)
-    fig_mapa.update_layout(margin={"r":0,"t":50,"l":0,"b":0})
+        fig_mapa.update_geos(fitbounds="locations", visible=False)
+        fig_mapa.update_layout(margin={"r":0,"t":50,"l":0,"b":0})
 
-    st.plotly_chart(fig_mapa, use_container_width=True)
-except:
-    st.warning("⚠️ Não foi possível carregar o mapa. Verifique a conexão com a internet.")
-    # Fallback para gráfico de barras se o mapa falhar
-    st.bar_chart(resumo_estado.set_index("UF"))
+        st.plotly_chart(fig_mapa, use_container_width=True)
+    except:
+        st.warning("⚠️ Não foi possível carregar o mapa. Verifique a conexão.")
+        st.bar_chart(resumo_estado.set_index("UF"))
 
-st.divider()
+    st.divider()
+
+# Caso tenha apenas 1 cliente, o código ignora tudo acima e segue adiante
 
 # =========================
 # DOWNLOAD DE DADOS (EXCEL)
