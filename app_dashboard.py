@@ -694,77 +694,66 @@ if len(df_filtrado) == 1:
                                  file_name=f"relatorio_{id_cliente}.pdf", 
                                  mime="application/pdf", use_container_width=True)
     # --- COLUNA DIREITA: CRM ---
-    with col_crm:
-        st.subheader("📝 Notas e Histórico")
-        
-        # Seletor de usuário (Pode ser expandido conforme a equipe crescer)
-        lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
-        quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
+    # ==========================================
+# NOTAS E HISTÓRICO (CORRIGIDO)
+# ==========================================
 
-        # Controle do estado do campo de texto para permitir o reset após salvar
-        if "texto_nota" not in st.session_state:
-            st.session_state.texto_nota = ""
+st.markdown("---")
+st.subheader("📝 Notas e Histórico de Atendimento")
 
-        # Função disparada pelo botão (Callback)
-        def clicar_salvar():
-            # Pega o valor atual do campo pela KEY definida no widget
-            texto_digitado = st.session_state.txt_area_crm
-            
-            if texto_digitado.strip():
-                # Data e Hora (Ajustado para Horário de Brasília se necessário)
-                agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-                
-                # Formata o texto com o autor
-                texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
-                
-                # Inicializa a lista de comentários para o cliente se não existir
-                if id_cliente not in comentarios:
-                    comentarios[id_cliente] = []
-                
-                # Insere no topo da lista (mais recente primeiro)
-                comentarios[id_cliente].insert(0, {"texto": texto_final, "data": agora})
-                
-                # Salva no arquivo JSON (Função definida na Parte 2)
-                salvar_comentarios(comentarios)
-                
-                # RESET DOS CAMPOS: Limpa a variável de estado e o widget
-                st.session_state.texto_nota = ""
-                st.session_state.txt_area_crm = "" 
-                st.success("Nota salva com sucesso!")
-            else:
-                st.warning("O campo de nota está vazio.")
+# Arquivo onde as notas serão salvas
+ARQUIVO_NOTAS = "historico_notas.csv"
 
-        # Widget de entrada de texto
-        st.text_area(
-            "Novo registro de interação:", 
-            placeholder="Ex: Cliente solicitou nova tabela de preços / Previsão de compra para semana que vem...", 
-            key="txt_area_crm",
-            value=st.session_state.texto_nota,
-            height=120
-        )
-        
-        st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
-        st.divider()
+# Função para carregar notas
+def carregar_notas():
+    if os.path.exists(ARQUIVO_NOTAS):
+        return pd.read_csv(ARQUIVO_NOTAS)
+    return pd.DataFrame(columns=["CNPJ", "Data", "Nota"])
 
-        # Listagem do Histórico de Comentários
-        if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
-            for idx, item in enumerate(comentarios[id_cliente]):
-                with st.container():
-                    c1, c2 = st.columns([0.85, 0.15])
-                    
-                    # Exibe data e o texto da nota
-                    c1.caption(f"📅 {item['data']}")
-                    c1.write(item['texto'])
-                    
-                    # Botão para excluir nota específica
-                    if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
-                        comentarios[id_cliente].pop(idx)
-                        salvar_comentarios(comentarios)
-                        st.rerun()
-                        
-                    st.markdown("<hr style='margin:10px 0; opacity:0.1'>", unsafe_allow_html=True)
-        else:
-            st.info("Nenhum histórico registrado para este cliente.")
+# Função para salvar nota
+def salvar_nota(cnpj, texto):
+    if texto.strip() == "":
+        st.warning("A nota não pode estar vazia.")
+        return
+    
+    nova_nota = pd.DataFrame({
+        "CNPJ": [cnpj],
+        "Data": [datetime.now().strftime("%d/%m/%Y %H:%M")],
+        "Nota": [texto]
+    })
+    
+    df_notas_existentes = carregar_notas()
+    df_final = pd.concat([df_notas_existentes, nova_nota], ignore_index=True)
+    df_final.to_csv(ARQUIVO_NOTAS, index=False)
+    st.success("Nota salva com sucesso!")
+
+# Interface de Notas
+df_notas = carregar_notas()
+
+# Criamos um formulário para evitar que o Streamlit recarregue antes de terminar de digitar
+with st.form(key="form_notas", clear_on_submit=True):
+    nova_nota_texto = st.text_area("Adicionar nova atualização:")
+    botao_salvar = st.form_submit_button("Salvar Comentário")
+
+    if botao_salvar:
+        salvar_nota(id_cliente, nova_nota_texto)
+        # Forçamos o recarregamento para mostrar a nota nova na tabela abaixo
+        st.rerun()
+
+# Exibição das notas filtradas para o cliente atual
+st.markdown("**Histórico Recente:**")
+notas_cliente = df_notas[df_notas["CNPJ"] == id_cliente].sort_index(ascending=False)
+
+if not notas_cliente.empty:
+    for i, row in notas_cliente.iterrows():
+        st.info(f"📅 {row['Data']}\n\n{row['Nota']}")
+        # Botão para deletar nota específica (opcional)
+        if st.button(f"Excluir nota {i}", key=f"del_{i}"):
+            df_notas = df_notas.drop(i)
+            df_notas.to_csv(ARQUIVO_NOTAS, index=False)
+            st.rerun()
+else:
+    st.write("Nenhum histórico registrado para este cliente.")
             
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
