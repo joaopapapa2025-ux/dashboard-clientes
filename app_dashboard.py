@@ -188,7 +188,7 @@ def calcular_status_farol(row):
 # TRATAR FATURAMENTO
 # =========================
 
-df[col_faturamento] = pd.to_numeric(df[col_faturamento], errors="coerce").fillna(0)
+df[COL_T_U_9_M] = pd.to_numeric(df[COL_T_U_9_M], errors="coerce").fillna(0)
 
 bins = [0, 5000, 20000, 50000, 100000, float("inf")]
 
