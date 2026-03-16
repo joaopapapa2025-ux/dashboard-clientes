@@ -592,48 +592,45 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # --- LÓGICA DE BUSCA DO LEAD TIME (POSICIONAL) ---
+        # --- LÓGICA DE BUSCA DO LEAD TIME (AJUSTE DE COLUNAS) ---
         prazo_html = ""
         try:
-            # Lemos a aba de lead time (índice 1). 
-            # skiprows=2 pula as linhas de aviso do topo do Excel
+            # Lendo a aba 2 (índice 1). skiprows=2 pula a sujeira do topo
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
             
-            # Removemos a primeira coluna (que está vazia no seu arquivo) e pegamos as próximas 3
-            # Coluna 1=Cidade, 2=UF, 3=Lead Time Total
+            # No seu arquivo:
+            # Coluna B (índice 1) = Cidade
+            # Coluna C (índice 2) = UF
+            # Coluna D (índice 3) = Lead time total
             df_lt = df_lt.iloc[:, [1, 2, 3]]
-            df_lt.columns = ['Cidade_Ref', 'UF_Ref', 'Prazo_Ref']
+            df_lt.columns = ['Cidade_Base', 'UF_Base', 'Prazo_Base']
             
-            # Função de limpeza para garantir o "match"
+            # Normalização para ignorar acentos e espaços
             def normalizar(txt):
                 import unicodedata
                 if pd.isna(txt): return ""
                 return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip())
                                if unicodedata.category(c) != 'Mn')
 
-            cidade_cliente = normalizar(cliente[col_cidade])
-            uf_cliente = normalizar(cliente[col_uf])
+            cidade_alvo = normalizar(cliente[col_cidade])
+            uf_alvo = normalizar(cliente[col_uf])
             
-            # Criamos as colunas de comparação na tabela de Lead Time
-            df_lt['Cid_Norm'] = df_lt['Cidade_Ref'].apply(normalizar)
-            df_lt['UF_Norm'] = df_lt['UF_Ref'].apply(normalizar)
+            df_lt['Cid_Norm'] = df_lt['Cidade_Base'].apply(normalizar)
+            df_lt['UF_Norm'] = df_lt['UF_Base'].apply(normalizar)
             
-            # Realiza a busca
-            busca = df_lt[(df_lt['Cid_Norm'] == cidade_cliente) & 
-                          (df_lt['UF_Norm'] == uf_cliente)]
+            # Busca Americana/SP
+            busca = df_lt[(df_lt['Cid_Norm'] == cidade_alvo) & (df_lt['UF_Norm'] == uf_alvo)]
             
             if not busca.empty:
-                v_prazo = busca['Prazo_Ref'].values[0]
+                v_prazo = busca['Prazo_Base'].values[0]
                 if pd.notna(v_prazo):
                     prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
                 else:
                     prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
             else:
-                prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_cliente})</i>"
-                
+                prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_alvo})</i>"
         except Exception as e:
-            # Se ainda der erro, mostraremos exatamente qual coluna o Python está lendo
-            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro técnico: {str(e)}</i>"
+            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro técnico: {e}</i>"
 
         # --- QUADRO INFORMATIVO ---
         st.markdown(
