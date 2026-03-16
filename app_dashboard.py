@@ -664,31 +664,22 @@ if len(df_filtrado) == 1:
     with col_crm:
         st.subheader("📝 Notas e Histórico")
         
-        # 1. Lista de pessoas para o seletor
+        # 1. Lista de pessoas
         lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
         quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
 
-        # 2. Inicializa o estado do texto se não existir
+        # 2. Inicializa o estado se não existir
         if "texto_nota" not in st.session_state:
             st.session_state.texto_nota = ""
 
-        # 3. Campo de texto vinculado ao session_state
-        novo_txt = st.text_area(
-            "Novo registro:", 
-            placeholder="O que foi conversado?", 
-            key="txt_area_crm",
-            value=st.session_state.texto_nota
-        )
-        
-        # 4. Função interna para processar o salvamento e limpar o campo
-        def salvar_e_limpar():
-            texto = st.session_state.txt_area_crm
-            if texto.strip():
-                # Ajusta para o horário de Brasília
+        # 3. Função para salvar e resetar o campo
+        def clicar_salvar():
+            # Pegamos o que foi digitado através da chave (key) do widget
+            texto_digitado = st.session_state.txt_area_crm
+            
+            if texto_digitado.strip():
                 agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-                
-                # Formata o texto incluindo o nome de quem comentou
-                texto_final = f"[{quem_comentou}] {texto.strip()}"
+                texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
                 
                 novo_registro = {"texto": texto_final, "data": agora}
                 
@@ -698,18 +689,27 @@ if len(df_filtrado) == 1:
                 comentarios[id_cliente].insert(0, novo_registro)
                 salvar_comentarios(comentarios)
                 
-                # LIMPA O CAMPO: define o estado como vazio para a próxima rodada
+                # AQUI ESTÁ O TRUQUE: Limpamos o estado da KEY e da variável base
                 st.session_state.texto_nota = ""
+                st.session_state.txt_area_crm = "" 
                 st.success("Salvo com sucesso!")
             else:
                 st.warning("O campo de comentário está vazio.")
 
-        # 5. Botão chama a função acima
-        st.button("Salvar Comentário", on_click=salvar_e_limpar)
+        # 4. Campo de texto - IMPORTANTE: O value usa a variável de estado
+        st.text_area(
+            "Novo registro:", 
+            placeholder="O que foi conversado?", 
+            key="txt_area_crm",
+            value=st.session_state.texto_nota
+        )
+        
+        # 5. Botão chama a função
+        st.button("Salvar Comentário", on_click=clicar_salvar)
 
         st.divider()
 
-        # Listagem de comentários (mantendo sua lógica de exclusão)
+        # Listagem de comentários (mantendo sua lógica original)
         if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
             for idx, item in enumerate(comentarios[id_cliente]):
                 with st.container():
