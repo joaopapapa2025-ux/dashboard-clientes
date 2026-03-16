@@ -670,39 +670,36 @@ if len(df_filtrado) == 1:
 # ==========================================
 
 # 1. Carregamento da base de Lead Time
-try:
-    # O arquivo correto baseado no seu upload
-    file_path = "Tabela lead time operacao e comercial.xlsx"
-    
-    # Lendo o CSV pulando as 3 primeiras linhas (onde estão os títulos soltos)
-    df_lead_time = pd.read_csv(file_path, skiprows=3)
-    
-    # Limpeza de colunas fantasmas e renomeação manual para garantir que o código ache os nomes
-    # Vamos pegar apenas as primeiras 4 colunas que interessam
-    df_lead_time = df_lead_time.iloc[:, [1, 2, 3, 4]] 
-    df_lead_time.columns = ['Cidade', 'UF', 'Lead_Time_Total', 'Lead_Time_Transp']
-    
-    # Remove linhas totalmente vazias
-    df_lead_time = df_lead_time.dropna(subset=['Cidade', 'UF'])
-except Exception as e:
-    # Se o arquivo não for achado, o app avisa mas continua funcionando
-    st.warning(f"Aviso: Base de Lead Time não carregada ({e})")
-    df_lead_time = pd.DataFrame()
+@st.cache_data
+def carregar_lead_time():
+    try:
+        # Tenta ler como Excel (ajuste o nome se necessário)
+        caminho = "Tabela lead time operacao e comercial.xlsx"
+        # Lendo a aba específica (pelo nome ou índice)
+        # Se for a segunda aba, usamos sheet_name=1
+        df_lt = pd.read_excel(caminho, sheet_name=1, skiprows=2)
+        
+        # Ajuste de colunas baseado no seu arquivo
+        df_lt = df_lt.iloc[:, [1, 2, 3, 4]] 
+        df_lt.columns = ['Cidade', 'UF', 'Lead_Time_Total', 'Lead_Time_Transp']
+        return df_lt.dropna(subset=['Cidade', 'UF'])
+    except Exception as e:
+        st.error(f"Erro ao carregar Excel de Lead Time: {e}")
+        return pd.DataFrame()
 
-# 2. Exibição (Só aparece se um cliente for filtrado)
-# Verificamos se 'id_cliente' existe no código para evitar o NameError
+df_lead_time = carregar_lead_time()
+
+# 2. Exibição (Mesma lógica anterior)
 if 'id_cliente' in locals() and id_cliente:
     try:
-        # Pegamos os dados do cliente que veio da base principal (df_filtrado)
         dados_cadastrais = df_filtrado[df_filtrado["CNPJ_LIMPO"] == id_cliente].iloc[0]
         cidade_alvo = str(dados_cadastrais[col_cidade]).upper().strip()
         uf_alvo = str(dados_cadastrais[col_uf]).upper().strip()
 
         if not df_lead_time.empty:
-            # Busca na tabela de lead time com limpeza de espaços e caixa alta
             busca = df_lead_time[
-                (df_lead_time['Cidade'].str.upper().str.strip() == cidade_alvo) & 
-                (df_lead_time['UF'].str.upper().str.strip() == uf_alvo)
+                (df_lead_time['Cidade'].astype(str).str.upper().str.strip() == cidade_alvo) & 
+                (df_lead_time['UF'].astype(str).str.upper().str.strip() == uf_alvo)
             ]
 
             if not busca.empty:
@@ -714,20 +711,15 @@ if 'id_cliente' in locals() and id_cliente:
                 
                 c_lt1, c_lt2, c_lt3 = st.columns(3)
                 with c_lt1:
-                    st.metric("Lead Time Total", f"{lt_total} dias úteis")
+                    st.metric("Lead Time Total", f"{int(lt_total)} dias úteis")
                 with c_lt2:
-                    st.metric("Lead Time Transp.", f"{lt_transp} dias úteis")
+                    st.metric("Lead Time Transp.", f"{int(lt_transp)} dias úteis")
                 with c_lt3:
-                    # Cálculo do tempo de processamento
-                    try:
-                        proc = int(lt_total) - int(lt_transp)
-                        st.metric("Processamento Interno", f"{max(0, proc)} dias")
-                    except:
-                        st.metric("Processamento Interno", "-")
+                    proc = int(lt_total) - int(lt_transp)
+                    st.metric("Processamento Interno", f"{max(0, proc)} dias")
             else:
                 st.info(f"ℹ️ Lead Time não mapeado para {cidade_alvo}/{uf_alvo}.")
     except Exception as e:
-        # Silencia erros caso o cliente ainda não esteja totalmente carregado
         pass
 
     # =========================
