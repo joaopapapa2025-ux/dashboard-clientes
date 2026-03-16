@@ -93,17 +93,34 @@ df_vendas = carregar_vendas()
 # MAPEAMENTO DA NOVA PLANILHA
 # =========================
 # Aqui definimos os nomes EXATOS das colunas que estão no seu Excel
-COL_RAZAO    = "RAZÃO SOCIAL"
+COL_CODIGO   = "CÓDIGO"
 COL_CNPJ     = "CNPJ"
+COL_RAZAO    = "RAZÃO SOCIAL"
+COL_TIER     = "TIER"
+COL_ESTRATEG = "ESTRATÉGIA"
 COL_UF       = "UF"
 COL_CIDADE   = "CIDADE"
+COL_BAIRRO   = "BAIRRO"
 COL_TELEFONE = "TELEFONE"
 COL_EMAIL    = "E-MAIL"
+COL_CODIGO_V = "CNPJ"
 COL_VENDEDOR = "VENDEDOR"
-COL_SEGMENTO = "SEGMENTO"      # Mudamos de CATEGORIA para SEGMENTO
-COL_TIER     = "TIER"
-COL_ESTRAT   = "ESTRATÉGIA"
+COL_GRUPO_EC = "GRUPO ECONÔMICO"
 COL_ULT_COMP = "ÚLTIMA COMPRA"
+COL_TABELA   = "TABELA"
+
+COL_JUN_25 = "JUN/25"
+COL_JUL_25 = "JUL/25"
+COL_AGO_25 = "AGO/25"
+COL_SET_25 = "SET/25"
+COL_OUT_25 = "OUT/25"
+COL_NOV_25 = "NOV/25"
+COL_DEZ_25 = "DEZ/25"
+COL_JAN_26 = "JAN/26"
+COL_FEV_26 = "FEV/26"
+
+COL_T_U_9_M  = "TOTAL ÚLTIMO 9 MESES"
+COL_SEGMENTO = "SEGMENTO"
 
 # Meses para o Sistema de Farol
 COL_MES_ATUAL = "FEV/26" 
@@ -114,7 +131,7 @@ COL_MES_ANT   = "JAN/26"
 # =========================
 
 colunas_obrigatorias = [
-    col_razao,
+    COL_RAZAO,
     col_fantasia,
     col_uf,
     col_cidade,
