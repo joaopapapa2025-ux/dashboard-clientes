@@ -14,6 +14,13 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
+def limpar_telefone(tel):
+    """Remove caracteres não numéricos do telefone."""
+    if pd.isna(tel) or tel == "":
+        return ""
+    # Mantém apenas os números
+    return "".join(filter(str.isdigit, str(tel)))
+
 # =========================
 # CONFIGURAÇÃO
 # =========================
