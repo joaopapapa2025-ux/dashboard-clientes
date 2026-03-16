@@ -591,7 +591,35 @@ if len(df_filtrado) == 1:
     # Criamos duas colunas para o topo: Info à esquerda e CRM à direita
     col_info, col_crm = st.columns([1, 1])
 
-    with col_info:
+with col_info:
+        # --- 1. LÓGICA DE BUSCA DO LEAD TIME ---
+        prazo_html = ""
+        try:
+            # Carrega a segunda aba (índice 1) do seu Excel de Lead Time
+            # Usei skiprows=2 porque os dados começam na linha 3 da planilha
+            df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
+            
+            # Seleciona as colunas Cidade (índice 1), UF (2) e Lead Time Total (3)
+            df_lt = df_lt.iloc[:, [1, 2, 3]]
+            df_lt.columns = ['Cidade', 'UF', 'Total']
+            
+            # Limpa os nomes para garantir o encontro (Caixa alta e sem espaços)
+            cidade_c = str(cliente[col_cidade]).upper().strip()
+            uf_c = str(cliente[col_uf]).upper().strip()
+            
+            busca = df_lt[(df_lt['Cidade'].astype(str).str.upper().str.strip() == cidade_c) & 
+                          (df_lt['UF'].astype(str).str.upper().str.strip() == uf_c)]
+            
+            if not busca.empty:
+                total_dias = busca['Total'].values[0]
+                prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(total_dias)} dias úteis</b>"
+            else:
+                prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada para esta cidade</i>"
+        except Exception as e:
+            # Se der erro na leitura do arquivo, ele apenas não mostra a linha
+            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro ao ler planilha: {e}</i>"
+
+        # --- 2. O QUADRO CINZA ATUALIZADO ---
         st.markdown(
             f"""
             <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 1px solid #ddd">
@@ -600,11 +628,13 @@ if len(df_filtrado) == 1:
                 <b>CNPJ:</b> {cliente[col_cnpj]}<br>
                 <b>Telefone:</b> {cliente[col_telefone]}<br>
                 <b>E-mail:</b> {cliente[col_email]}<br>
-                <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}<br>
+                <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}
+                {prazo_html} 
             </div>
             """, unsafe_allow_html=True
         )
 
+        # Botão do WhatsApp logo abaixo
         telefone = limpar_telefone(cliente[col_telefone])
         if telefone:
             st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{telefone}")
