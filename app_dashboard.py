@@ -4,28 +4,56 @@ import plotly.express as px
 import json
 import urllib.request
 import re
+import unicodedata
+import os
 from io import BytesIO
 from datetime import datetime, timedelta
 
-# PDF
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
+# Bibliotecas para PDF
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
-# =========================
-# CONFIGURAÇÃO
-# =========================
+# ==========================================
+# 1. CONFIGURAÇÕES E MAPEAMENTO DE COLUNAS
+# ==========================================
 
 st.set_page_config(
     page_title="Dashboard Inside Sales - PAPAPÁ",
     layout="wide"
 )
 
-# =========================
-# PROTEÇÃO DE ACESSO
-# =========================
+# Nomes dos Arquivos
+ARQUIVO_BASE = "Base Dashboard Inside Sales.xlsx"
+ARQUIVO_LEAD_TIME = "Tabela lead time operacao e comercial.xlsx"
+ARQUIVO_COMENTARIOS = "comentarios_clientes.json"
+
+# MAPEAMENTO GLOBAL (Isso resolve os erros de NameError)
+# Definimos em MAIÚSCULO para o código interno e minúsculo para compatibilidade
+COL_RAZAO = col_razao = "RAZÃO SOCIAL"
+COL_CNPJ = col_cnpj = "CNPJ"
+COL_UF = col_uf = "UF"
+COL_CIDADE = col_cidade = "CIDADE"
+COL_BAIRRO = col_bairro = "BAIRRO"
+COL_TELEFONE = col_telefone = "TELEFONE"
+COL_EMAIL = col_email = "E-MAIL"
+COL_VENDEDOR = col_vendedor = "VENDEDOR"
+COL_SEGMENTO = col_segmento = "SEGMENTO"
+COL_TIER = col_tier = "TIER"
+COL_ESTRAT = col_estrat = "ESTRATÉGIA"
+COL_ULT_COMPRA = col_ult_compra = "ÚLTIMA COMPRA"
+COL_FAT_9M = col_fat_9m = "TOTAL ÚLTIMO 9 MESES"
+COL_GRUPO = col_grupo = "GRUPO ECONÔMICO"
+
+# Colunas de Meses para o Farol (Ajuste conforme os nomes na sua planilha)
+COL_MES_ATUAL = "FEV/26"
+COL_MES_ANT = "JAN/26"
+
+# ==========================================
+# 2. PROTEÇÃO DE ACESSO
+# ==========================================
 
 CODIGO_ACESSO = "amamosnossosclientes"
 
@@ -33,1202 +61,264 @@ if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
 if not st.session_state.acesso_liberado:
-
-    st.title("Acesso restrito")
-
-    codigo_digitado = st.text_input(
-        "Digite o código de acesso",
-        type="password"
-    )
-
+    st.title("🔒 Acesso Restrito - Papapá")
+    codigo_digitado = st.text_input("Digite o código de acesso", type="password")
     if st.button("Entrar"):
-
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
             st.rerun()
-
         else:
             st.error("Código incorreto")
-
     st.stop()
 
-# =========================
-# ARQUIVO BASE
-# =========================
+# ==========================================
+# 3. FUNÇÕES DE SUPORTE E CARREGAMENTO
+# ==========================================
 
-ARQUIVO_BASE = "Base Dashboard Inside Sales.xlsx"
+def limpar_cnpj(val):
+    return re.sub(r'\D', '', str(val)) if pd.notna(val) else ""
 
-# =========================
-# CARREGAR BASE CLIENTES
-# =========================
+def normalizar_texto(txt):
+    if not txt: return ""
+    return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip()) 
+                   if unicodedata.category(c) != 'Mn')
 
 @st.cache_data
 def carregar_dados():
-    # AJUSTE: O nome da aba deve ser 'BASE COMPLETA'
-    df = pd.read_excel("Base Dashboard Inside Sales.xlsx", sheet_name="BASE COMPLETA")
-    df.columns = df.columns.str.strip() # Isso remove espaços invisíveis que causam erro
-    return df
-
-df = carregar_dados()
-
-# =========================
-# CARREGAR BASE PRODUTOS
-# =========================
-
-@st.cache_data
-def carregar_vendas():
     try:
-        vendas = pd.read_excel(ARQUIVO_BASE, sheet_name=1)
-        vendas.columns = vendas.columns.str.strip().str.upper()
+        # Base Completa
+        df = pd.read_excel(ARQUIVO_BASE, sheet_name="BASE COMPLETA")
+        df.columns = df.columns.str.strip()
         
-        vendas["CNPJ_LIMPO"] = vendas["CNPJ"].astype(str).str.replace(r"\D", "", regex=True)
+        # Mix de Vendas
+        df_mix = pd.read_excel(ARQUIVO_BASE, sheet_name="MIX")
+        df_mix.columns = df_mix.columns.str.strip()
+        
+        # Lead Time
+        try:
+            df_lt = pd.read_excel(ARQUIVO_LEAD_TIME)
+            df_lt.columns = df_lt.columns.str.strip()
+        except:
+            df_lt = pd.DataFrame()
+            
+        return df, df_mix, df_lt
+    except Exception as e:
+        st.error(f"Erro ao carregar arquivos Excel: {e}")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-        return vendas
-    except:
-        return pd.DataFrame()
+df_raw, df_mix, df_lt = carregar_dados()
 
-df_vendas = carregar_vendas()
+# Processamento de IDs
+if not df_raw.empty:
+    df = df_raw.copy()
+    df['CNPJ_LIMPO'] = df[COL_CNPJ].apply(limpar_cnpj)
+    df_mix['CNPJ_LIMPO'] = df_mix['CNPJ'].astype(str).apply(limpar_cnpj)
+else:
+    st.error("A base de dados está vazia ou não foi encontrada.")
+    st.stop()
 
-# =========================
-# MAPEAMENTO DA NOVA PLANILHA
-# =========================
-# Aqui definimos os nomes EXATOS das colunas que estão no seu Excel
-COL_RAZAO    = "RAZÃO SOCIAL"
-COL_CNPJ     = "CNPJ"
-COL_UF       = "UF"
-COL_CIDADE   = "CIDADE"
-COL_TELEFONE = "TELEFONE"
-COL_EMAIL    = "E-MAIL"
-COL_VENDEDOR = "VENDEDOR"
-COL_SEGMENTO = "SEGMENTO"      # Mudamos de CATEGORIA para SEGMENTO
-COL_TIER     = "TIER"
-COL_ESTRAT   = "ESTRATÉGIA"
-COL_ULT_COMP = "ÚLTIMA COMPRA"
-
-# Meses para o Sistema de Farol
-COL_MES_ATUAL = "FEV/26" 
-COL_MES_ANT   = "JAN/26"
-
-# =========================
-# GARANTIR COLUNAS
-# =========================
-
-colunas_obrigatorias = [
-    col_razao,
-    col_fantasia,
-    col_uf,
-    col_cidade,
-    col_bairro,
-    col_cnpj,
-    col_telefone,
-    col_email,
-    col_vendedor,
-    col_segmento,
-    col_faturamento
-]
-
-for col in colunas_obrigatorias:
-    if col not in df.columns:
-        df[col] = ""
-
-# =========================
-# LIMPAR CNPJ
-# =========================
-
-def limpar_cnpj(cnpj):
-    if pd.isna(cnpj):
-        return ""
-    return re.sub(r"\D", "", str(cnpj))
-
-df["CNPJ_LIMPO"] = df[col_cnpj].apply(limpar_cnpj)
-
-# =========================
-# LIMPAR TELEFONE
-# =========================
-
-def limpar_telefone(tel):
-    if pd.isna(tel):
-        return ""
-    return re.sub(r"\D", "", str(tel))
-
-df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
-
-# =========================
-# FUNÇÃO DO SISTEMA DE FAROL
-# =========================
-def calcular_status_farol(row):
-    # Transforma o faturamento em número (trata se estiver vazio ou com texto)
-    fat_atual = pd.to_numeric(row.get(COL_MES_ATUAL, 0), errors='coerce')
-    fat_ant   = pd.to_numeric(row.get(COL_MES_ANT, 0), errors='coerce')
-    
-    if fat_atual > 0:
-        return "🟢 ATIVO", "#27AE60" # Verde
-    elif fat_ant > 0:
-        return "🟡 ALERTA", "#F1C40F" # Amarelo
-    else:
-        return "🔴 INATIVO", "#E74C3C" # Vermelho
-
-# =========================
-# TRATAR FATURAMENTO
-# =========================
-
-df[col_faturamento] = pd.to_numeric(df[col_faturamento], errors="coerce").fillna(0)
-
-bins = [0, 5000, 20000, 50000, 100000, float("inf")]
-
-labels = [
-    "Até 5 mil",
-    "5 mil – 20 mil",
-    "20 mil – 50 mil",
-    "50 mil – 100 mil",
-    "Acima de 100 mil"
-]
-
-df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
-
-# =========================
-# COMENTÁRIOS POR CLIENTE
-# =========================
-
-ARQUIVO_COMENTARIOS = "comentarios_clientes.json"
-
-def carregar_comentarios():
-
-    try:
-        with open(ARQUIVO_COMENTARIOS, "r") as f:
+# CRM JSON
+def carregar_crm():
+    if os.path.exists(ARQUIVO_COMENTARIOS):
+        with open(ARQUIVO_COMENTARIOS, 'r', encoding='utf-8') as f:
             return json.load(f)
-    except:
-        return {}
-
-def salvar_comentarios(comentarios):
-
-    with open(ARQUIVO_COMENTARIOS, "w") as f:
-        json.dump(comentarios, f, indent=4)
-
-# carregar comentários existentes
-comentarios = carregar_comentarios()
-
-# =========================
-# FUNÇÃO GERAR PDF
-# =========================
-
-def gerar_pdf_cliente(cliente, vendas_cliente):
-
-    buffer = BytesIO()
-    styles = getSampleStyleSheet()
-
-    style_tabela = styles["BodyText"]
-    style_tabela.leading = 14
-
-    elementos = []
-
-    titulo = Paragraph("Relatório de Cliente - PAPAPÁ", styles["Title"])
-    data = Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y')}", styles["Normal"])
-
-    elementos.append(titulo)
-    elementos.append(data)
-    elementos.append(Spacer(1,20))
-
-    dados_cliente = [
-
-        ["Razão Social", cliente[col_razao]],
-        ["Nome Fantasia", cliente[col_fantasia]],
-        ["CNPJ", cliente[col_cnpj]],
-        ["Telefone", cliente[col_telefone]],
-        ["Email", cliente[col_email]],
-        ["Cidade", f"{cliente[col_cidade]} - {cliente[col_uf]}"],
-        ["Vendedor", cliente[col_vendedor]],
-        ["Categoria", cliente[col_categoria]],
-        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}"],
-        ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
-
-    ]
-
-    tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
-
-    tabela_cliente.setStyle(TableStyle([
-        ("GRID",(0,0),(-1,-1),0.5,colors.grey)
-    ]))
-
-    elementos.append(tabela_cliente)
-    elementos.append(Spacer(1,25))
-
-    elementos.append(Paragraph("Histórico de Compras", styles["Heading2"]))
-
-    if not vendas_cliente.empty:
-
-        resumo = (
-            vendas_cliente
-            .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
-            .sum()
-            .reset_index()
-            .sort_values("VALOR", ascending=False)
-        )
-
-        total_valor = resumo["VALOR"].sum()
-        total_qtd = resumo["QTDE"].sum()
-        total_skus = resumo["DESC PRODUTO"].nunique()
-
-        ticket_medio = 0
-        ultima_compra = ""
-
-        if "NUMERO NF" in vendas_cliente.columns:
-            total_pedidos = vendas_cliente["NUMERO NF"].nunique()
-            if total_pedidos > 0:
-                ticket_medio = total_valor / total_pedidos
-
-        if "DATA PEDIDO" in vendas_cliente.columns:
-            data_max = vendas_cliente["DATA PEDIDO"].max()
-            if pd.notna(data_max):
-                ultima_compra = pd.to_datetime(data_max).strftime("%d/%m/%Y")
-
-        resumo_comercial = [
-
-            ["Total Produtos Comprados", total_skus],
-            ["Total Unidades", int(total_qtd)],
-            ["Valor Total Comprado", f"R$ {total_valor:,.2f}"],
-            ["Ticket Médio", f"R$ {ticket_medio:,.2f}"],
-            ["Data da Última Compra", ultima_compra]
-
-        ]
-
-        tabela_resumo = Table(resumo_comercial, colWidths=[8*cm,8*cm])
-
-        tabela_resumo.setStyle(TableStyle([
-            ("GRID",(0,0),(-1,-1),0.5,colors.grey)
-        ]))
-
-        elementos.append(Spacer(1,10))
-        elementos.append(tabela_resumo)
-        elementos.append(Spacer(1,25))
-
-        # HISTÓRICO POR PEDIDO
-
-        elementos.append(Paragraph("Histórico por Pedido", styles["Heading3"]))
-
-        pedidos = (
-            vendas_cliente
-            .groupby(["DATA PEDIDO","NUMERO NF"])["VALOR"]
-            .sum()
-            .reset_index()
-            .sort_values("DATA PEDIDO", ascending=False)
-        )
-
-        dados_pedidos = [["Data","NF","Valor Pedido"]]
-
-        for _,row in pedidos.iterrows():
-
-            data = ""
-            if not pd.isna(row["DATA PEDIDO"]):
-                data = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
-
-            nf = str(row["NUMERO NF"])
-            valor = f"R$ {row['VALOR']:,.2f}"
-
-            dados_pedidos.append([data,nf,valor])
-
-        tabela_pedidos = Table(
-            dados_pedidos,
-            colWidths=[4*cm,4*cm,4*cm],
-            repeatRows=1
-        )
-
-        tabela_pedidos.setStyle(TableStyle([
-
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-            ("ALIGN",(2,1),(2,-1),"RIGHT")
-
-        ]))
-
-        elementos.append(tabela_pedidos)
-        elementos.append(Spacer(1,25))
-
-        # TOP PRODUTOS
-
-        elementos.append(Paragraph("Top Produtos Comprados", styles["Heading3"]))
-
-        top_produtos = resumo.head(5)
-
-        dados_top = [["Produto","Linha","Qtd","Valor"]]
-
-        for _,row in top_produtos.iterrows():
-
-            dados_top.append([
-
-                Paragraph(str(row["DESC PRODUTO"]), style_tabela),
-                Paragraph(str(row["LINHA"]), style_tabela),
-                int(row["QTDE"]),
-                f"R$ {row['VALOR']:,.2f}"
-
-            ])
-
-        tabela_top = Table(
-            dados_top,
-            colWidths=[8*cm,3.5*cm,2*cm,2.5*cm],
-            repeatRows=1
-        )
-
-        tabela_top.setStyle(TableStyle([
-
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-
-            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-
-            ("ALIGN",(2,1),(2,-1),"CENTER"),
-            ("ALIGN",(3,1),(3,-1),"RIGHT")
-
-        ]))
-
-        elementos.append(tabela_top)
-        elementos.append(Spacer(1,25))
-
-        # HISTÓRICO DETALHADO POR PRODUTO
-
-        elementos.append(Paragraph("Histórico Detalhado de Compras", styles["Heading3"]))
-
-        dados_produtos = [
-            ["Data","NF","Produto","Linha","Qtd","Valor"]
-        ]
-
-        for _,row in vendas_cliente.iterrows():
-
-            data_pedido = ""
-            if not pd.isna(row["DATA PEDIDO"]):
-                data_pedido = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
-
-            nf = str(row["NUMERO NF"]) if not pd.isna(row["NUMERO NF"]) else ""
-
-            produto = Paragraph(str(row["DESC PRODUTO"]), style_tabela)
-            linha = Paragraph(str(row["LINHA"]), style_tabela)
-
-            qtd = int(row["QTDE"]) if not pd.isna(row["QTDE"]) else ""
-            valor = f"R$ {row['VALOR']:,.2f}" if not pd.isna(row["VALOR"]) else ""
-
-            dados_produtos.append([
-                data_pedido,
-                nf,
-                produto,
-                linha,
-                qtd,
-                valor
-            ])
-
-        tabela_produtos = Table(
-            dados_produtos,
-            colWidths=[2.5*cm,2.5*cm,7*cm,3.5*cm,2*cm,2.5*cm],
-            repeatRows=1
-        )
-
-        tabela_produtos.setStyle(TableStyle([
-
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-
-            ("ALIGN",(4,1),(4,-1),"CENTER"),
-            ("ALIGN",(5,1),(5,-1),"RIGHT")
-
-        ]))
-
-        elementos.append(tabela_produtos)
-
-    else:
-
-        elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
-
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=30,
-        leftMargin=30,
-        topMargin=30,
-        bottomMargin=18
-    )
-
-    doc.build(elementos)
-
-    buffer.seek(0)
-
-    return buffer
+    return {}
+
+def salvar_crm(dados):
+    with open(ARQUIVO_COMENTARIOS, 'w', encoding='utf-8') as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+# ==========================================
+# 4. LÓGICA DO SISTEMA DE FAROL
+# ==========================================
+
+def calcular_farol(row):
+    # Pega os valores dos últimos dois meses da planilha
+    f_atual = pd.to_numeric(row.get(COL_MES_ATUAL, 0), errors='coerce')
+    f_ant = pd.to_numeric(row.get(COL_MES_ANT, 0), errors='coerce')
     
-# =========================
-# SIDEBAR
-# =========================
+    if f_atual > 0:
+        return "🟢 ATIVO", "#27AE60"
+    elif f_ant > 0:
+        return "🟡 ALERTA", "#F1C40F"
+    else:
+        return "🔴 INATIVO", "#E74C3C"
 
-st.sidebar.title("Filtros")
+# ==========================================
+# 5. SIDEBAR E FILTROS
+# ==========================================
 
-if st.sidebar.button("Limpar filtros"):
+st.sidebar.title("Filtros de Busca")
+busca = st.sidebar.text_input("🔍 Razão Social ou CNPJ")
+filtro_vendedor = st.sidebar.multiselect("Vendedor", sorted(df[COL_VENDEDOR].dropna().unique()))
+filtro_segmento = st.sidebar.multiselect("Segmento", sorted(df[COL_SEGMENTO].dropna().unique()))
+filtro_uf = st.sidebar.multiselect("Estado (UF)", sorted(df[COL_UF].dropna().unique()))
 
-    st.session_state["busca_cnpj"] = ""
-    st.session_state["busca_nome"] = ""
-    st.session_state["busca_email"] = ""
-    st.session_state["busca_tel"] = ""
-
-    st.session_state["filtro_vendedor"] = []
-    st.session_state["filtro_uf"] = []
-    st.session_state["filtro_cidade"] = []
-    st.session_state["filtro_bairro"] = []
-    st.session_state["filtro_categoria"] = []
-    st.session_state["filtro_faturamento"] = []
-
-    st.rerun()
-
+# Aplicação dos Filtros
 df_filtrado = df.copy()
+if busca:
+    df_filtrado = df_filtrado[df_filtrado[COL_RAZAO].str.contains(busca, case=False, na=False) | 
+                              df_filtrado['CNPJ_LIMPO'].str.contains(limpar_cnpj(busca))]
+if filtro_vendedor:
+    df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(filtro_vendedor)]
+if filtro_segmento:
+    df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(filtro_segmento)]
+if filtro_uf:
+    df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(filtro_uf)]
 
-# =========================
-# BUSCA CNPJ
-# =========================
+# ==========================================
+# 6. INTERFACE PRINCIPAL
+# ==========================================
 
-busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
-
-if busca_cnpj:
-
-    cnpj_limpo = limpar_cnpj(busca_cnpj)
-
-    df_filtrado = df_filtrado[
-        df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_limpo, na=False)
-    ]
-
-# =========================
-# BUSCA RAZÃO SOCIAL
-# =========================
-
-busca_nome = st.sidebar.text_input("Buscar Razão Social", key="busca_nome")
-
-cliente_escolhido = None
-
-if busca_nome:
-
-    sugestoes = df[
-        df[col_razao].str.contains(busca_nome, case=False, na=False)
-    ][col_razao].drop_duplicates().head(50)
-
-    if len(sugestoes) > 0:
-
-        cliente_escolhido = st.sidebar.selectbox(
-            "Selecione o cliente",
-            sugestoes
-        )
-
-        df_filtrado = df_filtrado[
-            df_filtrado[col_razao] == cliente_escolhido
-        ]
-
-# =========================
-# BUSCA EMAIL
-# =========================
-
-busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
-
-if busca_email:
-    df_filtrado = df_filtrado[
-        df_filtrado[col_email].str.contains(busca_email, case=False, na=False)
-    ]
-
-# =========================
-# BUSCA TELEFONE
-# =========================
-
-busca_tel = st.sidebar.text_input("Buscar por Telefone", key="busca_tel")
-
-if busca_tel:
-
-    tel_limpo = limpar_telefone(busca_tel)
-
-    df_filtrado = df_filtrado[
-        df_filtrado["TEL_LIMPO"].str.contains(tel_limpo, na=False)
-    ]
-
-# =========================
-# FILTROS
-# =========================
-
-vendedores = sorted(df_filtrado[col_vendedor].dropna().unique())
-
-vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores, key="filtro_vendedor")
-
-if vendedor_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_vendedor].isin(vendedor_sel)]
-
-ufs = sorted(df_filtrado[col_uf].dropna().unique())
-
-uf_sel = st.sidebar.multiselect("Estado (UF)", ufs, key="filtro_uf")
-
-if uf_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_uf].isin(uf_sel)]
-
-cidades = sorted(df_filtrado[col_cidade].dropna().unique())
-
-cidade_sel = st.sidebar.multiselect("Cidade", cidades, key="filtro_cidade")
-
-if cidade_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_cidade].isin(cidade_sel)]
-
-bairros = sorted(df_filtrado[col_bairro].dropna().unique())
-
-bairro_sel = st.sidebar.multiselect("Bairro", bairros, key="filtro_bairro")
-
-if bairro_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_bairro].isin(bairro_sel)]
-
-segmento = sorted(df_filtrado[col_segmento].dropna().unique())
-
-segmento_sel = st.sidebar.multiselect("Segmento", segmentos, key="filtro_segmento")
-
-if segmento_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_segmento].isin(segmento_sel)]
-
-faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
-
-faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_faturamento")
-
-if faixa_sel:
-    df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(faixa_sel)]
-
-# =========================
-# TÍTULO
-# =========================
-
-st.title("Dashboard Inside Sales - PAPAPÁ")
-
-# =========================
-# CARD CLIENTE + CRM (COMENTÁRIOS)
-# =========================
-
-# =========================
-# CARD CLIENTE + CRM (COMENTÁRIOS)
-# =========================
-
-vendas_cliente = pd.DataFrame()
+st.title("🚀 Dashboard Inside Sales - Papapá")
 
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
-    id_cliente = cliente["CNPJ_LIMPO"]
+    id_cnpj = cliente['CNPJ_LIMPO']
+    status_txt, status_cor = calcular_farol(cliente)
     
-    # CHAMA O FAROL AQUI
-    status_txt, status_cor = calcular_status_farol(cliente)
+    # CARD VISUAL DO CLIENTE (Com Farol)
+    st.markdown(f"""
+        <div style="padding:25px; border-radius:15px; background-color:#fdfdfd; border-left: 12px solid {status_cor}; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1 style="margin:0; color:#333;">{cliente[COL_RAZAO]}</h1>
+                <span style="background-color:{status_cor}; color:white; padding:8px 25px; border-radius:30px; font-weight:bold; font-size:20px;">
+                    {status_txt}
+                </span>
+            </div>
+            <p style="font-size:18px; color:#666; margin-top:10px;">
+                <b>CNPJ:</b> {cliente[COL_CNPJ]} | <b>Grupo:</b> {cliente[COL_GRUPO]}
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("### 🏢 Informações do Cliente")
-    
+    st.write("") # Espaçamento
+
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # QUADRO INFORMATIVO COM O FAROL
-        st.markdown(
-            f"""
-            <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 3px solid {status_cor}">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="color:#333; margin:0;">{cliente[COL_RAZAO]}</h3>
-                    <span style="background-color:{status_cor}; color:white; padding:5px 12px; border-radius:15px; font-weight:bold; font-size:12px;">
-                        {status_txt}
-                    </span>
-                </div>
-                <hr style='opacity:0.2; margin:10px 0;'>
-                <b>Vendedor:</b> {cliente[COL_VENDEDOR]}<br>
-                <b>Segmento:</b> {cliente[COL_SEGMENTO]}<br>
-                <b>Tier:</b> {cliente[COL_TIER]} | <b>Estratégia:</b> {cliente[COL_ESTRAT]}<br>
-                <b>Cidade:</b> {cliente[COL_CIDADE]} - {cliente[COL_UF]}<br>
-                <b>Última Compra:</b> {cliente[COL_ULT_COMP]}
-            </div>
-            """, unsafe_allow_html=True
-        )
-
-    with col_info:
-        # 1. BUSCA DO LEAD TIME
-        prazo_html = ""
-        try:
-            # Lendo a aba que você ajustou
-            df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name="tabela de lead time")
-            df_lt = df_lt.iloc[:, [0, 1, 2]]
-            df_lt.columns = ['Cidade_Base', 'UF_Base', 'Prazo_Base']
-            
-            def normalizar(txt):
-                import unicodedata
-                if pd.isna(txt): return ""
-                return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip())
-                               if unicodedata.category(c) != 'Mn')
-
-            cidade_alvo = normalizar(cliente[col_cidade])
-            uf_alvo = normalizar(cliente[col_uf])
-            
-            df_lt['Cid_Norm'] = df_lt['Cidade_Base'].apply(normalizar)
-            df_lt['UF_Norm'] = df_lt['UF_Base'].apply(normalizar)
-            
-            busca = df_lt[(df_lt['Cid_Norm'] == cidade_alvo) & (df_lt['UF_Norm'] == uf_alvo)]
-            
-            if not busca.empty:
-                v_prazo = busca['Prazo_Base'].values[0]
-                if pd.notna(v_prazo):
-                    prazo_num = int(v_prazo)
-                    if prazo_num == 0:
-                        prazo_html = f"<br><b style='color:#27AE60;'>🚚 Entrega Imediata (CD Local)</b>"
-                    else:
-                        prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {prazo_num} dias úteis</b>"
-                else:
-                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
-            else:
-                prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_alvo})</i>"
-        except:
-            prazo_html = ""
-
-        # 2. REGRAS DE PRAZO DE PAGAMENTO (Faturamento)
-        uf_pagto = str(cliente[col_uf]).upper().strip()
-        if uf_pagto in ['RS', 'SC', 'PR', 'SP']:
-            tabela_prazos = """
-            <table style='width:100%; font-size:11px; border-collapse: collapse; margin-top:10px;'>
-                <tr style='background-color:#eee;'><th>Valor Pedido</th><th>Prazo Boleto</th></tr>
-                <tr><td>Até R$ 1.000</td><td>1x - 30 dias</td></tr>
-                <tr><td>R$ 1.000 a R$ 2.000</td><td>2x - 30/45 dias</td></tr>
-                <tr><td>Acima de R$ 2.000</td><td>3x - 30/45/60 dias</td></tr>
-            </table>"""
-        else:
-            tabela_prazos = """
-            <table style='width:100%; font-size:11px; border-collapse: collapse; margin-top:10px;'>
-                <tr style='background-color:#eee;'><th>Valor Pedido</th><th>Prazo Boleto</th></tr>
-                <tr><td>Até R$ 1.000</td><td>1x - 45 dias</td></tr>
-                <tr><td>R$ 1.000 a R$ 2.000</td><td>2x - 45/60 dias</td></tr>
-                <tr><td>Acima de R$ 2.000</td><td>3x - 40/50/60 dias</td></tr>
-            </table>"""
-
-        # 3. QUADRO INFORMATIVO VISUAL
-        st.markdown(
-            f"""
-            <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 1px solid #ddd">
-                <h3 style="color:#FF4B4B; margin-top:0;">{cliente[col_razao]}</h3>
-                <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[col_vendedor]}</span><br>
-                <b>CNPJ:</b> {cliente[col_cnpj]}<br>
-                <b>Telefone:</b> {cliente[col_telefone]}<br>
-                <b>E-mail:</b> {cliente[col_email]}<br>
-                <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}
-                {prazo_html}
-                <hr style='opacity:0.2; margin:10px 0;'>
-                <b>💳 Condições de Pagamento:</b>
-                {tabela_prazos}
-                <p style='font-size:10px; color:gray; margin-top:5px;'>*Contados a partir do faturamento.</p>
-            </div>
-            """, unsafe_allow_html=True
-        )
-
-        # 4. BOTÕES DE AÇÃO (WhatsApp e PDF)
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            tel_wpp = limpar_telefone(cliente[col_telefone])
-            if tel_wpp:
-                st.link_button("💬 WhatsApp", f"https://wa.me/55{tel_wpp}", use_container_width=True)
+        st.subheader("📋 Informações Estratégicas")
+        st.write(f"**Vendedor:** {cliente[COL_VENDEDOR]}")
+        st.write(f"**Segmento:** {cliente[COL_SEGMENTO]}")
+        st.write(f"**Tier:** {cliente[COL_TIER]}")
+        st.write(f"**Estratégia:** {cliente[COL_ESTRAT]}")
+        st.write(f"**Local:** {cliente[COL_CIDADE]} - {cliente[COL_UF]} ({cliente[COL_BAIRRO]})")
+        st.write(f"**Última Compra:** {cliente[COL_ULT_COMPRA]}")
+        st.write(f"**Faturamento Acumulado (9M):** R$ {cliente[COL_FAT_9M]:,.2f}")
         
-        with col_btn2:
-            if not df_vendas.empty:
-                v_cli = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
-                pdf_arq = gerar_pdf_cliente(cliente, v_cli)
-                st.download_button("📄 Baixar PDF", data=pdf_arq, 
-                                 file_name=f"relatorio_{cliente[col_razao]}.pdf", 
-                                 mime="application/pdf", use_container_width=True)
+        # Botão WhatsApp
+        tel = limpar_cnpj(cliente[COL_TELEFONE])
+        if tel:
+            st.link_button(f"💬 Abrir WhatsApp ({cliente[COL_TELEFONE]})", f"https://wa.me/55{tel}", use_container_width=True)
 
-    # --- COLUNA DIREITA: CRM ---
+        # Cálculo Lead Time
+        if not df_lt.empty:
+            cid_n = normalizar_texto(cliente[COL_CIDADE])
+            uf_n = normalizar_texto(cliente[COL_UF])
+            match_lt = df_lt[(df_lt.iloc[:,0].apply(normalizar_texto) == cid_n) & 
+                           (df_lt.iloc[:,1].apply(normalizar_texto) == uf_n)]
+            if not match_lt.empty:
+                prazo = match_lt.iloc[0, 2]
+                st.info(f"🚚 **Lead Time de Entrega:** {prazo} dias úteis")
+
     with col_crm:
-        st.subheader("📝 Notas e Histórico")
+        st.subheader("📝 Histórico CRM")
+        crm = carregar_crm()
         
-        # Seletor de usuário
-        lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
-        quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
-
-        # Controle do estado do campo de texto
-        if "texto_nota" not in st.session_state:
-            st.session_state.texto_nota = ""
-
-        # Função disparada pelo botão
-        def clicar_salvar():
-            # Pega o valor atual do campo pela KEY
-            texto_digitado = st.session_state.txt_area_crm
-            if texto_digitado.strip():
-                # Data e Hora (Brasília)
-                agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-                # Salva com o nome da pessoa
-                texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
-                
-                if id_cliente not in comentarios:
-                    comentarios[id_cliente] = []
-                
-                comentarios[id_cliente].insert(0, {"texto": texto_final, "data": agora})
-                salvar_comentarios(comentarios)
-                
-                # RESET DOS CAMPOS: Limpa a variável e o widget
-                st.session_state.texto_nota = ""
-                st.session_state.txt_area_crm = "" 
-                st.success("Nota salva!")
-            else:
-                st.warning("O campo está vazio.")
-
-        # O widget usa a variável 'texto_nota' como valor inicial
-        st.text_area(
-            "Novo registro:", 
-            placeholder="Descreva a conversa...", 
-            key="txt_area_crm",
-            value=st.session_state.texto_nota,
-            height=120
-        )
+        # Adição de Notas
+        operador = st.selectbox("Quem está atendendo?", ["Bernardo", "João Paulo", "João Tadra", "Ana", "Pedro"])
+        nova_nota = st.text_area("Descreva a interação:", height=100)
         
-        st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
-        st.divider()
+        if st.button("Salvar Nota no CRM", use_container_width=True):
+            if nova_nota:
+                data_agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+                if id_cnpj not in crm: crm[id_cnpj] = []
+                crm[id_cnpj].insert(0, {"data": data_agora, "autor": operador, "texto": nova_nota})
+                salvar_crm(crm)
+                st.success("Nota salva com sucesso!")
+                st.rerun()
 
-        # Listagem do Histórico
-        if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
-            for idx, item in enumerate(comentarios[id_cliente]):
-                with st.container():
-                    c1, c2 = st.columns([0.85, 0.15])
-                    c1.caption(f"📅 {item['data']}")
-                    c1.write(item['texto'])
-                    if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
-                        comentarios[id_cliente].pop(idx)
-                        salvar_comentarios(comentarios)
-                        st.rerun()
-                    st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
-        else:
-            st.info("Sem histórico para este cliente.")
+        # Exibição de Notas Antigas
+        if id_cnpj in crm:
+            for item in crm[id_cnpj][:5]:
+                with st.expander(f"📌 {item['data']} - {item['autor']}"):
+                    st.write(item['texto'])
 
-# ==========================================
-# CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
-# ==========================================
-
-# 1. Carregamento da base de Lead Time
-@st.cache_data
-def carregar_lead_time():
-    try:
-        # Tenta ler como Excel (ajuste o nome se necessário)
-        caminho = "Tabela lead time operacao e comercial.xlsx"
-        # Lendo a aba específica (pelo nome ou índice)
-        # Se for a segunda aba, usamos sheet_name=1
-        df_lt = pd.read_excel(caminho, sheet_name=1, skiprows=2)
-        
-        # Ajuste de colunas baseado no seu arquivo
-        df_lt = df_lt.iloc[:, [1, 2, 3, 4]] 
-        df_lt.columns = ['Cidade', 'UF', 'Lead_Time_Total', 'Lead_Time_Transp']
-        return df_lt.dropna(subset=['Cidade', 'UF'])
-    except Exception as e:
-        st.error(f"Erro ao carregar Excel de Lead Time: {e}")
-        return pd.DataFrame()
-
-df_lead_time = carregar_lead_time()
-
-# 2. Exibição (Mesma lógica anterior)
-if 'id_cliente' in locals() and id_cliente:
-    try:
-        dados_cadastrais = df_filtrado[df_filtrado["CNPJ_LIMPO"] == id_cliente].iloc[0]
-        cidade_alvo = str(dados_cadastrais[col_cidade]).upper().strip()
-        uf_alvo = str(dados_cadastrais[col_uf]).upper().strip()
-
-        if not df_lead_time.empty:
-            busca = df_lead_time[
-                (df_lead_time['Cidade'].astype(str).str.upper().str.strip() == cidade_alvo) & 
-                (df_lead_time['UF'].astype(str).str.upper().str.strip() == uf_alvo)
-            ]
-
-            if not busca.empty:
-                lt_total = busca['Lead_Time_Total'].values[0]
-                lt_transp = busca['Lead_Time_Transp'].values[0]
-                
-                st.markdown("---")
-                st.subheader(f"🚚 Logística e Entrega: {cidade_alvo} - {uf_alvo}")
-                
-                c_lt1, c_lt2, c_lt3 = st.columns(3)
-                with c_lt1:
-                    st.metric("Lead Time Total", f"{int(lt_total)} dias úteis")
-                with c_lt2:
-                    st.metric("Lead Time Transp.", f"{int(lt_transp)} dias úteis")
-                with c_lt3:
-                    proc = int(lt_total) - int(lt_transp)
-                    st.metric("Processamento Interno", f"{max(0, proc)} dias")
-            else:
-                st.info(f"ℹ️ Lead Time não mapeado para {cidade_alvo}/{uf_alvo}.")
-    except Exception as e:
-        pass
-
-    # =========================
-    # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
-    # =========================
-
-    if not vendas_cliente.empty:
-        st.divider()
-        st.subheader("📊 Análise de Compras do Cliente")
-
-        # Conversão de data para garantir funcionamento dos gráficos
-        vendas_cliente["DATA PEDIDO"] = pd.to_datetime(vendas_cliente["DATA PEDIDO"])
-
-        # MIX POR LINHA
-        mix_linha = (
-            vendas_cliente
-            .groupby("LINHA")["VALOR"]
-            .sum()
-            .reset_index()
-            .sort_values("VALOR", ascending=False)
-        )
-        fig_mix = px.pie(
-            mix_linha,
-            names="LINHA",
-            values="VALOR",
-            title="Mix de Compras por Linha"
-        )
-        st.plotly_chart(fig_mix, use_container_width=True)
-
-        # TOP PRODUTOS
-        top_produtos = (
-            vendas_cliente
-            .groupby("DESC PRODUTO")["VALOR"]
-            .sum()
-            .reset_index()
-            .sort_values("VALOR", ascending=False)
-            .head(10)
-        )
-        fig_top = px.bar(
-            top_produtos,
-            x="VALOR",
-            y="DESC PRODUTO",
-            orientation="h",
-            title="Top Produtos Comprados"
-        )
-        st.plotly_chart(fig_top, use_container_width=True)
-
-        # EVOLUÇÃO DE COMPRAS
-        evolucao = (
-            vendas_cliente
-            .groupby("DATA PEDIDO")["VALOR"]
-            .sum()
-            .reset_index()
-        )
-        fig_evolucao = px.line(
-            evolucao,
-            x="DATA PEDIDO",
-            y="VALOR",
-            title="Evolução de Compras"
-        )
-        st.plotly_chart(fig_evolucao, use_container_width=True)
-
-        # PRODUTOS QUE NÃO COMPRA
-        produtos_cliente = set(vendas_cliente["DESC PRODUTO"].unique())
-        todos_produtos = set(
-            df_vendas[
-                (~df_vendas["DESC PRODUTO"].str.upper().str.contains("CONFERIDO", na=False)) &
-                (~df_vendas["DESC PRODUTO"].str.upper().str.contains("TESTE", na=False)) &
-                (~df_vendas["DESC PRODUTO"].str.upper().str.contains("AJUSTE", na=False))
-            ]["DESC PRODUTO"].unique()
-        )
-        produtos_nao_compra = list(todos_produtos - produtos_cliente)
-        df_nao_compra = pd.DataFrame({
-            "Produtos que o cliente ainda não compra": produtos_nao_compra
-        }).head(20)
-
-        st.subheader("🚨 Produtos que o cliente ainda não compra")
-        st.dataframe(df_nao_compra, use_container_width=True)
-
-        # CROSS SELL
-        linhas_cliente = set(
-            vendas_cliente["LINHA"]
-            .astype(str)
-            .str.strip()
-            .replace(["", "nan", "None"], pd.NA)
-            .dropna()
-            .unique()
-        )
-        todas_linhas = set(
-            df_vendas["LINHA"]
-            .astype(str)
-            .str.strip()
-            .replace(["", "nan", "None"], pd.NA)
-            .dropna()
-            .unique()
-        )
-        linhas_faltantes = sorted(list(todas_linhas - linhas_cliente))
-        df_cross = pd.DataFrame({
-            "Linhas que o cliente ainda não compra (oportunidade)": linhas_faltantes
-        })
-
-        st.subheader("💡 Oportunidades de Cross-sell")
-        st.dataframe(df_cross, use_container_width=True, hide_index=True)
-
-# =========================
-# KPIs
-# =========================
-
-k1, k2, k3, k4 = st.columns(4)
-
-k1.metric("Total Clientes", len(df_filtrado))
-k2.metric("Estados Ativos", df_filtrado[col_uf].nunique())
-k3.metric("Categorias", df_filtrado[col_categoria].nunique())
-k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
-
-st.divider()
-
-# =========================
-# ANÁLISE DE MIX COMPLETA (COLORIDA + SEM ERRO DE NEGATIVO)
-# =========================
-
-st.divider()
-st.subheader("📦 Análise Geral de Mix e Produtos")
-
-if not df_vendas.empty:
-    # 1. Filtro Inicial e Trava de Segurança
-    cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
-    vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
+    # --- ANÁLISE DE MIX ---
+    st.divider()
+    st.subheader("📊 Mix de Produtos do Cliente")
+    mix_c = df_mix[df_mix['CNPJ_LIMPO'] == id_cnpj]
     
-    # Remove itens de conferência/ajuste
-    vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.contains("CONFERIDO", case=False, na=False)]
-
-    if not vendas_geral.empty:
-        # 2. MAPEAMENTO (Categorias do Catálogo, Sabor e Idade)
-        def mapear_catalogo(nome):
-            nome = str(nome).upper()
-            if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO", "COMIDINHA"]): return "Papinhas e Sopinhas"
-            if any(x in nome for x in ["PUFFS", "BISCOITO", "SNACK", "PALITINHO", "MILHO", "DENTIÇÃO", "BISCOTTI"]): return "Snacks"
-            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "Macarrões"
-            if any(x in nome for x in ["CEREAL", "AVEIA", "MUCILON"]): return "Cereais"
-            return "Outros"
-
-        def mapear_sabor(nome):
-            nome = str(nome).upper()
-            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA"]
-            return "Doce" if any(x in nome for x in doces) else "Salgado"
-
-        def mapear_idade(nome):
-            nome = str(nome).upper()
-            if "12" in nome or "CEREAL" in nome: return "12 meses+"
-            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "8 meses+"
-            return "6 meses+"
-
-        vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo)
-        vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
-        vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
-
-        # 3. LINHA 1 DE GRÁFICOS (Categorias e Sabores)
+    if not mix_c.empty:
         c1, c2 = st.columns(2)
-        with c1:
-            mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
-            st.plotly_chart(px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Mix por Categoria (Catálogo)", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel), use_container_width=True)
-        with c2:
-            mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
-            st.plotly_chart(px.pie(mix_sabor, names="SABOR", values="VALOR", title="Divisão Doce vs Salgado", color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"}), use_container_width=True)
-
-        # 4. LINHA 2 DE GRÁFICOS (Idade Colorida e Top 10)
-        c3, c4 = st.columns(2)
-        with c3:
-            mix_idade = vendas_geral.groupby("IDADE")["VALOR"].sum().reset_index()
-            fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", title="Vendas por Idade Recomendada", color_discrete_sequence=px.colors.qualitative.Bold)
-            fig_idade.update_layout(showlegend=False)
-            st.plotly_chart(fig_idade, use_container_width=True)
-        with c4:
-            top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
-            st.plotly_chart(px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Produtos (Geral)"), use_container_width=True)
-
-        # 5. PERFORMANCE POR CATEGORIA (BLINDAGEM TOTAL COM TABELAS)
-        st.markdown("---")
-        st.markdown("#### 🏆 Destaques por Categoria")
+        # Gráfico por Linha
+        fig_mix = px.pie(mix_c, values='VALOR', names='LINHA', hole=0.4, title="Participação por Linha")
+        c1.plotly_chart(fig_mix, use_container_width=True)
         
-        # Lista com todas as categorias do catálogo
-        categorias_full = ["Papinhas e Sopinhas", "Snacks", "Macarrões", "Cereais"]
-        cat_sel = st.selectbox("Selecione a Categoria:", options=categorias_full)
-        
-        df_cat = vendas_geral[vendas_geral["CAT_CATALOGO"] == cat_sel]
-        
-        if not df_cat.empty:
-            rank = df_cat.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
-            rank["VALOR"] = rank["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
-
-            ce, cd = st.columns(2)
-            with ce:
-                st.success(f"⭐ **MAIS VENDIDOS: {cat_sel.upper()}**")
-                st.table(rank.head(3).rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Faturamento"}))
-            with cd:
-                st.error(f"⚠️ **MENOS VENDIDOS: {cat_sel.upper()}**")
-                st.table(rank.tail(3).sort_values("VALOR").rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Faturamento"}))
-        else:
-            st.warning(f"Sem vendas registradas para {cat_sel} nesta seleção.")
-
+        # Histórico de Pedidos
+        mix_c['DATA PEDIDO'] = pd.to_datetime(mix_c['DATA PEDIDO'])
+        evolucao = mix_c.groupby(mix_c['DATA PEDIDO'].dt.to_period('M'))['VALOR'].sum().reset_index()
+        evolucao['DATA PEDIDO'] = evolucao['DATA PEDIDO'].astype(str)
+        fig_evol = px.bar(evolucao, x='DATA PEDIDO', y='VALOR', title="Evolução de Compras Mensal", color_discrete_sequence=['#E63946'])
+        c2.plotly_chart(fig_evol, use_container_width=True)
     else:
-        st.info("Nenhuma venda encontrada nos filtros atuais.")
+        st.warning("Nenhum dado de Mix encontrado para este CNPJ.")
+
+elif len(df_filtrado) > 1:
+    # VISÃO GERAL DA LISTA
+    st.write(f"### Clientes Encontrados: {len(df_filtrado)}")
+    
+    # KPIs Rápidos
+    k1, k2, k3 = st.columns(3)
+    k1.metric("Faturamento Filtrado", f"R$ {df_filtrado[COL_FAT_9M].sum():,.2f}")
+    k2.metric("Média por Cliente", f"R$ {df_filtrado[COL_FAT_9M].mean():,.2f}")
+    k3.metric("Vendedores na Lista", df_filtrado[COL_VENDEDOR].nunique())
+
+    # Tabela com as novas colunas
+    st.dataframe(
+        df_filtrado[[COL_RAZAO, COL_VENDEDOR, COL_SEGMENTO, COL_TIER, COL_UF, COL_FAT_9M]], 
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # MAPA BRASIL
+    try:
+        st.divider()
+        st.subheader("🗺️ Distribuição Geográfica")
+        resumo_uf = df_filtrado.groupby(COL_UF).size().reset_index(name='Quantidade')
         
-# =========================
-# GRÁFICO SEGMENTO
-# =========================
-
-resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
-resumo_categoria.columns = ["Categoria", "Quantidade"]
-
-fig_cat = px.bar(
-    resumo_categoria,
-    x="Categoria",
-    y="Quantidade",
-    title="Distribuição por Categoria"
-)
-
-st.plotly_chart(fig_cat, use_container_width=True)
-
-# =========================
-# GRÁFICO FATURAMENTO
-# =========================
-
-resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
-resumo_faturamento.columns = ["Faixa", "Quantidade"]
-
-fig_fat = px.bar(
-    resumo_faturamento,
-    x="Faixa",
-    y="Quantidade",
-    title="Distribuição por Faixa de Faturamento"
-)
-
-st.plotly_chart(fig_fat, use_container_width=True)
-
-# =========================
-# MAPA
-# =========================
-
-resumo_estado = df_filtrado[col_uf].value_counts().reset_index()
-resumo_estado.columns = ["UF", "Quantidade"]
-
-url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
-
-with urllib.request.urlopen(url) as response:
-    geojson_br = json.load(response)
-
-fig_mapa = px.choropleth(
-    resumo_estado,
-    geojson=geojson_br,
-    locations="UF",
-    featureidkey="properties.sigla",
-    color="Quantidade",
-    color_continuous_scale="Reds",
-    title="Distribuição de Clientes por Estado"
-)
-
-fig_mapa.update_geos(fitbounds="locations", visible=False)
-
-st.plotly_chart(fig_mapa, use_container_width=True)
-
-st.divider()
-
-# =========================
-# GERAR EXCEL
-# =========================
-
-def gerar_excel(df):
-
-    buffer = BytesIO()
-
-    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Clientes")
-
-    return buffer.getvalue()
-
-excel = gerar_excel(df_filtrado)
-
-st.download_button(
-    label="📥 Baixar base filtrada em Excel",
-    data=excel,
-    file_name="clientes_filtrados.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
-
-# =========================
-# TABELA
-# =========================
-
-st.subheader("Base de Clientes")
-
-st.dataframe(df_filtrado, use_container_width=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        url_geo = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+        with urllib.request.urlopen(url_geo) as response:
+            geojson_br = json.load(response)
+
+        fig_mapa = px.choropleth(
+            resumo_uf,
+            geojson=geojson_br,
+            locations=COL_UF,
+            featureidkey="properties.sigla",
+            color="Quantidade",
+            color_continuous_scale="Reds",
+            title="Clientes por Estado"
+        )
+        fig_mapa.update_geos(fitbounds="locations", visible=False)
+        st.plotly_chart(fig_mapa, use_container_width=True)
+    except:
+        st.info("Mapa indisponível no momento.")
+
+else:
+    st.info("Use os filtros ao lado para encontrar um cliente.")
+
+# ==========================================
+# 7. EXPORTAÇÃO (EXCEL)
+# ==========================================
+
+st.sidebar.divider()
+def gerar_excel(df_export):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df_export.to_excel(writer, index=False, sheet_name='Base Filtrada')
+    return output.getvalue()
+
+if st.sidebar.button("📥 Baixar Lista Filtrada (Excel)"):
+    excel_data = gerar_excel(df_filtrado)
+    st.sidebar.download_button("Clique para Confirmar Download", excel_data, "clientes_papapa.xlsx")
