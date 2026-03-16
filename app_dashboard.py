@@ -258,8 +258,6 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}"],
         ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
 
-    ]
-
     tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
 
     tabela_cliente.setStyle(TableStyle([
