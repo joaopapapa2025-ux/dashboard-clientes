@@ -200,7 +200,7 @@ labels = [
     "Acima de 100 mil"
 ]
 
-df["FAIXA_FATURAMENTO"] = pd.cut(df[col_faturamento], bins=bins, labels=labels)
+df["FAIXA_FATURAMENTO"] = pd.cut(df[COL_T_U_9_M], bins=bins, labels=labels)
 
 # =========================
 # COMENTÁRIOS POR CLIENTE
