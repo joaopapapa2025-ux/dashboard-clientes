@@ -64,8 +64,9 @@ ARQUIVO_BASE = "Base Dashboard Inside Sales.xlsx"
 
 @st.cache_data
 def carregar_dados():
-    df = pd.read_excel(ARQUIVO_BASE, sheet_name=0)
-    df.columns = df.columns.str.strip().str.upper()
+    # AJUSTE: O nome da aba deve ser 'BASE COMPLETA'
+    df = pd.read_excel("Base Dashboard Inside Sales.xlsx", sheet_name="BASE COMPLETA")
+    df.columns = df.columns.str.strip() # Isso remove espaços invisíveis que causam erro
     return df
 
 df = carregar_dados()
