@@ -592,45 +592,52 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # --- LÓGICA DE BUSCA DO LEAD TIME (AJUSTE DE COLUNAS) ---
+        # --- LÓGICA DE BUSCA DO LEAD TIME DEFINITIVA ---
         prazo_html = ""
         try:
-            # Lendo a aba 2 (índice 1). skiprows=2 pula a sujeira do topo
+            # Lendo a aba "tabela de lead time" (índice 1)
+            # skiprows=2 pula as linhas de aviso e chega no cabeçalho: Cidade, UF, Lead time total
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
             
-            # No seu arquivo:
-            # Coluna B (índice 1) = Cidade
-            # Coluna C (índice 2) = UF
-            # Coluna D (índice 3) = Lead time total
-            df_lt = df_lt.iloc[:, [1, 2, 3]]
-            df_lt.columns = ['Cidade_Base', 'UF_Base', 'Prazo_Base']
+            # Limpeza de colunas vazias e seleção das colunas corretas (B, C e D no Excel)
+            df_lt = df_lt.dropna(axis=1, how='all')
+            df_lt = df_lt.iloc[:, [0, 1, 2]] # Pega as 3 primeiras colunas úteis após o skiprows
+            df_lt.columns = ['Cid_Excel', 'UF_Excel', 'Prazo_Excel']
             
-            # Normalização para ignorar acentos e espaços
             def normalizar(txt):
                 import unicodedata
                 if pd.isna(txt): return ""
+                # Remove acentos, deixa em maiúsculo e tira espaços
                 return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip())
                                if unicodedata.category(c) != 'Mn')
 
             cidade_alvo = normalizar(cliente[col_cidade])
             uf_alvo = normalizar(cliente[col_uf])
             
-            df_lt['Cid_Norm'] = df_lt['Cidade_Base'].apply(normalizar)
-            df_lt['UF_Norm'] = df_lt['UF_Base'].apply(normalizar)
+            # Normaliza a base de busca
+            df_lt['Cid_Norm'] = df_lt['Cid_Excel'].apply(normalizar)
+            df_lt['UF_Norm'] = df_lt['UF_Excel'].apply(normalizar)
             
-            # Busca Americana/SP
+            # Busca o cliente
             busca = df_lt[(df_lt['Cid_Norm'] == cidade_alvo) & (df_lt['UF_Norm'] == uf_alvo)]
             
             if not busca.empty:
-                v_prazo = busca['Prazo_Base'].values[0]
+                v_prazo = busca['Prazo_Excel'].values[0]
+                
+                # Tratamento especial para Curitiba (onde o prazo é 0) ou outros valores
                 if pd.notna(v_prazo):
-                    prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
+                    prazo_num = int(v_prazo)
+                    if prazo_num == 0:
+                        prazo_html = f"<br><b style='color:#27AE60;'>🚚 Entrega Imediata (CD Local)</b>"
+                    else:
+                        prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {prazo_num} dias úteis</b>"
                 else:
                     prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
             else:
                 prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_alvo})</i>"
+                
         except Exception as e:
-            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro técnico: {e}</i>"
+            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro na leitura: {str(e)}</i>"
 
         # --- QUADRO INFORMATIVO ---
         st.markdown(
