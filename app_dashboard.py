@@ -592,37 +592,42 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # --- 1. LÓGICA DE BUSCA DO LEAD TIME ---
+        # --- 1. LÓGICA DE BUSCA DO LEAD TIME (BLINDADA) ---
         prazo_html = ""
         try:
-            # Lendo o Excel - Aba 1 (tabela de lead time)
-            # skiprows=2 porque os dados começam na linha 3
+            # Carrega a aba de lead time
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
-            
-            # Pegamos Cidade (col 1), UF (col 2) e Lead Time Total (col 3)
             df_lt = df_lt.iloc[:, [1, 2, 3]]
             df_lt.columns = ['Cidade', 'UF', 'Total']
             
-            # Limpeza rápida para comparação
-            cidade_alvo = str(cliente[col_cidade]).upper().strip()
-            uf_alvo = str(cliente[col_uf]).upper().strip()
+            # Função para normalizar texto (remove acentos e espaços extras)
+            def normalizar(txt):
+                import unicodedata
+                if pd.isna(txt): return ""
+                return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip())
+                               if unicodedata.category(c) != 'Mn')
+
+            # Prepara a busca
+            cidade_cliente = normalizar(cliente[col_cidade])
+            uf_cliente = normalizar(cliente[col_uf])
             
-            # Filtro
-            busca = df_lt[(df_lt['Cidade'].astype(str).str.upper().str.strip() == cidade_alvo) & 
-                          (df_lt['UF'].astype(str).str.upper().str.strip() == uf_alvo)]
+            # Normaliza a planilha de lead time para comparação
+            df_lt['Cidade_Norm'] = df_lt['Cidade'].apply(normalizar)
+            df_lt['UF_Norm'] = df_lt['UF'].apply(normalizar)
+            
+            busca = df_lt[(df_lt['Cidade_Norm'] == cidade_cliente) & 
+                          (df_lt['UF_Norm'] == uf_cliente)]
             
             if not busca.empty:
                 v_prazo = busca['Total'].values[0]
-                # Se encontrar valor numérico, mostra o caminhãozinho
                 if pd.notna(v_prazo):
                     prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
                 else:
-                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não definido</i>"
+                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não definido no Excel</i>"
             else:
-                prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada</i>"
-        
-        except Exception as e:
-            # Se der erro no Excel, não trava o app, apenas avisa no log interno
+                # Se não encontrar, mostra o que ele tentou buscar para ajudar no diagnóstico
+                prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_cliente})</i>"
+        except Exception:
             prazo_html = ""
 
         # --- 2. QUADRO INFORMATIVO ---
