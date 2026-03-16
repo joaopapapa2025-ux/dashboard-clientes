@@ -14,6 +14,25 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
+import json
+import os
+
+# Nome do arquivo que guardará as notas permanentemente
+ARQUIVO_DATABASE = "database_comentarios.json"
+
+def carregar_comentarios():
+    if os.path.exists(ARQUIVO_DATABASE):
+        with open(ARQUIVO_DATABASE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {} # Retorna dicionário vazio se o arquivo não existir
+
+def salvar_comentarios(dados):
+    with open(ARQUIVO_DATABASE, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+# Inicializa a variável 'comentarios' carregando do arquivo
+comentarios = carregar_comentarios()
+
 def limpar_telefone(tel):
     """Remove caracteres não numéricos do telefone."""
     if pd.isna(tel) or tel == "":
