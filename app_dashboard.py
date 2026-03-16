@@ -594,7 +594,7 @@ if len(df_filtrado) == 1:
     with col_info:
         # --- LÓGICA DE BUSCA DO LEAD TIME ---
         prazo_html = ""
-try:
+    try:
             # 1. Carrega a planilha
             # sheet_name=1 pega a SEGUNDA aba. Se a sua tabela estiver na primeira, mude para 0.
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
