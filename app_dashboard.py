@@ -1113,7 +1113,29 @@ with col_graf_cad2:
 # =========================
 # GRÁFICO FATURAMENTO (CORRIGIDO)
 # =========================
+
+st.markdown("---")
+col_graf_cad1, col_graf_cad2 = st.columns(2)
+
+with col_graf_cad1:
+    # Este bloco deve estar identado com 4 espaços
+    resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
+    resumo_segmento.columns = ["Segmento", "Quantidade"]
+
+    fig_seg = px.bar(
+        resumo_segmento,
+        x="Quantidade",
+        y="Segmento",
+        orientation="h",
+        title="Distribuição por Segmento",
+        color="Quantidade",
+        color_continuous_scale="Reds"
+    )
+    fig_seg.update_layout(showlegend=False)
+    st.plotly_chart(fig_seg, use_container_width=True)
+
 with col_graf_cad2:
+    # O erro estava aqui. Todo este bloco precisa de identação:
     resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
     resumo_faturamento.columns = ["Faixa", "Quantidade"]
 
@@ -1123,10 +1145,10 @@ with col_graf_cad2:
         values="Quantidade",
         title="Distribuição por Faixa de Faturamento",
         hole=0.4,
-        # CORREÇÃO: Usando a escala sequencial Reds do Plotly Express
         color_discrete_sequence=px.colors.sequential.Reds_r 
     )
     st.plotly_chart(fig_fat, use_container_width=True)
+    
 # =========================
 # MAPA DE CALOR (BRASIL)
 # =========================
