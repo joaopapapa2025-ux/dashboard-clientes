@@ -698,46 +698,70 @@ if len(df_filtrado) == 1:
 # NOTAS E HISTÓRICO (CORRIGIDO)
 # ==========================================
 
-st.markdown("---")
-st.subheader("📝 Notas e Histórico de Atendimento")
+with col_crm:
+    st.subheader("📝 Notas e Histórico")
+    
+    # Seletor de usuário
+    lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
+    quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
 
-# Arquivo onde as notas serão salvas
-ARQUIVO_NOTAS = "historico_notas.csv"
+    # Controle do estado do campo de texto
+    if "texto_nota" not in st.session_state:
+        st.session_state.texto_nota = ""
 
-# Função para carregar notas
-def carregar_notas():
-    if os.path.exists(ARQUIVO_NOTAS):
-        return pd.read_csv(ARQUIVO_NOTAS)
-    return pd.DataFrame(columns=["CNPJ", "Data", "Nota"])
-
-df_notas = carregar_notas()
-
-# Interface de Notas
-with st.container():
-    nova_nota_texto = st.text_area("Adicionar nova atualização:")
-    if st.button("Salvar Comentário"):
-        if nova_nota_texto.strip() != "":
-            nova_nota = pd.DataFrame({
-                "CNPJ": [id_cliente],
-                "Data": [datetime.now().strftime("%d/%m/%Y %H:%M")],
-                "Nota": [nova_nota_texto]
-            })
+    # Função disparada pelo botão
+    def clicar_salvar():
+        # Pega o valor atual do campo diretamente pelo estado do widget
+        texto_digitado = st.session_state.txt_area_crm
+        
+        if texto_digitado.strip():
+            # Data e Hora (Brasília)
+            agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
             
-            df_notas = pd.concat([df_notas, nova_nota], ignore_index=True)
-            df_notas.to_csv(ARQUIVO_NOTAS, index=False)
+            # Salva com o nome da pessoa
+            texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
+            
+            if id_cliente not in comentarios:
+                comentarios[id_cliente] = []
+            
+            # Insere no início da lista
+            comentarios[id_cliente].insert(0, {"texto": texto_final, "data": agora})
+            
+            # Salva no arquivo físico (certifique-se que essa função salvar_comentarios existe)
+            salvar_comentarios(comentarios)
+            
+            # RESET DOS CAMPOS
+            st.session_state.txt_area_crm = "" 
             st.success("Nota salva!")
-            st.rerun()
         else:
-            st.warning("Digite algo antes de salvar.")
+            st.warning("O campo está vazio.")
 
-st.markdown("**Histórico Recente:**")
-notas_cliente = df_notas[df_notas["CNPJ"] == id_cliente].sort_index(ascending=False)
+    # Widget de texto
+    st.text_area(
+        "Novo registro:", 
+        placeholder="Descreva a conversa...", 
+        key="txt_area_crm",
+        height=120
+    )
+    
+    st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
+    st.divider()
 
-if not notas_cliente.empty:
-    for i, row in notas_cliente.iterrows():
-        st.info(f"📅 {row['Data']}\n\n{row['Nota']}")
-else:
-    st.write("Nenhum histórico registrado.")
+    # Listagem do Histórico
+    if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
+        for idx, item in enumerate(comentarios[id_cliente]):
+            with st.container():
+                c1, c2 = st.columns([0.85, 0.15])
+                c1.caption(f"📅 {item['data']}")
+                c1.write(item['texto'])
+                # Botão de excluir
+                if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
+                    comentarios[id_cliente].pop(idx)
+                    salvar_comentarios(comentarios)
+                    st.rerun()
+                st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
+    else:
+        st.info("Sem histórico para este cliente.")
             
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
@@ -820,7 +844,7 @@ if 'id_cliente' in locals() and id_cliente:
         # Silencioso para não poluir o Dashboard se o ID não estiver pronto
         pass
         
-   # ==========================================
+# ==========================================
 # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
 # ==========================================
 
