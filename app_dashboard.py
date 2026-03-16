@@ -649,7 +649,7 @@ with col_info:
             mime="application/pdf"
         )
 
-    with col_crm:
+with col_crm:
         st.subheader("📝 Notas e Histórico")
         
         # Campo para novo comentário
