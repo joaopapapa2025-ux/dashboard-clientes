@@ -17,20 +17,28 @@ from reportlab.lib import colors
 import json
 import os
 
-# Nome do arquivo que guardará as notas permanentemente
+# Nome do arquivo de banco de dados
 ARQUIVO_DATABASE = "database_comentarios.json"
 
+# Função para garantir que o arquivo exista e carregar os dados
 def carregar_comentarios():
     if os.path.exists(ARQUIVO_DATABASE):
-        with open(ARQUIVO_DATABASE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {} # Retorna dicionário vazio se o arquivo não existir
+        try:
+            with open(ARQUIVO_DATABASE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
+    else:
+        # Se não existe, cria um arquivo JSON vazio {}
+        with open(ARQUIVO_DATABASE, "w", encoding="utf-8") as f:
+            json.dump({}, f)
+        return {}
 
 def salvar_comentarios(dados):
     with open(ARQUIVO_DATABASE, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
-# Inicializa a variável 'comentarios' carregando do arquivo
+# Inicializa a variável comentários
 comentarios = carregar_comentarios()
 
 def limpar_telefone(tel):
