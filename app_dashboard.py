@@ -1081,19 +1081,19 @@ if not df_vendas.empty:
                 st.table(df_tail3.rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Total"}))
         else:
             st.warning(f"Não há registros de venda para a categoria '{cat_sel}' com os filtros aplicados.")
-
     else:
         st.info("Nenhuma venda encontrada para os clientes selecionados.")
-        
+
 # =========================
-# GRÁFICO SEGMENTO E FATURAMENTO
+# GRÁFICO SEGMENTO E FATURAMENTO (DISTRIBUÍDO)
 # =========================
 
 st.markdown("---")
+st.subheader("📊 Distribuição Cadastral")
 col_graf_cad1, col_graf_cad2 = st.columns(2)
 
 with col_graf_cad1:
-    # Verifique se há exatamente 4 espaços antes de cada linha abaixo
+    # Verifique se há exatamente 4 espaços de recuo
     resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
     resumo_segmento.columns = ["Segmento", "Quantidade"]
 
@@ -1110,7 +1110,7 @@ with col_graf_cad1:
     st.plotly_chart(fig_seg, use_container_width=True)
 
 with col_graf_cad2:
-    # Verifique se há exatamente 4 espaços antes de cada linha abaixo
+    # Verifique se há exatamente 4 espaços de recuo
     resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
     resumo_faturamento.columns = ["Faixa", "Quantidade"]
 
@@ -1123,46 +1123,6 @@ with col_graf_cad2:
         color_discrete_sequence=px.colors.sequential.Reds_r 
     )
     st.plotly_chart(fig_fat, use_container_width=True)
-
-# =========================
-# GRÁFICO FATURAMENTO (CORRIGIDO)
-# =========================
-
-    st.markdown("---")
-    col_graf_cad1, col_graf_cad2 = st.columns(2)
-
-    with col_graf_cad1:
-    # Este bloco deve estar identado com 4 espaços
-    resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
-    resumo_segmento.columns = ["Segmento", "Quantidade"]
-
-    fig_seg = px.bar(
-        resumo_segmento,
-        x="Quantidade",
-        y="Segmento",
-        orientation="h",
-        title="Distribuição por Segmento",
-        color="Quantidade",
-        color_continuous_scale="Reds"
-    )
-    fig_seg.update_layout(showlegend=False)
-    st.plotly_chart(fig_seg, use_container_width=True)
-
-    with col_graf_cad2:
-    # O erro estava aqui. Todo este bloco precisa de identação:
-    resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
-    resumo_faturamento.columns = ["Faixa", "Quantidade"]
-
-    fig_fat = px.pie(
-        resumo_faturamento,
-        names="Faixa",
-        values="Quantidade",
-        title="Distribuição por Faixa de Faturamento",
-        hole=0.4,
-        color_discrete_sequence=px.colors.sequential.Reds_r 
-    )
-    st.plotly_chart(fig_fat, use_container_width=True)
-    
 # =========================
 # MAPA DE CALOR (BRASIL)
 # =========================
