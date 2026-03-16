@@ -722,81 +722,83 @@ if len(df_filtrado) == 1:
                                  mime="application/pdf", use_container_width=True)
     # --- COLUNA DIREITA: CRM ---
 # ==========================================
-# NOTAS E HISTÓRICO (CORRIGIDO)
+# BLOCO CRM - SÓ APARECE COM 1 CLIENTE
 # ==========================================
 
-with col_crm:
-    st.subheader("📝 Notas e Histórico")
-    
-    # 1. Seletor de usuário
-    lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
-    quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
+if len(df_filtrado) == 1:
+    with col_crm:
+        st.subheader("📝 Notas e Histórico")
+        
+        # 1. Seletor de usuário
+        lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
+        quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
 
-    # 2. Função disparada pelo botão
-    def clicar_salvar():
-        # Acessa o dicionário global de comentários
-        global comentarios
+        # 2. Função disparada pelo botão
+        def clicar_salvar():
+            # Acessa o dicionário global de comentários
+            global comentarios
+            
+            # Pega o texto da área de texto via session_state
+            texto_digitado = st.session_state.get("txt_area_crm", "")
+            
+            if texto_digitado.strip():
+                # Data e Hora (Brasília)
+                agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+                texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
+                
+                # Garante que a chave do cliente existe
+                id_cliente_str = str(id_cliente)
+                if id_cliente_str not in comentarios:
+                    comentarios[id_cliente_str] = []
+                
+                # Adiciona o novo comentário no topo da lista
+                comentarios[id_cliente_str].insert(0, {"texto": texto_final, "data": agora})
+                
+                # SALVAMENTO FÍSICO
+                salvar_comentarios(comentarios)
+                
+                # Limpa o campo para o próximo uso
+                st.session_state["txt_area_crm"] = ""
+                st.toast("✅ Nota salva com sucesso!")
+            else:
+                st.warning("O campo está vazio.")
+
+        # 3. Campo de entrada de texto
+        st.text_area(
+            "Novo registro:", 
+            placeholder="Descreva a conversa...", 
+            key="txt_area_crm",
+            height=120
+        )
         
-        # Pega o texto da área de texto via session_state
-        texto_digitado = st.session_state.get("txt_area_crm", "")
+        # 4. Botão de Salvar
+        st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
         
-        if texto_digitado.strip():
-            # Data e Hora (Brasília)
-            agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-            texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
-            
-            # Garante que a chave do cliente existe
-            if id_cliente not in comentarios:
-                comentarios[id_cliente] = []
-            
-            # Adiciona o novo comentário no topo da lista
-            comentarios[id_cliente].insert(0, {"texto": texto_final, "data": agora})
-            
-            # SALVAMENTO FÍSICO (Chama sua função de gravar no arquivo)
-            salvar_comentarios(comentarios)
-            
-            # Limpa o campo para o próximo uso
-            st.session_state["txt_area_crm"] = ""
-            st.toast("✅ Nota salva com sucesso!")
+        st.divider()
+
+        # 5. Listagem do Histórico
+        id_cliente_str = str(id_cliente)
+        if id_cliente_str in comentarios and len(comentarios[id_cliente_str]) > 0:
+            for idx, item in enumerate(comentarios[id_cliente_str]):
+                with st.container():
+                    col_txt, col_del = st.columns([0.85, 0.15])
+                    
+                    with col_txt:
+                        st.caption(f"📅 {item['data']}")
+                        st.write(item['texto'])
+                    
+                    with col_del:
+                        if st.button("🗑️", key=f"btn_del_{id_cliente_str}_{idx}"):
+                            comentarios[id_cliente_str].pop(idx)
+                            salvar_comentarios(comentarios)
+                            st.rerun()
+                    
+                    st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
         else:
-            st.warning("O campo está vazio.")
-
-    # 3. Campo de entrada de texto
-    # Note: Não usamos o parâmetro 'value' aqui, deixamos o Streamlit gerenciar via 'key'
-    st.text_area(
-        "Novo registro:", 
-        placeholder="Descreva a conversa...", 
-        key="txt_area_crm",
-        height=120
-    )
-    
-    # 4. Botão de Salvar
-    st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
-    
-    st.divider()
-
-    # 5. Listagem do Histórico (Renderização Direta)
-    # Verificamos se existem comentários para o ID atual
-    if id_cliente in comentarios and len(comentarios[id_cliente]) > 0:
-        for idx, item in enumerate(comentarios[id_cliente]):
-            with st.container():
-                # Layout de duas colunas: texto e botão de excluir
-                col_txt, col_del = st.columns([0.85, 0.15])
-                
-                with col_txt:
-                    st.caption(f"📅 {item['data']}")
-                    st.write(item['texto'])
-                
-                with col_del:
-                    # Chave única para cada botão de excluir para evitar conflitos
-                    if st.button("🗑️", key=f"btn_del_{id_cliente}_{idx}"):
-                        comentarios[id_cliente].pop(idx)
-                        salvar_comentarios(comentarios)
-                        st.rerun()
-                
-                st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
-    else:
-        st.info("Sem histórico para este cliente.")
+            st.info("Sem histórico para este cliente.")
+else:
+    # Mensagem amigável quando os filtros estão abertos (mais de 1 cliente)
+    st.info("💡 Selecione um cliente específico nos filtros acima para visualizar ou adicionar notas no CRM.")
             
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
