@@ -705,38 +705,35 @@ with col_crm:
     lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
     quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
 
-    # Controle do estado do campo de texto
-    if "texto_nota" not in st.session_state:
-        st.session_state.texto_nota = ""
-
-    # Função disparada pelo botão
+    # Função disparada pelo botão (on_click)
     def clicar_salvar():
-        # Pega o valor atual do campo diretamente pelo estado do widget
+        # Pega o valor atual do campo diretamente pelo estado do widget via KEY
         texto_digitado = st.session_state.txt_area_crm
         
         if texto_digitado.strip():
             # Data e Hora (Brasília)
             agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
             
-            # Salva com o nome da pessoa
+            # Formata o texto final
             texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
             
+            # Garante que a chave do cliente existe no dicionário
             if id_cliente not in comentarios:
                 comentarios[id_cliente] = []
             
-            # Insere no início da lista
+            # Insere no início da lista para aparecer primeiro o mais recente
             comentarios[id_cliente].insert(0, {"texto": texto_final, "data": agora})
             
-            # Salva no arquivo físico (certifique-se que essa função salvar_comentarios existe)
+            # Salva no arquivo físico imediatamente
             salvar_comentarios(comentarios)
             
-            # RESET DOS CAMPOS
-            st.session_state.txt_area_crm = "" 
-            st.success("Nota salva!")
+            # Limpa o campo de texto resetando a key no session_state
+            st.session_state.txt_area_crm = ""
         else:
-            st.warning("O campo está vazio.")
+            # Usamos toast ou warning para avisar que está vazio sem quebrar o fluxo
+            st.toast("⚠️ O campo de nota está vazio!")
 
-    # Widget de texto
+    # Widget de texto - IMPORTANTE: sem o parâmetro 'value' para permitir o reset via key
     st.text_area(
         "Novo registro:", 
         placeholder="Descreva a conversa...", 
@@ -744,21 +741,24 @@ with col_crm:
         height=120
     )
     
+    # O botão chama a função clicar_salvar antes de recarregar a página
     st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
     st.divider()
 
-    # Listagem do Histórico
-    if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
+    # Listagem do Histórico (Renderiza o que está no dicionário 'comentarios')
+    if id_cliente in comentarios and len(comentarios[id_cliente]) > 0:
         for idx, item in enumerate(comentarios[id_cliente]):
             with st.container():
                 c1, c2 = st.columns([0.85, 0.15])
                 c1.caption(f"📅 {item['data']}")
                 c1.write(item['texto'])
-                # Botão de excluir
+                
+                # Botão de excluir específico para cada linha
                 if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
                     comentarios[id_cliente].pop(idx)
                     salvar_comentarios(comentarios)
                     st.rerun()
+                
                 st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
     else:
         st.info("Sem histórico para este cliente.")
