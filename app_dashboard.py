@@ -669,32 +669,37 @@ if len(df_filtrado) == 1:
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
 # ==========================================
 
-# 1. Carregamento da base de Lead Time (Ajustado para o nome do seu arquivo CSV)
+# 1. Carregamento da base de Lead Time
 try:
-    # Lendo o arquivo enviado (ajustando o cabeçalho pois o snippet mostrou que começa na linha 2)
-    df_lead_time = pd.read_csv("Tabela lead time operacao e comercial.xlsx - tabela de lead time.csv", skiprows=2)
+    # O arquivo correto baseado no seu upload
+    file_path = "Tabela lead time operacao e comercial.xlsx - tabela de lead time.csv"
     
-    # Limpeza: Remover colunas sem nome e garantir nomes corretos
-    df_lead_time = df_lead_time.loc[:, ~df_lead_time.columns.str.contains('^Unnamed')]
-    # Garantir que as colunas essenciais existem
-    df_lead_time.columns = ['Cidade', 'UF', 'Lead_Time_Total', 'Lead_Time_Transp'] + list(df_lead_time.columns[4:])
+    # Lendo o CSV pulando as 3 primeiras linhas (onde estão os títulos soltos)
+    df_lead_time = pd.read_csv(file_path, skiprows=3)
+    
+    # Limpeza de colunas fantasmas e renomeação manual para garantir que o código ache os nomes
+    # Vamos pegar apenas as primeiras 4 colunas que interessam
+    df_lead_time = df_lead_time.iloc[:, [1, 2, 3, 4]] 
+    df_lead_time.columns = ['Cidade', 'UF', 'Lead_Time_Total', 'Lead_Time_Transp']
+    
+    # Remove linhas totalmente vazias
+    df_lead_time = df_lead_time.dropna(subset=['Cidade', 'UF'])
 except Exception as e:
-    st.error(f"Erro ao carregar base de Lead Time: {e}")
+    # Se o arquivo não for achado, o app avisa mas continua funcionando
+    st.warning(f"Aviso: Base de Lead Time não carregada ({e})")
     df_lead_time = pd.DataFrame()
 
-# 2. Exibição do Lead Time (Verifique se 'id_cliente' é o nome da sua variável de filtro)
-# Se o seu filtro for algo como: id_cliente = st.sidebar.selectbox(..., key='cnpj_filter')
+# 2. Exibição (Só aparece se um cliente for filtrado)
+# Verificamos se 'id_cliente' existe no código para evitar o NameError
 if 'id_cliente' in locals() and id_cliente:
-    
-    # Pega os dados do cliente selecionado na sua base principal
-    # Certifique-se que df_filtrado contém as colunas CIDADE e UF
     try:
+        # Pegamos os dados do cliente que veio da base principal (df_filtrado)
         dados_cadastrais = df_filtrado[df_filtrado["CNPJ_LIMPO"] == id_cliente].iloc[0]
-        cidade_alvo = str(dados_cadastrais["CIDADE"]).upper().strip()
-        uf_alvo = str(dados_cadastrais["UF"]).upper().strip()
+        cidade_alvo = str(dados_cadastrais[col_cidade]).upper().strip()
+        uf_alvo = str(dados_cadastrais[col_uf]).upper().strip()
 
         if not df_lead_time.empty:
-            # Busca na tabela de lead time
+            # Busca na tabela de lead time com limpeza de espaços e caixa alta
             busca = df_lead_time[
                 (df_lead_time['Cidade'].str.upper().str.strip() == cidade_alvo) & 
                 (df_lead_time['UF'].str.upper().str.strip() == uf_alvo)
@@ -713,13 +718,17 @@ if 'id_cliente' in locals() and id_cliente:
                 with c_lt2:
                     st.metric("Lead Time Transp.", f"{lt_transp} dias úteis")
                 with c_lt3:
-                    # Cálculo de processamento interno (Total - Transporte)
-                    proc = lt_total - lt_transp
-                    st.metric("Processamento Interno", f"{max(0, proc)} dias")
+                    # Cálculo do tempo de processamento
+                    try:
+                        proc = int(lt_total) - int(lt_transp)
+                        st.metric("Processamento Interno", f"{max(0, proc)} dias")
+                    except:
+                        st.metric("Processamento Interno", "-")
             else:
-                st.warning(f"📍 Lead Time não mapeado para {cidade_alvo}/{uf_alvo} na planilha de logística.")
+                st.info(f"ℹ️ Lead Time não mapeado para {cidade_alvo}/{uf_alvo}.")
     except Exception as e:
-        st.info("Selecione um cliente específico para visualizar o Lead Time de entrega.")
+        # Silencia erros caso o cliente ainda não esteja totalmente carregado
+        pass
 
     # =========================
     # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
