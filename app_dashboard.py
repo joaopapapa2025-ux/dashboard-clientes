@@ -664,30 +664,52 @@ if len(df_filtrado) == 1:
     with col_crm:
         st.subheader("📝 Notas e Histórico")
         
-        # Campo para novo comentário
-        novo_txt = st.text_area("Novo registro:", placeholder="O que foi conversado?", key="txt_area_crm")
+        # 1. Lista de pessoas para o seletor
+        lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
+        quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
+
+        # 2. Inicializa o estado do texto se não existir
+        if "texto_nota" not in st.session_state:
+            st.session_state.texto_nota = ""
+
+        # 3. Campo de texto vinculado ao session_state
+        novo_txt = st.text_area(
+            "Novo registro:", 
+            placeholder="O que foi conversado?", 
+            key="txt_area_crm",
+            value=st.session_state.texto_nota
+        )
         
-        if st.button("Salvar Comentário"):
-            if novo_txt.strip():
-                # Ajusta para o horário de Brasília (UTC-3)
+        # 4. Função interna para processar o salvamento e limpar o campo
+        def salvar_e_limpar():
+            texto = st.session_state.txt_area_crm
+            if texto.strip():
+                # Ajusta para o horário de Brasília
                 agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
                 
-                novo_registro = {"texto": novo_txt, "data": agora}
+                # Formata o texto incluindo o nome de quem comentou
+                texto_final = f"[{quem_comentou}] {texto.strip()}"
                 
-                # Garantia de que a chave existe e é uma lista
+                novo_registro = {"texto": texto_final, "data": agora}
+                
                 if id_cliente not in comentarios or not isinstance(comentarios[id_cliente], list):
                     comentarios[id_cliente] = []
                 
-                comentarios[id_cliente].insert(0, novo_registro) # Mais recente primeiro
+                comentarios[id_cliente].insert(0, novo_registro)
                 salvar_comentarios(comentarios)
+                
+                # LIMPA O CAMPO: define o estado como vazio para a próxima rodada
+                st.session_state.texto_nota = ""
                 st.success("Salvo com sucesso!")
-                st.rerun()
             else:
                 st.warning("O campo de comentário está vazio.")
 
-            st.divider()
+        # 5. Botão chama a função acima
+        st.button("Salvar Comentário", on_click=salvar_e_limpar)
 
-        # Listagem de comentários com botão de excluir
+        st.divider()
+
+        # Listagem de comentários (mantendo sua lógica de exclusão)
         if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
             for idx, item in enumerate(comentarios[id_cliente]):
                 with st.container():
