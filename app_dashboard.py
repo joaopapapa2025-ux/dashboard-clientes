@@ -592,26 +592,27 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # --- 1. LÓGICA DE BUSCA DO LEAD TIME (BLINDADA) ---
+        # --- LÓGICA DE BUSCA DO LEAD TIME AJUSTADA ---
         prazo_html = ""
         try:
-            # Carrega a aba de lead time
+            # Lendo a aba de lead time (índice 1)
+            # skiprows=2 pula as linhas vazias do topo
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
+            
+            # Ajustando colunas conforme seu arquivo real:
+            # Coluna 1 = Cidade, Coluna 2 = UF, Coluna 3 = Lead Time Total
             df_lt = df_lt.iloc[:, [1, 2, 3]]
             df_lt.columns = ['Cidade', 'UF', 'Total']
             
-            # Função para normalizar texto (remove acentos e espaços extras)
             def normalizar(txt):
                 import unicodedata
                 if pd.isna(txt): return ""
                 return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip())
                                if unicodedata.category(c) != 'Mn')
 
-            # Prepara a busca
             cidade_cliente = normalizar(cliente[col_cidade])
             uf_cliente = normalizar(cliente[col_uf])
             
-            # Normaliza a planilha de lead time para comparação
             df_lt['Cidade_Norm'] = df_lt['Cidade'].apply(normalizar)
             df_lt['UF_Norm'] = df_lt['UF'].apply(normalizar)
             
@@ -620,17 +621,17 @@ if len(df_filtrado) == 1:
             
             if not busca.empty:
                 v_prazo = busca['Total'].values[0]
+                # Agora aceita o valor 0 (comum para Curitiba)
                 if pd.notna(v_prazo):
                     prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
                 else:
-                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não definido no Excel</i>"
+                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
             else:
-                # Se não encontrar, mostra o que ele tentou buscar para ajudar no diagnóstico
                 prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_cliente})</i>"
-        except Exception:
+        except Exception as e:
             prazo_html = ""
 
-        # --- 2. QUADRO INFORMATIVO ---
+        # --- QUADRO INFORMATIVO ---
         st.markdown(
             f"""
             <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 1px solid #ddd">
