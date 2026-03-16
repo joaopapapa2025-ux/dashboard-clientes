@@ -592,50 +592,40 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # --- LÓGICA DE BUSCA DO LEAD TIME ---
+        # --- 1. LÓGICA DE BUSCA DO LEAD TIME ---
         prazo_html = ""
-    try:
-            # 1. Carrega a planilha
-            # sheet_name=1 pega a SEGUNDA aba. Se a sua tabela estiver na primeira, mude para 0.
+        try:
+            # Lendo o Excel - Aba 1 (tabela de lead time)
+            # skiprows=2 porque os dados começam na linha 3
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
             
-            # 2. Seleciona colunas e remove acentos/espaços para comparar
+            # Pegamos Cidade (col 1), UF (col 2) e Lead Time Total (col 3)
             df_lt = df_lt.iloc[:, [1, 2, 3]]
             df_lt.columns = ['Cidade', 'UF', 'Total']
             
-            # Função interna para limpar texto (remove acentos e sujeira)
-            def limpar_texto(txt):
-                import unicodedata
-                if not txt: return ""
-                txt = str(txt).upper().strip()
-                # Remove acentos
-                txt = ''.join(c for c in unicodedata.normalize('NFD', txt) if unicodedata.category(c) != 'Mn')
-                return txt
-
-            # Prepara os nomes da planilha de Lead Time
-            df_lt['Cidade_Limpa'] = df_lt['Cidade'].apply(limpar_texto)
-            df_lt['UF_Limpa'] = df_lt['UF'].apply(limpar_texto)
-
-            # Prepara os nomes do cliente selecionado
-            cidade_alvo = limpar_texto(cliente[col_cidade])
-            uf_alvo = limpar_texto(cliente[col_uf])
-
-            # 3. Busca com os nomes limpos
-            busca = df_lt[(df_lt['Cidade_Limpa'] == cidade_alvo) & (df_lt['UF_Limpa'] == uf_alvo)]
+            # Limpeza rápida para comparação
+            cidade_alvo = str(cliente[col_cidade]).upper().strip()
+            uf_alvo = str(cliente[col_uf]).upper().strip()
+            
+            # Filtro
+            busca = df_lt[(df_lt['Cidade'].astype(str).str.upper().str.strip() == cidade_alvo) & 
+                          (df_lt['UF'].astype(str).str.upper().str.strip() == uf_alvo)]
             
             if not busca.empty:
                 v_prazo = busca['Total'].values[0]
-                # Se o valor for vazio ou NaN, cai no else
+                # Se encontrar valor numérico, mostra o caminhãozinho
                 if pd.notna(v_prazo):
                     prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
+                else:
+                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não definido</i>"
             else:
-                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
-            else:
-                prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada ({}-{})</i>".format(cidade_alvo, uf_alvo)
-                except Exception as e:
-            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro técnico: {e}</i>"
+                prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada</i>"
+        
+        except Exception as e:
+            # Se der erro no Excel, não trava o app, apenas avisa no log interno
+            prazo_html = ""
 
-        # --- QUADRO DE INFORMAÇÕES ---
+        # --- 2. QUADRO INFORMATIVO ---
         st.markdown(
             f"""
             <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 1px solid #ddd">
@@ -650,10 +640,10 @@ if len(df_filtrado) == 1:
             """, unsafe_allow_html=True
         )
 
-        # Botão WhatsApp e PDF logo abaixo
-        t_limpo = limpar_telefone(cliente[col_telefone])
-        if t_limpo:
-            st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{t_limpo}")
+        # Botões de ação
+        telefone_btn = limpar_telefone(cliente[col_telefone])
+        if telefone_btn:
+            st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{telefone_btn}")
         
         if not df_vendas.empty:
             v_cli = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
