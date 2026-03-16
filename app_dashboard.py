@@ -156,7 +156,7 @@ def limpar_cnpj(cnpj):
         return ""
     return re.sub(r"\D", "", str(cnpj))
 
-df["CNPJ_LIMPO"] = df[col_cnpj].apply(limpar_cnpj)
+df["CNPJ_LIMPO"] = df[COL_CNPJ].apply(limpar_cnpj)
 
 # =========================
 # LIMPAR TELEFONE
@@ -167,7 +167,7 @@ def limpar_telefone(tel):
         return ""
     return re.sub(r"\D", "", str(tel))
 
-df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
+df["TEL_LIMPO"] = df[COL_TELEFONE].apply(limpar_telefone)
 
 # =========================
 # FUNÇÃO DO SISTEMA DE FAROL
