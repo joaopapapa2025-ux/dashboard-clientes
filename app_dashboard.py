@@ -672,7 +672,7 @@ if len(df_filtrado) == 1:
 # 1. Carregamento da base de Lead Time
 try:
     # O arquivo correto baseado no seu upload
-    file_path = "Tabela lead time operacao e comercial.xlsx - tabela de lead time.csv"
+    file_path = "Tabela lead time operacao e comercial.xlsx"
     
     # Lendo o CSV pulando as 3 primeiras linhas (onde estão os títulos soltos)
     df_lead_time = pd.read_csv(file_path, skiprows=3)
