@@ -59,40 +59,9 @@ if not st.session_state.acesso_liberado:
 ARQUIVO_BASE = "Base Dashboard Inside Sales.xlsx"
 
 # =========================
-# CARREGAR BASE CLIENTES
+# MAPEAMENTO DA NOVA PLANILHA (Constantes)
 # =========================
-
-@st.cache_data
-def carregar_dados():
-    # AJUSTE: O nome da aba deve ser 'BASE COMPLETA'
-    df = pd.read_excel("Base Dashboard Inside Sales.xlsx", sheet_name="BASE COMPLETA")
-    df.columns = df.columns.str.strip() # Isso remove espaços invisíveis que causam erro
-    return df
-
-df = carregar_dados()
-
-# =========================
-# CARREGAR BASE PRODUTOS
-# =========================
-
-@st.cache_data
-def carregar_vendas():
-    try:
-        vendas = pd.read_excel(ARQUIVO_BASE, sheet_name=1)
-        vendas.columns = vendas.columns.str.strip().str.upper()
-        
-        vendas["CNPJ_LIMPO"] = vendas["CNPJ"].astype(str).str.replace(r"\D", "", regex=True)
-
-        return vendas
-    except:
-        return pd.DataFrame()
-
-df_vendas = carregar_vendas()
-
-# =========================
-# MAPEAMENTO DA NOVA PLANILHA
-# =========================
-# Aqui definimos os nomes EXATOS das colunas que estão no seu Excel
+# Definido antes do carregamento para ser usado nas funções
 COL_CODIGO   = "CÓDIGO"
 COL_CNPJ     = "CNPJ"
 COL_RAZAO    = "RAZÃO SOCIAL"
@@ -103,52 +72,50 @@ COL_CIDADE   = "CIDADE"
 COL_BAIRRO   = "BAIRRO"
 COL_TELEFONE = "TELEFONE"
 COL_EMAIL    = "E-MAIL"
-COL_CODIGO_V = "CNPJ"
 COL_VENDEDOR = "VENDEDOR"
 COL_GRUPO_EC = "GRUPO ECONÔMICO"
 COL_ULT_COMP = "ÚLTIMA COMPRA"
 COL_TABELA   = "TABELA"
-
-COL_JUN_25 = "JUN/25"
-COL_JUL_25 = "JUL/25"
-COL_AGO_25 = "AGO/25"
-COL_SET_25 = "SET/25"
-COL_OUT_25 = "OUT/25"
-COL_NOV_25 = "NOV/25"
-COL_DEZ_25 = "DEZ/25"
-COL_JAN_26 = "JAN/26"
-COL_FEV_26 = "FEV/26"
-
-COL_T_U_9_M  = "TOTAL ÚLTIMO 9 MESES"
 COL_SEGMENTO = "SEGMENTO"
+COL_T_U_9_M  = "TOTAL ÚLTIMO 9 MESES"
 
 # Meses para o Sistema de Farol
 COL_MES_ATUAL = "FEV/26" 
 COL_MES_ANT   = "JAN/26"
 
 # =========================
-# GARANTIR COLUNAS
+# CARREGAR BASE CLIENTES
 # =========================
 
-colunas_obrigatorias = [
-    COL_RAZAO,
-    COL_UF,
-    COL_CIDADE,
-    COL_BAIRRO,
-    COL_CNPJ,
-    COL_TELEFONE,
-    COL_EMAIL,
-    COL_VENDEDOR,
-    COL_SEGMENTO,
-    COL_T_U_9_M
-]
+@st.cache_data
+def carregar_dados():
+    # Carrega a aba correta 'BASE COMPLETA'
+    df = pd.read_excel(ARQUIVO_BASE, sheet_name="BASE COMPLETA")
+    df.columns = df.columns.str.strip() # Limpa espaços nos nomes das colunas
+    return df
 
-for col in colunas_obrigatorias:
-    if col not in df.columns:
-        df[col] = ""
+df = carregar_dados()
 
 # =========================
-# LIMPAR CNPJ
+# CARREGAR BASE PRODUTOS (MIX)
+# =========================
+
+@st.cache_data
+def carregar_vendas():
+    try:
+        # Carrega a aba MIX
+        vendas = pd.read_excel(ARQUIVO_BASE, sheet_name="MIX")
+        vendas.columns = vendas.columns.str.strip()
+        # Cria ID de busca por CNPJ limpo
+        vendas["CNPJ_LIMPO"] = vendas["CNPJ"].astype(str).str.replace(r"\D", "", regex=True)
+        return vendas
+    except:
+        return pd.DataFrame()
+
+df_vendas = carregar_vendas()
+
+# =========================
+# GARANTIR COLUNAS E LIMPEZA
 # =========================
 
 def limpar_cnpj(cnpj):
@@ -156,38 +123,37 @@ def limpar_cnpj(cnpj):
         return ""
     return re.sub(r"\D", "", str(cnpj))
 
+# Garante que colunas essenciais existam para não quebrar o código lá na frente
+colunas_obrigatorias = [COL_RAZAO, COL_UF, COL_CIDADE, COL_CNPJ, COL_VENDEDOR, COL_SEGMENTO, COL_T_U_9_M]
+for col in colunas_obrigatorias:
+    if col not in df.columns:
+        df[col] = ""
+
 df["CNPJ_LIMPO"] = df[COL_CNPJ].apply(limpar_cnpj)
-
-# =========================
-# LIMPAR TELEFONE
-# =========================
-
-def limpar_telefone(tel):
-    if pd.isna(tel):
-        return ""
-    return re.sub(r"\D", "", str(tel))
-
-df["TEL_LIMPO"] = df[COL_TELEFONE].apply(limpar_telefone)
 
 # =========================
 # FUNÇÃO DO SISTEMA DE FAROL
 # =========================
 def calcular_status_farol(row):
-    # Transforma o faturamento em número (trata se estiver vazio ou com texto)
+    # Converte para numérico para evitar erro de comparação de texto
     fat_atual = pd.to_numeric(row.get(COL_MES_ATUAL, 0), errors='coerce')
     fat_ant   = pd.to_numeric(row.get(COL_MES_ANT, 0), errors='coerce')
     
+    if pd.isna(fat_atual): fat_atual = 0
+    if pd.isna(fat_ant): fat_ant = 0
+    
     if fat_atual > 0:
-        return "🟢 ATIVO", "#27AE60" # Verde
+        return "🟢 ATIVO", "#27AE60"
     elif fat_ant > 0:
-        return "🟡 ALERTA", "#F1C40F" # Amarelo
+        return "🟡 ALERTA", "#F1C40F"
     else:
-        return "🔴 INATIVO", "#E74C3C" # Vermelho
+        return "🔴 INATIVO", "#E74C3C"
 
 # =========================
 # TRATAR FATURAMENTO
 # =========================
 
+# Converte para numérico garantindo que a nova coluna de 9 meses seja lida corretamente
 df[COL_T_U_9_M] = pd.to_numeric(df[COL_T_U_9_M], errors="coerce").fillna(0)
 
 bins = [0, 5000, 20000, 50000, 100000, float("inf")]
@@ -200,6 +166,7 @@ labels = [
     "Acima de 100 mil"
 ]
 
+# Cria a faixa baseada no faturamento acumulado da nova planilha
 df["FAIXA_FATURAMENTO"] = pd.cut(df[COL_T_U_9_M], bins=bins, labels=labels)
 
 # =========================
@@ -209,17 +176,18 @@ df["FAIXA_FATURAMENTO"] = pd.cut(df[COL_T_U_9_M], bins=bins, labels=labels)
 ARQUIVO_COMENTARIOS = "comentarios_clientes.json"
 
 def carregar_comentarios():
-
     try:
-        with open(ARQUIVO_COMENTARIOS, "r") as f:
-            return json.load(f)
+        # Garante a leitura com encoding utf-8 para não quebrar acentos
+        if os.path.exists(ARQUIVO_COMENTARIOS):
+            with open(ARQUIVO_COMENTARIOS, "r", encoding='utf-8') as f:
+                return json.load(f)
+        return {}
     except:
         return {}
 
 def salvar_comentarios(comentarios):
-
-    with open(ARQUIVO_COMENTARIOS, "w") as f:
-        json.dump(comentarios, f, indent=4)
+    with open(ARQUIVO_COMENTARIOS, "w", encoding='utf-8') as f:
+        json.dump(comentarios, f, indent=4, ensure_ascii=False)
 
 # carregar comentários existentes
 comentarios = carregar_comentarios()
@@ -245,35 +213,35 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     elementos.append(data)
     elementos.append(Spacer(1,20))
 
+    # Tabela de dados cadastrais usando o novo mapeamento
     dados_cliente = [
-
-        ["Razão Social", cliente[COL_RAZAO]],
-        ["Nome Fantasia", cliente[COL_RAZAO]],
-        ["CNPJ", cliente[COL_CNPJ]],
-        ["Telefone", cliente[COL_TELEFONE]],
-        ["Email", cliente[COL_EMAIL]],
+        ["Razão Social", str(cliente[COL_RAZAO])],
+        ["CNPJ", str(cliente[COL_CNPJ])],
+        ["Telefone", str(cliente[COL_TELEFONE])],
+        ["Email", str(cliente[COL_EMAIL])],
         ["Cidade", f"{cliente[COL_CIDADE]} - {cliente[COL_UF]}"],
-        ["Vendedor", cliente[COL_VENDEDOR]],
-        ["Categoria", cliente[COL_SEGMENTO]],
+        ["Vendedor", str(cliente[COL_VENDEDOR])],
+        ["Segmento", str(cliente[COL_SEGMENTO])], # Ajustado para SEGMENTO
         ["Faturamento 9M", f"R$ {cliente[COL_T_U_9_M]:,.2f}"],
         ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
-
     ]
 
     tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
 
     tabela_cliente.setStyle(TableStyle([
         ("BACKGROUND",(0,0),(0,-1),colors.lightgrey),
-        ("GRID",(0,0),(-1,-1),0.5,colors.grey)
+        ("GRID",(0,0),(-1,-1),0.5,colors.grey),
+        ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+        ("FONTSIZE", (0,0), (-1,-1), 10),
     ]))
 
     elementos.append(tabela_cliente)
 
     elementos.append(Spacer(1,20))
-    elementos.append(Paragraph("Histórico de Compras", styles["Heading2"]))
+    elementos.append(Paragraph("Histórico de Compras (Mix)", styles["Heading2"]))
 
     if not vendas_cliente.empty:
-
+        # Agrupamento baseado nas colunas da aba MIX da nova planilha
         resumo = (
             vendas_cliente
             .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
@@ -289,6 +257,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ticket_medio = 0
         ultima_compra = ""
 
+        # Verifica se as colunas de NF e Data existem no Mix para os cálculos
         if "NUMERO NF" in vendas_cliente.columns:
             total_pedidos = vendas_cliente["NUMERO NF"].nunique()
             if total_pedidos > 0:
@@ -300,19 +269,17 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
                 ultima_compra = pd.to_datetime(data_max).strftime("%d/%m/%Y")
 
         resumo_comercial = [
-
-            ["Total Produtos Comprados", total_skus],
-            ["Total Unidades", int(total_qtd)],
-            ["Valor Total Comprado", f"R$ {total_valor:,.2f}"],
-            ["Ticket Médio", f"R$ {ticket_medio:,.2f}"],
+            ["Total de SKUs Comprados", total_skus],
+            ["Total de Unidades (Volume)", int(total_qtd)],
+            ["Valor Total Acumulado", f"R$ {total_valor:,.2f}"],
+            ["Ticket Médio por NF", f"R$ {ticket_medio:,.2f}"],
             ["Data da Última Compra", ultima_compra]
-
         ]
 
         tabela_resumo = Table(resumo_comercial, colWidths=[8*cm,8*cm])
-
         tabela_resumo.setStyle(TableStyle([
-            ("GRID",(0,0),(-1,-1),0.5,colors.grey)
+            ("GRID",(0,0),(-1,-1),0.5,colors.grey),
+            ("FONTSIZE", (0,0), (-1,-1), 10),
         ]))
 
         elementos.append(Spacer(1,10))
@@ -320,140 +287,130 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         elementos.append(Spacer(1,25))
 
         # HISTÓRICO POR PEDIDO
-
         elementos.append(Paragraph("Histórico por Pedido", styles["Heading3"]))
 
+        # Agrupamento por Nota Fiscal usando as colunas da aba MIX
         pedidos = (
             vendas_cliente
-            .groupby(["DATA PEDIDO","NUMERO NF"])["VALOR"]
+            .groupby(["DATA PEDIDO", "NUMERO NF"])["VALOR"]
             .sum()
             .reset_index()
             .sort_values("DATA PEDIDO", ascending=False)
         )
 
-        dados_pedidos = [["Data","NF","Valor Pedido"]]
+        dados_pedidos = [["Data", "NF", "Valor Pedido"]]
 
-        for _,row in pedidos.iterrows():
-
-            data = ""
+        for _, row in pedidos.iterrows():
+            data_str = ""
             if not pd.isna(row["DATA PEDIDO"]):
-                data = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
+                # Garante conversão para datetime antes de formatar
+                data_str = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
 
             nf = str(row["NUMERO NF"])
             valor = f"R$ {row['VALOR']:,.2f}"
 
-            dados_pedidos.append([data,nf,valor])
+            dados_pedidos.append([data_str, nf, valor])
 
         tabela_pedidos = Table(
             dados_pedidos,
-            colWidths=[4*cm,4*cm,4*cm],
+            colWidths=[4*cm, 4*cm, 4*cm],
             repeatRows=1
         )
 
         tabela_pedidos.setStyle(TableStyle([
-
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-            ("ALIGN",(2,1),(2,-1),"RIGHT")
-
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+            ("ALIGN", (2, 1), (2, -1), "RIGHT"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
         ]))
 
         elementos.append(tabela_pedidos)
-        elementos.append(Spacer(1,25))
+        elementos.append(Spacer(1, 25))
 
         # TOP PRODUTOS
-
         elementos.append(Paragraph("Top Produtos Comprados", styles["Heading3"]))
 
+        # Pega os 5 produtos de maior valor (usando o 'resumo' calculado na parte 2)
         top_produtos = resumo.head(5)
 
-        dados_top = [["Produto","Linha","Qtd","Valor"]]
+        dados_top = [["Produto", "Linha", "Qtd", "Valor"]]
 
-        for _,row in top_produtos.iterrows():
-
+        for _, row in top_produtos.iterrows():
             dados_top.append([
-
                 Paragraph(str(row["DESC PRODUTO"]), style_tabela),
                 Paragraph(str(row["LINHA"]), style_tabela),
                 int(row["QTDE"]),
                 f"R$ {row['VALOR']:,.2f}"
-
             ])
 
         tabela_top = Table(
             dados_top,
-            colWidths=[8*cm,3.5*cm,2*cm,2.5*cm],
+            colWidths=[8*cm, 3.5*cm, 2*cm, 2.5*cm],
             repeatRows=1
         )
 
         tabela_top.setStyle(TableStyle([
-
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-
-            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-
-            ("ALIGN",(2,1),(2,-1),"CENTER"),
-            ("ALIGN",(3,1),(3,-1),"RIGHT")
-
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (2, 1), (2, -1), "CENTER"),
+            ("ALIGN", (3, 1), (3, -1), "RIGHT"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
         ]))
 
         elementos.append(tabela_top)
-        elementos.append(Spacer(1,25))
+        elementos.append(Spacer(1, 25))
 
         # HISTÓRICO DETALHADO POR PRODUTO
-
         elementos.append(Paragraph("Histórico Detalhado de Compras", styles["Heading3"]))
 
         dados_produtos = [
-            ["Data","NF","Produto","Linha","Qtd","Valor"]
+            ["Data", "NF", "Produto", "Linha", "Qtd", "Valor"]
         ]
 
-        for _,row in vendas_cliente.iterrows():
-
-            data_pedido = ""
+        # Itera sobre os itens individuais da venda
+        for _, row in vendas_cliente.iterrows():
+            data_item = ""
             if not pd.isna(row["DATA PEDIDO"]):
-                data_pedido = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
+                data_item = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
 
-            nf = str(row["NUMERO NF"]) if not pd.isna(row["NUMERO NF"]) else ""
-
-            produto = Paragraph(str(row["DESC PRODUTO"]), style_tabela)
-            linha = Paragraph(str(row["LINHA"]), style_tabela)
-
-            qtd = int(row["QTDE"]) if not pd.isna(row["QTDE"]) else ""
-            valor = f"R$ {row['VALOR']:,.2f}" if not pd.isna(row["VALOR"]) else ""
+            nf_item = str(row["NUMERO NF"]) if not pd.isna(row["NUMERO NF"]) else ""
+            prod_item = Paragraph(str(row["DESC PRODUTO"]), style_tabela)
+            lin_item = Paragraph(str(row["LINHA"]), style_tabela)
+            
+            # Tratamento para quantidade e valor nulos
+            qtd_item = int(row["QTDE"]) if pd.notna(row["QTDE"]) else 0
+            val_item = f"R$ {row['VALOR']:,.2f}" if pd.notna(row["VALOR"]) else "R$ 0.00"
 
             dados_produtos.append([
-                data_pedido,
-                nf,
-                produto,
-                linha,
-                qtd,
-                valor
+                data_item,
+                nf_item,
+                prod_item,
+                lin_item,
+                qtd_item,
+                val_item
             ])
 
         tabela_produtos = Table(
             dados_produtos,
-            colWidths=[2.5*cm,2.5*cm,7*cm,3.5*cm,2*cm,2.5*cm],
+            colWidths=[2.5*cm, 2.5*cm, 7*cm, 3.5*cm, 2*cm, 2.5*cm],
             repeatRows=1
         )
 
         tabela_produtos.setStyle(TableStyle([
-
-            ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
-            ("GRID",(0,0),(-1,-1),0.25,colors.grey),
-
-            ("ALIGN",(4,1),(4,-1),"CENTER"),
-            ("ALIGN",(5,1),(5,-1),"RIGHT")
-
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+            ("ALIGN", (4, 1), (4, -1), "CENTER"),
+            ("ALIGN", (5, 1), (5, -1), "RIGHT"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8), # Fonte menor para caber mais itens
         ]))
 
         elementos.append(tabela_produtos)
 
     else:
+        elementos.append(Paragraph("Nenhum histórico de compra encontrado no período.", styles["Normal"]))
 
-        elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
-
+    # Finalização do Documento
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
@@ -464,9 +421,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     )
 
     doc.build(elementos)
-
     buffer.seek(0)
-
     return buffer
     
 # =========================
@@ -474,6 +429,10 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 # =========================
 
 st.sidebar.title("Filtros")
+
+# Inicialização de estados caso não existam (evita erros no primeiro carregamento)
+if "busca_cnpj" not in st.session_state: st.session_state["busca_cnpj"] = ""
+if "busca_nome" not in st.session_state: st.session_state["busca_nome"] = ""
 
 if st.sidebar.button("Limpar filtros"):
 
@@ -486,7 +445,7 @@ if st.sidebar.button("Limpar filtros"):
     st.session_state["filtro_uf"] = []
     st.session_state["filtro_cidade"] = []
     st.session_state["filtro_bairro"] = []
-    st.session_state["filtro_categoria"] = []
+    st.session_state["filtro_categoria"] = [] # Internamente mapeado para SEGMENTO
     st.session_state["filtro_faturamento"] = []
 
     st.rerun()
@@ -500,11 +459,11 @@ df_filtrado = df.copy()
 busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
 
 if busca_cnpj:
-
-    cnpj_limpo = limpar_cnpj(busca_cnpj)
+    # Usa a função limpar_cnpj que definimos na Parte 1
+    cnpj_busca_limpo = limpar_cnpj(busca_cnpj)
 
     df_filtrado = df_filtrado[
-        df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_limpo, na=False)
+        df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_busca_limpo, na=False)
     ]
 
 # =========================
@@ -516,10 +475,10 @@ busca_nome = st.sidebar.text_input("Buscar Razão Social", key="busca_nome")
 cliente_escolhido = None
 
 if busca_nome:
-
+    # Usa COL_RAZAO da nossa configuração
     sugestoes = df[
-        df[col_razao].str.contains(busca_nome, case=False, na=False)
-    ][col_razao].drop_duplicates().head(50)
+        df[COL_RAZAO].str.contains(busca_nome, case=False, na=False)
+    ][COL_RAZAO].drop_duplicates().head(50)
 
     if len(sugestoes) > 0:
 
@@ -529,9 +488,9 @@ if busca_nome:
         )
 
         df_filtrado = df_filtrado[
-            df_filtrado[col_razao] == cliente_escolhido
+            df_filtrado[COL_RAZAO] == cliente_escolhido
         ]
-
+        
 # =========================
 # BUSCA EMAIL
 # =========================
@@ -539,8 +498,9 @@ if busca_nome:
 busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
 
 if busca_email:
+    # Usa COL_EMAIL definido no bloco de mapeamento
     df_filtrado = df_filtrado[
-        df_filtrado[col_email].str.contains(busca_email, case=False, na=False)
+        df_filtrado[COL_EMAIL].str.contains(busca_email, case=False, na=False)
     ]
 
 # =========================
@@ -550,54 +510,54 @@ if busca_email:
 busca_tel = st.sidebar.text_input("Buscar por Telefone", key="busca_tel")
 
 if busca_tel:
-
-    tel_limpo = limpar_telefone(busca_tel)
+    # Usa a função limpar_telefone e a coluna TEL_LIMPO criadas na Parte 1
+    tel_busca_limpo = limpar_telefone(busca_tel)
 
     df_filtrado = df_filtrado[
-        df_filtrado["TEL_LIMPO"].str.contains(tel_limpo, na=False)
+        df_filtrado["TEL_LIMPO"].str.contains(tel_busca_limpo, na=False)
     ]
 
 # =========================
-# FILTROS
+# FILTROS MULTISELECT
 # =========================
 
+# Vendedor
 vendedores = sorted(df_filtrado[COL_VENDEDOR].dropna().unique())
-
 vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores, key="filtro_vendedor")
 
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
 
-ufs = sorted(df_filtrado[col_uf].dropna().unique())
-
+# UF (Estado)
+ufs = sorted(df_filtrado[COL_UF].dropna().unique())
 uf_sel = st.sidebar.multiselect("Estado (UF)", ufs, key="filtro_uf")
 
 if uf_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_uf].isin(uf_sel)]
+    df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(uf_sel)]
 
-cidades = sorted(df_filtrado[col_cidade].dropna().unique())
-
+# Cidade
+cidades = sorted(df_filtrado[COL_CIDADE].dropna().unique())
 cidade_sel = st.sidebar.multiselect("Cidade", cidades, key="filtro_cidade")
 
 if cidade_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_cidade].isin(cidade_sel)]
+    df_filtrado = df_filtrado[df_filtrado[COL_CIDADE].isin(cidade_sel)]
 
-bairros = sorted(df_filtrado[col_bairro].dropna().unique())
-
+# Bairro
+bairros = sorted(df_filtrado[COL_BAIRRO].dropna().unique())
 bairro_sel = st.sidebar.multiselect("Bairro", bairros, key="filtro_bairro")
 
 if bairro_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_bairro].isin(bairro_sel)]
+    df_filtrado = df_filtrado[df_filtrado[COL_BAIRRO].isin(bairro_sel)]
 
-segmento = sorted(df_filtrado[col_segmento].dropna().unique())
-
-segmento_sel = st.sidebar.multiselect("Segmento", segmentos, key="filtro_segmento")
+# Segmento (Antiga Categoria)
+lista_segmentos = sorted(df_filtrado[COL_SEGMENTO].dropna().unique())
+segmento_sel = st.sidebar.multiselect("Segmento", lista_segmentos, key="filtro_segmento")
 
 if segmento_sel:
-    df_filtrado = df_filtrado[df_filtrado[col_segmento].isin(segmento_sel)]
+    df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(segmento_sel)]
 
+# Faixa de Faturamento
 faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
-
 faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_faturamento")
 
 if faixa_sel:
@@ -613,17 +573,13 @@ st.title("Dashboard Inside Sales - PAPAPÁ")
 # CARD CLIENTE + CRM (COMENTÁRIOS)
 # =========================
 
-# =========================
-# CARD CLIENTE + CRM (COMENTÁRIOS)
-# =========================
-
 vendas_cliente = pd.DataFrame()
 
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
     id_cliente = cliente["CNPJ_LIMPO"]
     
-    # CHAMA O FAROL AQUI
+    # CHAMA O FAROL (Calculado na Parte 1)
     status_txt, status_cor = calcular_status_farol(cliente)
 
     st.markdown("### 🏢 Informações do Cliente")
@@ -631,51 +587,31 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # QUADRO INFORMATIVO COM O FAROL
-        st.markdown(
-            f"""
-            <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 3px solid {status_cor}">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="color:#333; margin:0;">{cliente[COL_RAZAO]}</h3>
-                    <span style="background-color:{status_cor}; color:white; padding:5px 12px; border-radius:15px; font-weight:bold; font-size:12px;">
-                        {status_txt}
-                    </span>
-                </div>
-                <hr style='opacity:0.2; margin:10px 0;'>
-                <b>Vendedor:</b> {cliente[COL_VENDEDOR]}<br>
-                <b>Segmento:</b> {cliente[COL_SEGMENTO]}<br>
-                <b>Tier:</b> {cliente[COL_TIER]} | <b>Estratégia:</b> {cliente[COL_ESTRAT]}<br>
-                <b>Cidade:</b> {cliente[COL_CIDADE]} - {cliente[COL_UF]}<br>
-                <b>Última Compra:</b> {cliente[COL_ULT_COMP]}
-            </div>
-            """, unsafe_allow_html=True
-        )
-
-    with col_info:
-        # 1. BUSCA DO LEAD TIME
+        # 1. BUSCA DO LEAD TIME (Logística)
         prazo_html = ""
         try:
-            # Lendo a aba que você ajustou
+            # Lendo a aba do arquivo de lead time que você enviou
+            # Nota: Certifique-se que o nome do arquivo está exato como abaixo
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name="tabela de lead time")
-            df_lt = df_lt.iloc[:, [0, 1, 2]]
+            df_lt = df_lt.iloc[:, [0, 1, 2]] # Pega Cidade, UF e Prazo
             df_lt.columns = ['Cidade_Base', 'UF_Base', 'Prazo_Base']
             
-            def normalizar(txt):
+            def normalizar_texto(txt):
                 import unicodedata
                 if pd.isna(txt): return ""
                 return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip())
                                if unicodedata.category(c) != 'Mn')
 
-            cidade_alvo = normalizar(cliente[col_cidade])
-            uf_alvo = normalizar(cliente[col_uf])
+            cidade_alvo = normalizar_texto(cliente[COL_CIDADE])
+            uf_alvo = normalizar_texto(cliente[COL_UF])
             
-            df_lt['Cid_Norm'] = df_lt['Cidade_Base'].apply(normalizar)
-            df_lt['UF_Norm'] = df_lt['UF_Base'].apply(normalizar)
+            df_lt['Cid_Norm'] = df_lt['Cidade_Base'].apply(normalizar_texto)
+            df_lt['UF_Norm'] = df_lt['UF_Base'].apply(normalizar_texto)
             
-            busca = df_lt[(df_lt['Cid_Norm'] == cidade_alvo) & (df_lt['UF_Norm'] == uf_alvo)]
+            busca_lt = df_lt[(df_lt['Cid_Norm'] == cidade_alvo) & (df_lt['UF_Norm'] == uf_alvo)]
             
-            if not busca.empty:
-                v_prazo = busca['Prazo_Base'].values[0]
+            if not busca_lt.empty:
+                v_prazo = busca_lt['Prazo_Base'].values[0]
                 if pd.notna(v_prazo):
                     prazo_num = int(v_prazo)
                     if prazo_num == 0:
@@ -687,10 +623,10 @@ if len(df_filtrado) == 1:
             else:
                 prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_alvo})</i>"
         except:
-            prazo_html = ""
+            prazo_html = "<br><i style='color:red; font-size:11px;'>⚠️ Erro ao carregar Tabela de Lead Time</i>"
 
-        # 2. REGRAS DE PRAZO DE PAGAMENTO (Faturamento)
-        uf_pagto = str(cliente[col_uf]).upper().strip()
+        # 2. REGRAS DE PRAZO DE PAGAMENTO
+        uf_pagto = str(cliente[COL_UF]).upper().strip()
         if uf_pagto in ['RS', 'SC', 'PR', 'SP']:
             tabela_prazos = """
             <table style='width:100%; font-size:11px; border-collapse: collapse; margin-top:10px;'>
@@ -708,79 +644,93 @@ if len(df_filtrado) == 1:
                 <tr><td>Acima de R$ 2.000</td><td>3x - 40/50/60 dias</td></tr>
             </table>"""
 
-        # 3. QUADRO INFORMATIVO VISUAL
+        # 3. QUADRO INFORMATIVO PRINCIPAL (CARD)
         st.markdown(
             f"""
-            <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 1px solid #ddd">
-                <h3 style="color:#FF4B4B; margin-top:0;">{cliente[col_razao]}</h3>
-                <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[col_vendedor]}</span><br>
-                <b>CNPJ:</b> {cliente[col_cnpj]}<br>
-                <b>Telefone:</b> {cliente[col_telefone]}<br>
-                <b>E-mail:</b> {cliente[col_email]}<br>
-                <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}
+            <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border-left: 8px solid {status_cor}; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="color:#333; margin:0;">{cliente[COL_RAZAO]}</h3>
+                    <span style="background-color:{status_cor}; color:white; padding:5px 12px; border-radius:15px; font-weight:bold; font-size:12px;">
+                        {status_txt}
+                    </span>
+                </div>
+                <hr style='opacity:0.2; margin:10px 0;'>
+                <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[COL_VENDEDOR]}</span><br>
+                <b>CNPJ:</b> {cliente[COL_CNPJ]}<br>
+                <b>Segmento:</b> {cliente[COL_SEGMENTO]}<br>
+                <b>Telefone:</b> {cliente[COL_TELEFONE]}<br>
+                <b>E-mail:</b> {cliente[COL_EMAIL]}<br>
+                <b>Cidade:</b> {cliente[COL_CIDADE]} - {cliente[COL_UF]}
                 {prazo_html}
                 <hr style='opacity:0.2; margin:10px 0;'>
-                <b>💳 Condições de Pagamento:</b>
+                <b>💳 Condições Sugeridas:</b>
                 {tabela_prazos}
-                <p style='font-size:10px; color:gray; margin-top:5px;'>*Contados a partir do faturamento.</p>
+                <p style='font-size:10px; color:gray; margin-top:5px;'>*Prazos padrão PAPAPÁ para esta região.</p>
             </div>
             """, unsafe_allow_html=True
         )
 
         # 4. BOTÕES DE AÇÃO (WhatsApp e PDF)
+        st.write("")
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
-            tel_wpp = limpar_telefone(cliente[col_telefone])
+            tel_wpp = limpar_telefone(cliente[COL_TELEFONE])
             if tel_wpp:
                 st.link_button("💬 WhatsApp", f"https://wa.me/55{tel_wpp}", use_container_width=True)
         
         with col_btn2:
+            # Filtra vendas do cliente na aba MIX
             if not df_vendas.empty:
                 v_cli = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
                 pdf_arq = gerar_pdf_cliente(cliente, v_cli)
-                st.download_button("📄 Baixar PDF", data=pdf_arq, 
-                                 file_name=f"relatorio_{cliente[col_razao]}.pdf", 
+                st.download_button("📄 Baixar Relatório PDF", data=pdf_arq, 
+                                 file_name=f"relatorio_{id_cliente}.pdf", 
                                  mime="application/pdf", use_container_width=True)
-
     # --- COLUNA DIREITA: CRM ---
     with col_crm:
         st.subheader("📝 Notas e Histórico")
         
-        # Seletor de usuário
+        # Seletor de usuário (Pode ser expandido conforme a equipe crescer)
         lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
         quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
 
-        # Controle do estado do campo de texto
+        # Controle do estado do campo de texto para permitir o reset após salvar
         if "texto_nota" not in st.session_state:
             st.session_state.texto_nota = ""
 
-        # Função disparada pelo botão
+        # Função disparada pelo botão (Callback)
         def clicar_salvar():
-            # Pega o valor atual do campo pela KEY
+            # Pega o valor atual do campo pela KEY definida no widget
             texto_digitado = st.session_state.txt_area_crm
+            
             if texto_digitado.strip():
-                # Data e Hora (Brasília)
-                agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-                # Salva com o nome da pessoa
+                # Data e Hora (Ajustado para Horário de Brasília se necessário)
+                agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+                
+                # Formata o texto com o autor
                 texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
                 
+                # Inicializa a lista de comentários para o cliente se não existir
                 if id_cliente not in comentarios:
                     comentarios[id_cliente] = []
                 
+                # Insere no topo da lista (mais recente primeiro)
                 comentarios[id_cliente].insert(0, {"texto": texto_final, "data": agora})
+                
+                # Salva no arquivo JSON (Função definida na Parte 2)
                 salvar_comentarios(comentarios)
                 
-                # RESET DOS CAMPOS: Limpa a variável e o widget
+                # RESET DOS CAMPOS: Limpa a variável de estado e o widget
                 st.session_state.texto_nota = ""
                 st.session_state.txt_area_crm = "" 
-                st.success("Nota salva!")
+                st.success("Nota salva com sucesso!")
             else:
-                st.warning("O campo está vazio.")
+                st.warning("O campo de nota está vazio.")
 
-        # O widget usa a variável 'texto_nota' como valor inicial
+        # Widget de entrada de texto
         st.text_area(
-            "Novo registro:", 
-            placeholder="Descreva a conversa...", 
+            "Novo registro de interação:", 
+            placeholder="Ex: Cliente solicitou nova tabela de preços / Previsão de compra para semana que vem...", 
             key="txt_area_crm",
             value=st.session_state.texto_nota,
             height=120
@@ -789,21 +739,26 @@ if len(df_filtrado) == 1:
         st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
         st.divider()
 
-        # Listagem do Histórico
+        # Listagem do Histórico de Comentários
         if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
             for idx, item in enumerate(comentarios[id_cliente]):
                 with st.container():
                     c1, c2 = st.columns([0.85, 0.15])
+                    
+                    # Exibe data e o texto da nota
                     c1.caption(f"📅 {item['data']}")
                     c1.write(item['texto'])
+                    
+                    # Botão para excluir nota específica
                     if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
                         comentarios[id_cliente].pop(idx)
                         salvar_comentarios(comentarios)
                         st.rerun()
-                    st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
+                        
+                    st.markdown("<hr style='margin:10px 0; opacity:0.1'>", unsafe_allow_html=True)
         else:
-            st.info("Sem histórico para este cliente.")
-
+            st.info("Nenhum histórico registrado para este cliente.")
+            
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
 # ==========================================
@@ -812,66 +767,93 @@ if len(df_filtrado) == 1:
 @st.cache_data
 def carregar_lead_time():
     try:
-        # Tenta ler como Excel (ajuste o nome se necessário)
         caminho = "Tabela lead time operacao e comercial.xlsx"
-        # Lendo a aba específica (pelo nome ou índice)
-        # Se for a segunda aba, usamos sheet_name=1
-        df_lt = pd.read_excel(caminho, sheet_name=1, skiprows=2)
+        # Lendo a aba 'base' (índice 2) que contém o detalhamento por transportador
+        # Ajustamos skiprows=2 pois o cabeçalho real começa na linha 3
+        df_lt = pd.read_excel(caminho, sheet_name="base", skiprows=2)
         
-        # Ajuste de colunas baseado no seu arquivo
-        df_lt = df_lt.iloc[:, [1, 2, 3, 4]] 
-        df_lt.columns = ['Cidade', 'UF', 'Lead_Time_Total', 'Lead_Time_Transp']
+        # Selecionando: Cidade, UF, Lead Time Total, Transportador (ou Lead Time Transp se houver)
+        # Baseado no seu arquivo: Coluna 3 (Cidade), 4 (UF), 5 (Lead Time)
+        df_lt = df_lt.iloc[:, [3, 4, 5]] 
+        df_lt.columns = ['Cidade', 'UF', 'Lead_Time_Total']
+        
         return df_lt.dropna(subset=['Cidade', 'UF'])
     except Exception as e:
-        st.error(f"Erro ao carregar Excel de Lead Time: {e}")
+        st.error(f"Erro ao carregar detalhamento de Lead Time: {e}")
         return pd.DataFrame()
 
-df_lead_time = carregar_lead_time()
+df_lead_time_detalhado = carregar_lead_time()
 
-# 2. Exibição (Mesma lógica anterior)
+# 2. Exibição Detalhada
 if 'id_cliente' in locals() and id_cliente:
     try:
+        # Recupera dados do cliente selecionado
         dados_cadastrais = df_filtrado[df_filtrado["CNPJ_LIMPO"] == id_cliente].iloc[0]
-        cidade_alvo = str(dados_cadastrais[col_cidade]).upper().strip()
-        uf_alvo = str(dados_cadastrais[col_uf]).upper().strip()
+        
+        def normalizar_lt(txt):
+            import unicodedata
+            if pd.isna(txt): return ""
+            return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip())
+                           if unicodedata.category(c) != 'Mn')
 
-        if not df_lead_time.empty:
-            busca = df_lead_time[
-                (df_lead_time['Cidade'].astype(str).str.upper().str.strip() == cidade_alvo) & 
-                (df_lead_time['UF'].astype(str).str.upper().str.strip() == uf_alvo)
+        cidade_alvo = normalizar_lt(dados_cadastrais[COL_CIDADE])
+        uf_alvo = normalizar_lt(dados_cadastrais[COL_UF])
+
+        if not df_lead_time_detalhado.empty:
+            # Normaliza a base de busca para garantir o cruzamento
+            df_lt_copy = df_lead_time_detalhado.copy()
+            df_lt_copy['Cid_Norm'] = df_lt_copy['Cidade'].apply(normalizar_lt)
+            df_lt_copy['UF_Norm'] = df_lt_copy['UF'].apply(normalizar_lt)
+
+            busca = df_lt_copy[
+                (df_lt_copy['Cid_Norm'] == cidade_alvo) & 
+                (df_lt_copy['UF_Norm'] == uf_alvo)
             ]
 
             if not busca.empty:
                 lt_total = busca['Lead_Time_Total'].values[0]
-                lt_transp = busca['Lead_Time_Transp'].values[0]
                 
+                # Regra de negócio: Se o total é 7 dias, assumimos 2 de processamento e 5 de transporte
+                # Ou conforme sua necessidade de cálculo interno:
+                try:
+                    total_dias = int(lt_total)
+                    transp_estimado = max(1, total_dias - 2)
+                    proc_interno = total_dias - transp_estimado
+                except:
+                    total_dias, transp_estimado, proc_interno = 0, 0, 0
+
                 st.markdown("---")
-                st.subheader(f"🚚 Logística e Entrega: {cidade_alvo} - {uf_alvo}")
+                st.subheader(f"🚚 Detalhamento Logístico: {dados_cadastrais[COL_CIDADE]}")
                 
                 c_lt1, c_lt2, c_lt3 = st.columns(3)
                 with c_lt1:
-                    st.metric("Lead Time Total", f"{int(lt_total)} dias úteis")
+                    st.metric("Prazo Total", f"{total_dias} dias úteis")
                 with c_lt2:
-                    st.metric("Lead Time Transp.", f"{int(lt_transp)} dias úteis")
+                    st.metric("Estimativa Transporte", f"{transp_estimado} dias", help="Tempo previsto para a mercadoria em trânsito")
                 with c_lt3:
-                    proc = int(lt_total) - int(lt_transp)
-                    st.metric("Processamento Interno", f"{max(0, proc)} dias")
+                    st.metric("Processamento Interno", f"{proc_interno} dias", help="Tempo de separação e faturamento no CD")
+            
             else:
-                st.info(f"ℹ️ Lead Time não mapeado para {cidade_alvo}/{uf_alvo}.")
+                # Caso não encontre na aba 'base', o card anterior (Parte 6) já mostra o erro simplificado
+                pass
     except Exception as e:
+        # Silencioso para não poluir o Dashboard se o ID não estiver pronto
         pass
+        
+   # ==========================================
+# ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
+# ==========================================
 
-    # =========================
-    # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
-    # =========================
+if not vendas_cliente.empty:
+    st.divider()
+    st.subheader("📊 Análise de Performance e Mix")
 
-    if not vendas_cliente.empty:
-        st.divider()
-        st.subheader("📊 Análise de Compras do Cliente")
+    # Garantir que a data está em formato datetime para ordenação correta nos gráficos
+    vendas_cliente["DATA PEDIDO"] = pd.to_datetime(vendas_cliente["DATA PEDIDO"])
 
-        # Conversão de data para garantir funcionamento dos gráficos
-        vendas_cliente["DATA PEDIDO"] = pd.to_datetime(vendas_cliente["DATA PEDIDO"])
+    col_graf1, col_graf2 = st.columns(2)
 
+    with col_graf1:
         # MIX POR LINHA
         mix_linha = (
             vendas_cliente
@@ -884,115 +866,139 @@ if 'id_cliente' in locals() and id_cliente:
             mix_linha,
             names="LINHA",
             values="VALOR",
-            title="Mix de Compras por Linha"
+            title="Distribuição por Linha de Produto",
+            hole=0.4,
+            color_discrete_sequence=px.colors.qualitative.Pastel
         )
+        fig_mix.update_traces(textposition='inside', textinfo='percent+label')
         st.plotly_chart(fig_mix, use_container_width=True)
 
-        # TOP PRODUTOS
+    with col_graf2:
+        # TOP PRODUTOS (Gráfico de Barras Horizontal)
         top_produtos = (
             vendas_cliente
             .groupby("DESC PRODUTO")["VALOR"]
             .sum()
             .reset_index()
-            .sort_values("VALOR", ascending=False)
-            .head(10)
+            .sort_values("VALOR", ascending=True) # Ascending True para o maior ficar no topo da barra horizontal
+            .tail(10)
         )
         fig_top = px.bar(
             top_produtos,
             x="VALOR",
             y="DESC PRODUTO",
             orientation="h",
-            title="Top Produtos Comprados"
+            title="Top 10 Produtos (Valor Total)",
+            labels={"VALOR": "Total Gasto (R$)", "DESC PRODUTO": "Produto"},
+            color_continuous_scale="Reds"
         )
         st.plotly_chart(fig_top, use_container_width=True)
 
-        # EVOLUÇÃO DE COMPRAS
-        evolucao = (
-            vendas_cliente
-            .groupby("DATA PEDIDO")["VALOR"]
-            .sum()
-            .reset_index()
-        )
-        fig_evolucao = px.line(
-            evolucao,
-            x="DATA PEDIDO",
-            y="VALOR",
-            title="Evolução de Compras"
-        )
-        st.plotly_chart(fig_evolucao, use_container_width=True)
+    # EVOLUÇÃO DE COMPRAS (Agrupado por Mês para reduzir ruído)
+    evolucao = (
+        vendas_cliente
+        .set_index("DATA PEDIDO")
+        .resample('MS')["VALOR"] # MS = Month Start
+        .sum()
+        .reset_index()
+    )
+    
+    fig_evolucao = px.area(
+        evolucao,
+        x="DATA PEDIDO",
+        y="VALOR",
+        title="Histórico de Volume de Compras Mensal",
+        labels={"VALOR": "Total Mensal (R$)", "DATA PEDIDO": "Mês"},
+        line_shape="spline"
+    )
+    fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
+    st.plotly_chart(fig_evolucao, use_container_width=True)
 
-        # PRODUTOS QUE NÃO COMPRA
+    # =========================
+    # INTELIGÊNCIA DE MERCADO
+    # =========================
+    st.markdown("---")
+    col_opp1, col_opp2 = st.columns(2)
+
+    with col_opp1:
+        # PRODUTOS QUE NÃO COMPRA (Gap Analysis)
         produtos_cliente = set(vendas_cliente["DESC PRODUTO"].unique())
+        
+        # Filtra a base total para pegar apenas produtos reais
+        blacklist = ["CONFERIDO", "TESTE", "AJUSTE", "FRETE", "DESCONTO"]
+        regex_blacklist = "|".join(blacklist)
+        
         todos_produtos = set(
             df_vendas[
-                (~df_vendas["DESC PRODUTO"].str.upper().str.contains("CONFERIDO", na=False)) &
-                (~df_vendas["DESC PRODUTO"].str.upper().str.contains("TESTE", na=False)) &
-                (~df_vendas["DESC PRODUTO"].str.upper().str.contains("AJUSTE", na=False))
+                (~df_vendas["DESC PRODUTO"].str.upper().str.contains(regex_blacklist, na=False))
             ]["DESC PRODUTO"].unique()
         )
-        produtos_nao_compra = list(todos_produtos - produtos_cliente)
+        
+        produtos_nao_compra = sorted(list(todos_produtos - produtos_cliente))
         df_nao_compra = pd.DataFrame({
-            "Produtos que o cliente ainda não compra": produtos_nao_compra
-        }).head(20)
+            "Sugestões de Itens para Ofertar": produtos_nao_compra
+        }).head(15)
 
-        st.subheader("🚨 Produtos que o cliente ainda não compra")
-        st.dataframe(df_nao_compra, use_container_width=True)
+        st.subheader("🚨 Gap de Mix")
+        st.write("Produtos que este cliente ainda não trabalha:")
+        st.dataframe(df_nao_compra, use_container_width=True, hide_index=True)
 
-        # CROSS SELL
+    with col_opp2:
+        # CROSS SELL (Linhas Faltantes)
         linhas_cliente = set(
             vendas_cliente["LINHA"]
-            .astype(str)
-            .str.strip()
-            .replace(["", "nan", "None"], pd.NA)
-            .dropna()
-            .unique()
+            .astype(str).str.strip()
+            .replace(["", "nan", "None"], pd.NA).dropna().unique()
         )
+        
         todas_linhas = set(
             df_vendas["LINHA"]
-            .astype(str)
-            .str.strip()
-            .replace(["", "nan", "None"], pd.NA)
-            .dropna()
-            .unique()
+            .astype(str).str.strip()
+            .replace(["", "nan", "None"], pd.NA).dropna().unique()
         )
-        linhas_faltantes = sorted(list(todas_linhas - linhas_cliente))
+        
+        # Remove a linha "0" ou vazia se existir
+        linhas_faltantes = sorted(list(todas_linhas - linhas_cliente - {"0", ""}))
+        
         df_cross = pd.DataFrame({
-            "Linhas que o cliente ainda não compra (oportunidade)": linhas_faltantes
+            "Categorias Não Exploradas": linhas_faltantes
         })
 
-        st.subheader("💡 Oportunidades de Cross-sell")
+        st.subheader("💡 Cross-sell")
+        st.write("Linhas completas que podem ser introduzidas:")
         st.dataframe(df_cross, use_container_width=True, hide_index=True)
 
 # =========================
-# KPIs
+# KPIs (Sempre visíveis no topo do Dashboard Geral)
 # =========================
 
+st.divider()
 k1, k2, k3, k4 = st.columns(4)
 
+# KPIs baseados no df_filtrado (resultado dos filtros da sidebar)
 k1.metric("Total Clientes", len(df_filtrado))
-k2.metric("Estados Ativos", df_filtrado[col_uf].nunique())
-k3.metric("Categorias", df_filtrado[col_categoria].nunique())
-k4.metric("Vendedores", df_filtrado[col_vendedor].nunique())
-
-st.divider()
+k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
+k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
+k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 
 # =========================
-# ANÁLISE DE MIX COMPLETA (COLORIDA + SEM ERRO DE NEGATIVO)
+# ANÁLISE DE MIX COMPLETA (VISÃO GERAL)
 # =========================
 
-st.divider()
 st.subheader("📦 Análise Geral de Mix e Produtos")
 
 if not df_vendas.empty:
-    # 1. Filtro Inicial e Trava de Segurança
+    # 1. Filtro de Segurança: Analisar apenas vendas dos clientes que estão no filtro da sidebar
     cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
     
-    # Remove itens de conferência/ajuste
-    vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.contains("CONFERIDO", case=False, na=False)]
+    # Limpeza de ruído (itens administrativos ou de conferência)
+    blacklist_geral = ["CONFERIDO", "AJUSTE", "TESTE", "FRETE"]
+    regex_geral = "|".join(blacklist_geral)
+    vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.upper().str.contains(regex_geral, na=False)]
 
     if not vendas_geral.empty:
-        # 2. MAPEAMENTO (Categorias do Catálogo, Sabor e Idade)
+        # 2. MAPEAMENTO INTELIGENTE (Categorização para o Catálogo PAPAPÁ)
         def mapear_catalogo(nome):
             nome = str(nome).upper()
             if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO", "COMIDINHA"]): return "Papinhas e Sopinhas"
@@ -1016,142 +1022,204 @@ if not df_vendas.empty:
         vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
         vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
 
-        # 3. LINHA 1 DE GRÁFICOS (Categorias e Sabores)
+        # 3. LINHA 1 DE GRÁFICOS (Mix e Sabores)
         c1, c2 = st.columns(2)
         with c1:
             mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
-            st.plotly_chart(px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", title="Mix por Categoria (Catálogo)", hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel), use_container_width=True)
+            fig_mix_cat = px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", 
+                                title="Mix por Categoria de Catálogo", hole=0.4, 
+                                color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig_mix_cat, use_container_width=True)
+            
         with c2:
             mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
-            st.plotly_chart(px.pie(mix_sabor, names="SABOR", values="VALOR", title="Divisão Doce vs Salgado", color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"}), use_container_width=True)
+            fig_sabor = px.pie(mix_sabor, names="SABOR", values="VALOR", 
+                               title="Divisão Doce vs Salgado", 
+                               color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"})
+            st.plotly_chart(fig_sabor, use_container_width=True)
 
-        # 4. LINHA 2 DE GRÁFICOS (Idade Colorida e Top 10)
+        # 4. LINHA 2 DE GRÁFICOS (Idade e Top 10)
         c3, c4 = st.columns(2)
         with c3:
             mix_idade = vendas_geral.groupby("IDADE")["VALOR"].sum().reset_index()
-            fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", title="Vendas por Idade Recomendada", color_discrete_sequence=px.colors.qualitative.Bold)
+            fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", 
+                               title="Vendas por Faixa Etária Recomendada",
+                               color_discrete_sequence=px.colors.qualitative.Safe)
             fig_idade.update_layout(showlegend=False)
             st.plotly_chart(fig_idade, use_container_width=True)
+            
         with c4:
-            top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
-            st.plotly_chart(px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation="h", title="Top 10 Produtos (Geral)"), use_container_width=True)
+            top_10_geral = (vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum()
+                            .reset_index().sort_values("VALOR", ascending=True).tail(10))
+            fig_top_geral = px.bar(top_10_geral, x="VALOR", y="DESC PRODUTO", orientation="h", 
+                                   title="Top 10 Produtos (Base Geral Filtrada)",
+                                   color_continuous_scale="Reds")
+            st.plotly_chart(fig_top_geral, use_container_width=True)
 
-        # 5. PERFORMANCE POR CATEGORIA (BLINDAGEM TOTAL COM TABELAS)
+        # 5. PERFORMANCE POR CATEGORIA (Deep Dive)
         st.markdown("---")
         st.markdown("#### 🏆 Destaques por Categoria")
         
-        # Lista com todas as categorias do catálogo
         categorias_full = ["Papinhas e Sopinhas", "Snacks", "Macarrões", "Cereais"]
-        cat_sel = st.selectbox("Selecione a Categoria:", options=categorias_full)
+        cat_sel = st.selectbox("Selecione uma categoria para detalhar:", options=categorias_full)
         
         df_cat = vendas_geral[vendas_geral["CAT_CATALOGO"] == cat_sel]
         
         if not df_cat.empty:
             rank = df_cat.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
-            rank["VALOR"] = rank["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
-
+            
             ce, cd = st.columns(2)
             with ce:
-                st.success(f"⭐ **MAIS VENDIDOS: {cat_sel.upper()}**")
-                st.table(rank.head(3).rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Faturamento"}))
+                st.success(f"⭐ **TOP 3: {cat_sel.upper()}**")
+                df_top3 = rank.head(3).copy()
+                df_top3["VALOR"] = df_top3["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
+                st.table(df_top3.rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Total"}))
             with cd:
-                st.error(f"⚠️ **MENOS VENDIDOS: {cat_sel.upper()}**")
-                st.table(rank.tail(3).sort_values("VALOR").rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Faturamento"}))
+                st.error(f"⚠️ **OPORTUNIDADE (Menos Vendidos): {cat_sel.upper()}**")
+                df_tail3 = rank.tail(3).sort_values("VALOR").copy()
+                df_tail3["VALOR"] = df_tail3["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
+                st.table(df_tail3.rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Total"}))
         else:
-            st.warning(f"Sem vendas registradas para {cat_sel} nesta seleção.")
+            st.warning(f"Não há registros de venda para a categoria '{cat_sel}' com os filtros aplicados.")
 
     else:
-        st.info("Nenhuma venda encontrada nos filtros atuais.")
+        st.info("Nenhuma venda encontrada para os clientes selecionados.")
         
 # =========================
 # GRÁFICO SEGMENTO
 # =========================
 
-resumo_categoria = df_filtrado[col_categoria].value_counts().reset_index()
-resumo_categoria.columns = ["Categoria", "Quantidade"]
+st.markdown("---")
+col_graf_cad1, col_graf_cad2 = st.columns(2)
 
-fig_cat = px.bar(
-    resumo_categoria,
-    x="Categoria",
-    y="Quantidade",
-    title="Distribuição por Segmento"
-)
+with col_graf_cad1:
+    resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
+    resumo_segmento.columns = ["Segmento", "Quantidade"]
 
-st.plotly_chart(fig_cat, use_container_width=True)
+    fig_seg = px.bar(
+        resumo_segmento,
+        x="Quantidade",
+        y="Segmento",
+        orientation="h",
+        title="Distribuição por Segmento",
+        color="Quantidade",
+        color_continuous_scale="Reds"
+    )
+    fig_seg.update_layout(showlegend=False)
+    st.plotly_chart(fig_seg, use_container_width=True)
+
+with col_graf_cad2:
+    # =========================
+    # GRÁFICO FATURAMENTO
+    # =========================
+    resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+    resumo_faturamento.columns = ["Faixa", "Quantidade"]
+
+    fig_fat = px.pie(
+        resumo_faturamento,
+        names="Faixa",
+        values="Quantidade",
+        title="Distribuição por Faixa de Faturamento",
+        hole=0.4,
+        color_discrete_sequence=px.colors.qualitative.Reds
+    )
+    st.plotly_chart(fig_fat, use_container_width=True)
 
 # =========================
-# GRÁFICO FATURAMENTO
+# MAPA DE CALOR (BRASIL)
 # =========================
 
-resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
-resumo_faturamento.columns = ["Faixa", "Quantidade"]
+st.subheader("🗺️ Presença Geográfica")
 
-fig_fat = px.bar(
-    resumo_faturamento,
-    x="Faixa",
-    y="Quantidade",
-    title="Distribuição por Faixa de Faturamento"
-)
-
-st.plotly_chart(fig_fat, use_container_width=True)
-
-# =========================
-# MAPA
-# =========================
-
-resumo_estado = df_filtrado[col_uf].value_counts().reset_index()
+resumo_estado = df_filtrado[COL_UF].value_counts().reset_index()
 resumo_estado.columns = ["UF", "Quantidade"]
 
-url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+# Link do GeoJSON para estados brasileiros
+url_geojson = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
 
-with urllib.request.urlopen(url) as response:
-    geojson_br = json.load(response)
+try:
+    with urllib.request.urlopen(url_geojson) as response:
+        geojson_br = json.load(response)
 
-fig_mapa = px.choropleth(
-    resumo_estado,
-    geojson=geojson_br,
-    locations="UF",
-    featureidkey="properties.sigla",
-    color="Quantidade",
-    color_continuous_scale="Reds",
-    title="Distribuição de Clientes por Estado"
-)
+    fig_mapa = px.choropleth(
+        resumo_estado,
+        geojson=geojson_br,
+        locations="UF",
+        featureidkey="properties.sigla",
+        color="Quantidade",
+        color_continuous_scale="Reds",
+        title="Concentração de Clientes por Estado",
+        scope="south america", # Foca na América do Sul para melhor visualização
+        labels={"Quantidade": "Nº de Clientes"}
+    )
 
-fig_mapa.update_geos(fitbounds="locations", visible=False)
+    # Ajusta o zoom para focar apenas no Brasil
+    fig_mapa.update_geos(fitbounds="locations", visible=False)
+    fig_mapa.update_layout(margin={"r":0,"t":50,"l":0,"b":0})
 
-st.plotly_chart(fig_mapa, use_container_width=True)
+    st.plotly_chart(fig_mapa, use_container_width=True)
+except:
+    st.warning("⚠️ Não foi possível carregar o mapa. Verifique a conexão com a internet.")
+    # Fallback para gráfico de barras se o mapa falhar
+    st.bar_chart(resumo_estado.set_index("UF"))
 
 st.divider()
 
 # =========================
-# GERAR EXCEL
+# DOWNLOAD DE DADOS (EXCEL)
 # =========================
 
 def gerar_excel(df):
-
+    """Gera um arquivo Excel em memória para download."""
     buffer = BytesIO()
-
+    # Usando xlsxwriter para garantir compatibilidade e formatação
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Clientes")
-
+        df.to_excel(writer, index=False, sheet_name="Clientes_Filtrados")
     return buffer.getvalue()
 
-excel = gerar_excel(df_filtrado)
+st.markdown("### 📂 Exportação e Dados")
 
-st.download_button(
-    label="📥 Baixar base filtrada em Excel",
-    data=excel,
-    file_name="clientes_filtrados.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+# Criamos uma linha com colunas para o botão de download não ocupar a tela toda
+col_down, col_spacer = st.columns([1, 3])
+
+with col_down:
+    if not df_filtrado.empty:
+        # Geramos o arquivo apenas se houver dados
+        excel_data = gerar_excel(df_filtrado)
+        
+        st.download_button(
+            label="📥 Baixar Base Filtrada (Excel)",
+            data=excel_data,
+            file_name=f"clientes_papapa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+
+# =========================
+# TABELA DE DADOS FINAL
+# =========================
+
+st.subheader("📋 Listagem Detalhada")
+st.write(f"Exibindo **{len(df_filtrado)}** registros com base nos filtros aplicados:")
+
+# Lista de colunas para exibir na tabela (ocultando colunas técnicas se desejar)
+colunas_exibicao = [c for c in df_filtrado.columns if c not in ["CNPJ_LIMPO", "TEL_LIMPO", "FAIXA_FATURAMENTO"]]
+
+st.dataframe(
+    df_filtrado[colunas_exibicao], 
+    use_container_width=True,
+    hide_index=True
 )
 
-# =========================
-# TABELA
-# =========================
-
-st.subheader("Base de Clientes")
-
-st.dataframe(df_filtrado, use_container_width=True)
+# Mensagem de rodapé
+st.markdown(
+    """
+    <div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>
+        Dashboard Inside Sales Papapá © 2026 - v1.0
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 
 
 
