@@ -89,20 +89,24 @@ def carregar_vendas():
 df_vendas = carregar_vendas()
 
 # =========================
-# DEFINIR COLUNAS
+# MAPEAMENTO DA NOVA PLANILHA
 # =========================
+# Aqui definimos os nomes EXATOS das colunas que estão no seu Excel
+COL_RAZAO    = "RAZÃO SOCIAL"
+COL_CNPJ     = "CNPJ"
+COL_UF       = "UF"
+COL_CIDADE   = "CIDADE"
+COL_TELEFONE = "TELEFONE"
+COL_EMAIL    = "E-MAIL"
+COL_VENDEDOR = "VENDEDOR"
+COL_SEGMENTO = "SEGMENTO"      # Mudamos de CATEGORIA para SEGMENTO
+COL_TIER     = "TIER"
+COL_ESTRAT   = "ESTRATÉGIA"
+COL_ULT_COMP = "ÚLTIMA COMPRA"
 
-col_razao = "RAZÃO SOCIAL"
-col_fantasia = "NOME FANTASIA"
-col_uf = "UF"
-col_cidade = "CIDADE"
-col_bairro = "BAIRRO"
-col_cnpj = "CNPJ"
-col_telefone = "TELEFONE"
-col_email = "E-MAIL"
-col_vendedor = "VENDEDOR"
-col_categoria = "CATEGORIA"
-col_faturamento = "FATURAMENTO ÚLTIMOS 6 MESES"
+# Meses para o Sistema de Farol
+COL_MES_ATUAL = "FEV/26" 
+COL_MES_ANT   = "JAN/26"
 
 # =========================
 # GARANTIR COLUNAS
@@ -147,6 +151,21 @@ def limpar_telefone(tel):
     return re.sub(r"\D", "", str(tel))
 
 df["TEL_LIMPO"] = df[col_telefone].apply(limpar_telefone)
+
+# =========================
+# FUNÇÃO DO SISTEMA DE FAROL
+# =========================
+def calcular_status_farol(row):
+    # Transforma o faturamento em número (trata se estiver vazio ou com texto)
+    fat_atual = pd.to_numeric(row.get(COL_MES_ATUAL, 0), errors='coerce')
+    fat_ant   = pd.to_numeric(row.get(COL_MES_ANT, 0), errors='coerce')
+    
+    if fat_atual > 0:
+        return "🟢 ATIVO", "#27AE60" # Verde
+    elif fat_ant > 0:
+        return "🟡 ALERTA", "#F1C40F" # Amarelo
+    else:
+        return "🔴 INATIVO", "#E74C3C" # Vermelho
 
 # =========================
 # TRATAR FATURAMENTO
@@ -585,11 +604,34 @@ vendas_cliente = pd.DataFrame()
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
     id_cliente = cliente["CNPJ_LIMPO"]
-
-    st.markdown("### 🏢 Cliente encontrado")
     
-    # Criamos duas colunas para o topo: Info à esquerda e CRM à direita
+    # CHAMA O FAROL AQUI
+    status_txt, status_cor = calcular_status_farol(cliente)
+
+    st.markdown("### 🏢 Informações do Cliente")
+    
     col_info, col_crm = st.columns([1, 1])
+
+    with col_info:
+        # QUADRO INFORMATIVO COM O FAROL
+        st.markdown(
+            f"""
+            <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 3px solid {status_cor}">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="color:#333; margin:0;">{cliente[COL_RAZAO]}</h3>
+                    <span style="background-color:{status_cor}; color:white; padding:5px 12px; border-radius:15px; font-weight:bold; font-size:12px;">
+                        {status_txt}
+                    </span>
+                </div>
+                <hr style='opacity:0.2; margin:10px 0;'>
+                <b>Vendedor:</b> {cliente[COL_VENDEDOR]}<br>
+                <b>Segmento:</b> {cliente[COL_SEGMENTO]}<br>
+                <b>Tier:</b> {cliente[COL_TIER]} | <b>Estratégia:</b> {cliente[COL_ESTRAT]}<br>
+                <b>Cidade:</b> {cliente[COL_CIDADE]} - {cliente[COL_UF]}<br>
+                <b>Última Compra:</b> {cliente[COL_ULT_COMP]}
+            </div>
+            """, unsafe_allow_html=True
+        )
 
     with col_info:
         # 1. BUSCA DO LEAD TIME
