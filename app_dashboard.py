@@ -260,9 +260,9 @@ dados_cliente = [
 
     ]
 
-    tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
+tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
 
-    tabela_cliente.setStyle(TableStyle([
+tabela_cliente.setStyle(TableStyle([
         ("BACKGROUND",(0,0),(0,-1),colors.lightgrey),
         ("GRID",(0,0),(-1,-1),0.5,colors.grey)
     ]))
