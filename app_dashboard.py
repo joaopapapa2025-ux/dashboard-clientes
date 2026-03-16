@@ -592,18 +592,14 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # --- LÓGICA DE BUSCA DO LEAD TIME DEFINITIVA ---
+        # 1. BUSCA DO LEAD TIME
         prazo_html = ""
         try:
-            # Lemos a aba ajustada. Como você limpou o topo, não precisa mais de skiprows
-            # Se ainda houver uma linha vazia no topo, use skiprows=1
+            # Lendo a aba que você ajustou
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name="tabela de lead time")
-            
-            # Pegamos as 3 primeiras colunas (Cidade, UF, Lead Time)
             df_lt = df_lt.iloc[:, [0, 1, 2]]
             df_lt.columns = ['Cidade_Base', 'UF_Base', 'Prazo_Base']
             
-            # Função para ignorar acentos e espaços
             def normalizar(txt):
                 import unicodedata
                 if pd.isna(txt): return ""
@@ -616,7 +612,6 @@ if len(df_filtrado) == 1:
             df_lt['Cid_Norm'] = df_lt['Cidade_Base'].apply(normalizar)
             df_lt['UF_Norm'] = df_lt['UF_Base'].apply(normalizar)
             
-            # Busca o cruzamento
             busca = df_lt[(df_lt['Cid_Norm'] == cidade_alvo) & (df_lt['UF_Norm'] == uf_alvo)]
             
             if not busca.empty:
@@ -631,100 +626,123 @@ if len(df_filtrado) == 1:
                     prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
             else:
                 prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_alvo})</i>"
-                
-        except Exception as e:
-            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro na leitura: Verifique o nome da aba</i>"
+        except:
+            prazo_html = ""
 
-        # --- QUADRO INFORMATIVO ---
+        # 2. REGRAS DE PRAZO DE PAGAMENTO (Faturamento)
+        uf_pagto = str(cliente[col_uf]).upper().strip()
+        if uf_pagto in ['RS', 'SC', 'PR', 'SP']:
+            tabela_prazos = """
+            <table style='width:100%; font-size:11px; border-collapse: collapse; margin-top:10px;'>
+                <tr style='background-color:#eee;'><th>Valor Pedido</th><th>Prazo Boleto</th></tr>
+                <tr><td>Até R$ 1.000</td><td>1x - 30 dias</td></tr>
+                <tr><td>R$ 1.000 a R$ 2.000</td><td>2x - 30/45 dias</td></tr>
+                <tr><td>Acima de R$ 2.000</td><td>3x - 30/45/60 dias</td></tr>
+            </table>"""
+        else:
+            tabela_prazos = """
+            <table style='width:100%; font-size:11px; border-collapse: collapse; margin-top:10px;'>
+                <tr style='background-color:#eee;'><th>Valor Pedido</th><th>Prazo Boleto</th></tr>
+                <tr><td>Até R$ 1.000</td><td>1x - 45 dias</td></tr>
+                <tr><td>R$ 1.000 a R$ 2.000</td><td>2x - 45/60 dias</td></tr>
+                <tr><td>Acima de R$ 2.000</td><td>3x - 40/50/60 dias</td></tr>
+            </table>"""
+
+        # 3. QUADRO INFORMATIVO VISUAL
         st.markdown(
             f"""
             <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 1px solid #ddd">
                 <h3 style="color:#FF4B4B; margin-top:0;">{cliente[col_razao]}</h3>
-                <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[col_vendedor]}</span><br><br>
+                <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[col_vendedor]}</span><br>
                 <b>CNPJ:</b> {cliente[col_cnpj]}<br>
                 <b>Telefone:</b> {cliente[col_telefone]}<br>
                 <b>E-mail:</b> {cliente[col_email]}<br>
                 <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}
                 {prazo_html}
+                <hr style='opacity:0.2; margin:10px 0;'>
+                <b>💳 Condições de Pagamento:</b>
+                {tabela_prazos}
+                <p style='font-size:10px; color:gray; margin-top:5px;'>*Contados a partir do faturamento.</p>
             </div>
             """, unsafe_allow_html=True
         )
 
-        # Botões de ação
-        telefone_btn = limpar_telefone(cliente[col_telefone])
-        if telefone_btn:
-            st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{telefone_btn}")
+        # 4. BOTÕES DE AÇÃO (WhatsApp e PDF)
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            tel_wpp = limpar_telefone(cliente[col_telefone])
+            if tel_wpp:
+                st.link_button("💬 WhatsApp", f"https://wa.me/55{tel_wpp}", use_container_width=True)
         
-        if not df_vendas.empty:
-            v_cli = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
-            pdf_arq = gerar_pdf_cliente(cliente, v_cli)
-            st.download_button("📄 Baixar PDF do Cliente", data=pdf_arq, 
-                             file_name=f"relatorio_{cliente[col_razao]}.pdf", mime="application/pdf")
+        with col_btn2:
+            if not df_vendas.empty:
+                v_cli = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
+                pdf_arq = gerar_pdf_cliente(cliente, v_cli)
+                st.download_button("📄 Baixar PDF", data=pdf_arq, 
+                                 file_name=f"relatorio_{cliente[col_razao]}.pdf", 
+                                 mime="application/pdf", use_container_width=True)
 
+    # --- COLUNA DIREITA: CRM ---
     with col_crm:
         st.subheader("📝 Notas e Histórico")
         
-        # 1. Lista de pessoas
+        # Seletor de usuário
         lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
         quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
 
-        # 2. Inicializa o estado se não existir
+        # Controle do estado do campo de texto
         if "texto_nota" not in st.session_state:
             st.session_state.texto_nota = ""
 
-        # 3. Função para salvar e resetar o campo
+        # Função disparada pelo botão
         def clicar_salvar():
-            # Pegamos o que foi digitado através da chave (key) do widget
+            # Pega o valor atual do campo pela KEY
             texto_digitado = st.session_state.txt_area_crm
-            
             if texto_digitado.strip():
+                # Data e Hora (Brasília)
                 agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+                # Salva com o nome da pessoa
                 texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
                 
-                novo_registro = {"texto": texto_final, "data": agora}
-                
-                if id_cliente not in comentarios or not isinstance(comentarios[id_cliente], list):
+                if id_cliente not in comentarios:
                     comentarios[id_cliente] = []
                 
-                comentarios[id_cliente].insert(0, novo_registro)
+                comentarios[id_cliente].insert(0, {"texto": texto_final, "data": agora})
                 salvar_comentarios(comentarios)
                 
-                # AQUI ESTÁ O TRUQUE: Limpamos o estado da KEY e da variável base
+                # RESET DOS CAMPOS: Limpa a variável e o widget
                 st.session_state.texto_nota = ""
                 st.session_state.txt_area_crm = "" 
-                st.success("Salvo com sucesso!")
+                st.success("Nota salva!")
             else:
-                st.warning("O campo de comentário está vazio.")
+                st.warning("O campo está vazio.")
 
-        # 4. Campo de texto - IMPORTANTE: O value usa a variável de estado
+        # O widget usa a variável 'texto_nota' como valor inicial
         st.text_area(
             "Novo registro:", 
-            placeholder="Comentário", 
+            placeholder="Descreva a conversa...", 
             key="txt_area_crm",
-            value=st.session_state.texto_nota
+            value=st.session_state.texto_nota,
+            height=120
         )
         
-        # 5. Botão chama a função
-        st.button("Salvar Comentário", on_click=clicar_salvar)
-
+        st.button("Salvar Comentário", on_click=clicar_salvar, use_container_width=True)
         st.divider()
 
-        # Listagem de comentários (mantendo sua lógica original)
+        # Listagem do Histórico
         if id_cliente in comentarios and isinstance(comentarios[id_cliente], list):
             for idx, item in enumerate(comentarios[id_cliente]):
                 with st.container():
-                    if isinstance(item, dict) and 'data' in item:
-                        c1, c2 = st.columns([0.85, 0.15])
-                        c1.caption(f"📅 {item['data']}")
-                        c1.write(item['texto'])
-                        
-                        if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
-                            comentarios[id_cliente].pop(idx)
-                            salvar_comentarios(comentarios)
-                            st.rerun()
-                        st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
+                    c1, c2 = st.columns([0.85, 0.15])
+                    c1.caption(f"📅 {item['data']}")
+                    c1.write(item['texto'])
+                    if c2.button("🗑️", key=f"del_{id_cliente}_{idx}"):
+                        comentarios[id_cliente].pop(idx)
+                        salvar_comentarios(comentarios)
+                        st.rerun()
+                    st.markdown("<hr style='margin:5px 0; opacity:0.1'>", unsafe_allow_html=True)
         else:
-            st.info("Nenhum histórico registrado para este cliente.")
+            st.info("Sem histórico para este cliente.")
 
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
