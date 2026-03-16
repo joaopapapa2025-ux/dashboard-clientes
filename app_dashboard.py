@@ -595,18 +595,15 @@ with col_info:
         # --- 1. LÓGICA DE BUSCA DO LEAD TIME ---
         prazo_html = ""
         try:
-            # Carrega a segunda aba (índice 1) do seu Excel de Lead Time
-            # Usei skiprows=2 porque os dados começam na linha 3 da planilha
+            # Carrega a aba de lead time
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
-            
-            # Seleciona as colunas Cidade (índice 1), UF (2) e Lead Time Total (3)
             df_lt = df_lt.iloc[:, [1, 2, 3]]
             df_lt.columns = ['Cidade', 'UF', 'Total']
             
-            # Limpa os nomes para garantir o encontro (Caixa alta e sem espaços)
             cidade_c = str(cliente[col_cidade]).upper().strip()
             uf_c = str(cliente[col_uf]).upper().strip()
             
+            # Busca ignorando maiúsculas/minúsculas e espaços extras
             busca = df_lt[(df_lt['Cidade'].astype(str).str.upper().str.strip() == cidade_c) & 
                           (df_lt['UF'].astype(str).str.upper().str.strip() == uf_c)]
             
@@ -616,8 +613,8 @@ with col_info:
             else:
                 prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada para esta cidade</i>"
         except Exception as e:
-            # Se der erro na leitura do arquivo, ele apenas não mostra a linha
-            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro ao ler planilha: {e}</i>"
+            # Em caso de erro no arquivo, o campo fica vazio para não travar o app
+            prazo_html = ""
 
         # --- 2. O QUADRO CINZA ATUALIZADO ---
         st.markdown(
@@ -629,17 +626,17 @@ with col_info:
                 <b>Telefone:</b> {cliente[col_telefone]}<br>
                 <b>E-mail:</b> {cliente[col_email]}<br>
                 <b>Cidade:</b> {cliente[col_cidade]} - {cliente[col_uf]}
-                {prazo_html} 
+                {prazo_html}
             </div>
             """, unsafe_allow_html=True
         )
 
-        # Botão do WhatsApp logo abaixo
+        # Botão do WhatsApp
         telefone = limpar_telefone(cliente[col_telefone])
         if telefone:
             st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{telefone}")
 
-        # Filtro de vendas para o PDF e Gráficos
+        # Filtro de vendas para o PDF
         if not df_vendas.empty:
             vendas_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente]
 
