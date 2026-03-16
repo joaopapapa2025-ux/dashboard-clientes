@@ -592,22 +592,16 @@ if len(df_filtrado) == 1:
     col_info, col_crm = st.columns([1, 1])
 
     with col_info:
-        # --- LÓGICA DE BUSCA DO LEAD TIME DEFINITIVA ---
+        # --- LÓGICA DE BUSCA DO LEAD TIME (COLUNAS EXATAS) ---
         prazo_html = ""
         try:
-            # Lendo a aba de lead time (índice 1)
-            # skiprows=2 pula as linhas de título decorativas
+            # Lendo a aba 2 (índice 1). skiprows=2 para alinhar com o cabeçalho real
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
             
-            # Remove colunas totalmente vazias que o Excel costuma criar
-            df_lt = df_lt.dropna(axis=1, how='all')
-            
-            # Identifica as colunas pelo nome aproximado para evitar erro de índice
-            # Procuramos colunas que contenham 'Cidade', 'UF' e 'Total' no nome
-            col_cidade_lt = [c for c in df_lt.columns if 'Cidade' in str(c)][0]
-            col_uf_lt = [c for c in df_lt.columns if 'UF' in str(c)][0]
-            col_total_lt = [c for c in df_lt.columns if 'Total' in str(c)][0]
+            # Limpeza de nomes de colunas (remove espaços extras que o Excel cria)
+            df_lt.columns = [str(c).strip() for c in df_lt.columns]
 
+            # Normalização de texto para comparação
             def normalizar(txt):
                 import unicodedata
                 if pd.isna(txt): return ""
@@ -616,26 +610,29 @@ if len(df_filtrado) == 1:
 
             cidade_cliente = normalizar(cliente[col_cidade])
             uf_cliente = normalizar(cliente[col_uf])
-            
-            # Cria colunas temporárias para comparação
-            df_lt['Cid_Busca'] = df_lt[col_cidade_lt].apply(normalizar)
-            df_lt['UF_Busca'] = df_lt[col_uf_lt].apply(normalizar)
-            
-            busca = df_lt[(df_lt['Cid_Busca'] == cidade_cliente) & 
-                          (df_lt['UF_Busca'] == uf_cliente)]
-            
-            if not busca.empty:
-                v_prazo = busca[col_total_lt].values[0]
-                # Se for número (inclusive 0), exibe
-                if pd.notna(v_prazo):
-                    prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
+
+            # Busca exata pelas colunas da sua planilha
+            # Usamos 'Lead time total' que é o nome que está no seu arquivo
+            if 'Cidade' in df_lt.columns and 'Lead time total' in df_lt.columns:
+                df_lt['Cid_Busca'] = df_lt['Cidade'].apply(normalizar)
+                df_lt['UF_Busca'] = df_lt['UF'].apply(normalizar)
+                
+                busca = df_lt[(df_lt['Cid_Busca'] == cidade_cliente) & 
+                              (df_lt['UF_Busca'] == uf_cliente)]
+                
+                if not busca.empty:
+                    v_prazo = busca['Lead time total'].values[0]
+                    if pd.notna(v_prazo):
+                        prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
+                    else:
+                        prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido</i>"
                 else:
-                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
+                    prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_cliente})</i>"
             else:
-                prazo_html = f"<br><i style='color:gray; font-size:11px;'>📍 Logística não mapeada ({cidade_cliente})</i>"
+                prazo_html = "<br><i style='color:red; font-size:10px;'>Erro: Colunas não encontradas no Excel</i>"
+
         except Exception as e:
-            # Caso algo dê muito errado, mostra o erro técnico para debugarmos
-            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro na busca: {e}</i>"
+            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro técnico: {e}</i>"
 
         # --- QUADRO INFORMATIVO ---
         st.markdown(
