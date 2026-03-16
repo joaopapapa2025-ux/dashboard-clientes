@@ -245,7 +245,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     elementos.append(data)
     elementos.append(Spacer(1,20))
 
-dados_cliente = [
+    dados_cliente = [
 
         ["Razão Social", cliente[COL_RAZAO]],
         ["Nome Fantasia", cliente[COL_RAZAO]],
@@ -260,18 +260,17 @@ dados_cliente = [
 
     ]
 
-tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
+    tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
 
-tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
+    tabela_cliente.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(0,-1),colors.lightgrey),
+        ("GRID",(0,0),(-1,-1),0.5,colors.grey)
+    ]))
 
-tabela_cliente.setStyle(TableStyle([
-    ("BACKGROUND",(0,0),(0,-1),colors.lightgrey),
-    ("GRID",(0,0),(-1,-1),0.5,colors.grey)
-]))
+    elementos.append(tabela_cliente)
 
-elementos.append(tabela_cliente)
-
-elementos.append(Paragraph("Histórico de Compras", styles["Heading2"]))
+    elementos.append(Spacer(1,20))
+    elementos.append(Paragraph("Histórico de Compras", styles["Heading2"]))
 
     if not vendas_cliente.empty:
 
