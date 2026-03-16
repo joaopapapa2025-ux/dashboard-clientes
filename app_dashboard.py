@@ -247,16 +247,18 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
 dados_cliente = [
 
-        ["Razão Social", cliente[col_razao]],
-        ["Nome Fantasia", cliente[col_fantasia]],
-        ["CNPJ", cliente[col_cnpj]],
-        ["Telefone", cliente[col_telefone]],
-        ["Email", cliente[col_email]],
-        ["Cidade", f"{cliente[col_cidade]} - {cliente[col_uf]}"],
-        ["Vendedor", cliente[col_vendedor]],
-        ["Categoria", cliente[col_categoria]],
-        ["Faturamento 6M", f"R$ {cliente[col_faturamento]:,.2f}"],
-        ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
+    ["Razão Social", cliente[COL_RAZAO]],
+    ["Nome Fantasia", cliente[COL_RAZAO]],
+    ["CNPJ", cliente[COL_CNPJ]],
+    ["Telefone", cliente[COL_TELEFONE]],
+    ["Email", cliente[COL_EMAIL]],
+    ["Cidade", f"{cliente[COL_CIDADE]} - {cliente[COL_UF]}"],
+    ["Vendedor", cliente[COL_VENDEDOR]],
+    ["Categoria", cliente[COL_SEGMENTO]],
+    ["Faturamento 9M", f"R$ {cliente[COL_T_U_9_M]:,.2f}"],
+    ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
+
+]
 
     tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
 
