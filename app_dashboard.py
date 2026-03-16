@@ -603,7 +603,7 @@ with col_info:
             cidade_c = str(cliente[col_cidade]).upper().strip()
             uf_c = str(cliente[col_uf]).upper().strip()
             
-            # Busca ignorando maiúsculas/minúsculas e espaços extras
+            # Busca ignorando maiúsculas/minúsculas
             busca = df_lt[(df_lt['Cidade'].astype(str).str.upper().str.strip() == cidade_c) & 
                           (df_lt['UF'].astype(str).str.upper().str.strip() == uf_c)]
             
@@ -611,12 +611,11 @@ with col_info:
                 total_dias = busca['Total'].values[0]
                 prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(total_dias)} dias úteis</b>"
             else:
-                prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada para esta cidade</i>"
-        except Exception as e:
-            # Em caso de erro no arquivo, o campo fica vazio para não travar o app
+                prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada</i>"
+        except Exception:
             prazo_html = ""
 
-        # --- 2. O QUADRO CINZA ATUALIZADO ---
+        # --- 2. QUADRO INFORMATIVO ---
         st.markdown(
             f"""
             <div style="padding:20px; border-radius:10px; background-color:#f6f6f6; border: 1px solid #ddd">
@@ -631,7 +630,6 @@ with col_info:
             """, unsafe_allow_html=True
         )
 
-        # Botão do WhatsApp
         telefone = limpar_telefone(cliente[col_telefone])
         if telefone:
             st.link_button("💬 Chamar no WhatsApp", f"https://wa.me/55{telefone}")
@@ -649,7 +647,7 @@ with col_info:
             mime="application/pdf"
         )
 
-with col_crm:
+    with col_crm:
         st.subheader("📝 Notas e Histórico")
         
         # Campo para novo comentário
