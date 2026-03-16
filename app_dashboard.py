@@ -257,10 +257,9 @@ dados_cliente = [
     ["Categoria", cliente[COL_SEGMENTO]],
     ["Faturamento 9M", f"R$ {cliente[COL_T_U_9_M]:,.2f}"],
     ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
-
 ]
 
-    tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
+tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
 
     tabela_cliente.setStyle(TableStyle([
         ("GRID",(0,0),(-1,-1),0.5,colors.grey)
