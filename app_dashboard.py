@@ -245,7 +245,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     elementos.append(data)
     elementos.append(Spacer(1,20))
 
-        dados_cliente = [
+dados_cliente = [
 
         ["Razão Social", cliente[col_razao]],
         ["Nome Fantasia", cliente[col_fantasia]],
