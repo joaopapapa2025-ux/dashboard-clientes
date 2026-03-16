@@ -132,16 +132,15 @@ COL_MES_ANT   = "JAN/26"
 
 colunas_obrigatorias = [
     COL_RAZAO,
-    col_fantasia,
-    col_uf,
-    col_cidade,
-    col_bairro,
-    col_cnpj,
-    col_telefone,
-    col_email,
-    col_vendedor,
-    col_segmento,
-    col_faturamento
+    COL_UF,
+    COL_CIDADE,
+    COL_BAIRRO,
+    COL_CNPJ,
+    COL_TELEFONE,
+    COL_EMAIL,
+    COL_VENDEDOR,
+    COL_SEGMENTO,
+    COL_T_U_9_M
 ]
 
 for col in colunas_obrigatorias:
