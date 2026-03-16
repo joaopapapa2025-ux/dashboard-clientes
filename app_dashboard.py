@@ -594,25 +594,46 @@ if len(df_filtrado) == 1:
     with col_info:
         # --- LÓGICA DE BUSCA DO LEAD TIME ---
         prazo_html = ""
-        try:
-            # Lendo o Excel (Aba 1 = Tabela de Lead Time)
+try:
+            # 1. Carrega a planilha
+            # sheet_name=1 pega a SEGUNDA aba. Se a sua tabela estiver na primeira, mude para 0.
             df_lt = pd.read_excel("Tabela lead time operacao e comercial.xlsx", sheet_name=1, skiprows=2)
+            
+            # 2. Seleciona colunas e remove acentos/espaços para comparar
             df_lt = df_lt.iloc[:, [1, 2, 3]]
             df_lt.columns = ['Cidade', 'UF', 'Total']
             
-            cid_alvo = str(cliente[col_cidade]).upper().strip()
-            uf_alvo = str(cliente[col_uf]).upper().strip()
-            
-            busca = df_lt[(df_lt['Cidade'].astype(str).str.upper().str.strip() == cid_alvo) & 
-                          (df_lt['UF'].astype(str).str.upper().str.strip() == uf_alvo)]
+            # Função interna para limpar texto (remove acentos e sujeira)
+            def limpar_texto(txt):
+                import unicodedata
+                if not txt: return ""
+                txt = str(txt).upper().strip()
+                # Remove acentos
+                txt = ''.join(c for c in unicodedata.normalize('NFD', txt) if unicodedata.category(c) != 'Mn')
+                return txt
+
+            # Prepara os nomes da planilha de Lead Time
+            df_lt['Cidade_Limpa'] = df_lt['Cidade'].apply(limpar_texto)
+            df_lt['UF_Limpa'] = df_lt['UF'].apply(limpar_texto)
+
+            # Prepara os nomes do cliente selecionado
+            cidade_alvo = limpar_texto(cliente[col_cidade])
+            uf_alvo = limpar_texto(cliente[col_uf])
+
+            # 3. Busca com os nomes limpos
+            busca = df_lt[(df_lt['Cidade_Limpa'] == cidade_alvo) & (df_lt['UF_Limpa'] == uf_alvo)]
             
             if not busca.empty:
                 v_prazo = busca['Total'].values[0]
-                prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
+                # Se o valor for vazio ou NaN, cai no else
+                if pd.notna(v_prazo):
+                    prazo_html = f"<br><b style='color:#E67E22;'>🚚 Prazo de Entrega: {int(v_prazo)} dias úteis</b>"
+                else:
+                    prazo_html = "<br><i style='color:gray;'>📍 Prazo não preenchido no Excel</i>"
             else:
-                prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada</i>"
-        except:
-            prazo_html = ""
+                prazo_html = "<br><i style='color:gray;'>📍 Logística não mapeada ({}-{})</i>".format(cidade_alvo, uf_alvo)
+        except Exception as e:
+            prazo_html = f"<br><i style='color:red; font-size:10px;'>Erro técnico: {e}</i>"
 
         # --- QUADRO DE INFORMAÇÕES ---
         st.markdown(
