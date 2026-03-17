@@ -462,6 +462,15 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 # SIDEBAR
 # =========================
 
+# --- ADICIONE ESTE BLOCO LOGO APÓS CARREGAR O DF ---
+# Garante que a coluna de telefone seja tratada e limpa para a busca
+if COL_TELEFONE in df.columns:
+    df["TEL_LIMPO"] = df[COL_TELEFONE].astype(str).str.replace(r'\D', '', regex=True)
+else:
+    # Caso a coluna não exista, cria uma vazia para não dar erro no filtro
+    df["TEL_LIMPO"] = ""
+# --------------------------------------------------
+
 st.sidebar.title("Filtros")
 
 # Inicialização de estados caso não existam (evita erros no primeiro carregamento)
@@ -541,15 +550,12 @@ if busca_email:
 # BUSCA TELEFONE
 # =========================
 
-busca_tel = st.sidebar.text_input("Buscar por Telefone", key="busca_tel")
+tel_busca = st.sidebar.text_input("Buscar por Telefone:")
+# Limpa o que o usuário digitou (remove parênteses e traços)
+tel_busca_limpo = "".join(filter(str.isdigit, tel_busca))
 
-if busca_tel:
-    # Usa a função limpar_telefone e a coluna TEL_LIMPO criadas na Parte 1
-    tel_busca_limpo = limpar_telefone(busca_tel)
-
-    df_filtrado = df_filtrado[
-        df_filtrado["TEL_LIMPO"].str.contains(tel_busca_limpo, na=False)
-    ]
+if tel_busca_limpo:
+    df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(tel_busca_limpo, na=False)]
 
 # =========================
 # FILTROS MULTISELECT
