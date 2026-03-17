@@ -200,7 +200,14 @@ labels = [
     "Acima de 100 mil"
 ]
 
-# Cria a faixa baseada no faturamento acumulado da nova planilha
+# 1. Força a coluna a ser número (se vier texto do Excel, ele converte)
+df[COL_T_U_9_M] = pd.to_numeric(df[COL_T_U_9_M], errors='coerce').fillna(0)
+
+# 2. Garante que os limites (bins) comecem abaixo de zero para pegar quem é 0
+bins = [-1, 10, 1000, 5000, 10000, df[COL_T_U_9_M].max() + 1]
+labels = ['Sem Faturamento', 'Até 1k', '1k a 5k', '5k a 10k', 'Acima de 10k']
+
+# 3. Cria a faixa com a coluna que você renomeou
 df["FAIXA_FATURAMENTO"] = pd.cut(df[COL_T_U_9_M], bins=bins, labels=labels)
 
 # =========================
