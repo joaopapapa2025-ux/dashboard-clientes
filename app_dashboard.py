@@ -678,6 +678,13 @@ if len(df_filtrado) == 1:
                 <tr><td>Acima de R$ 2.000</td><td>3x - 40/50/60 dias</td></tr>
             </table>"""
 
+        # TRATAMENTO DA DATA ÚLTIMA COMPRA
+        data_bruta = cliente['ÚLTIMA COMPRA']
+        if pd.notnull(data_bruta) and hasattr(data_bruta, 'strftime'):
+            data_formatada = data_bruta.strftime('%d/%m/%Y')
+        else:
+            data_formatada = "Sem registro"
+
         # 3. QUADRO INFORMATIVO PRINCIPAL (CARD)
         st.markdown(
             f"""
