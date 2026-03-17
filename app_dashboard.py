@@ -111,7 +111,7 @@ COL_GRUPO_EC = "GRUPO ECONÔMICO"
 COL_ULT_COMP = "ÚLTIMA COMPRA"
 COL_TABELA   = "TABELA"
 COL_SEGMENTO = "SEGMENTO"
-COL_T_U_9_M  = "TOTAL ÚLTIMOS 9 MESES"
+COL_T_U_9_M  = "TOTAL ÚLTIMO 9 MESES"
 
 # Meses para o Sistema de Farol
 COL_MES_ATUAL = "FEV/26" 
@@ -200,13 +200,7 @@ labels = [
     "Acima de 100 mil"
 ]
 
-# Os números DEVEM estar em ordem crescente
-bins = [-1, 10, 1000, 5000, 10000, 999999999] 
-
-# E os labels devem ter um nome a menos que a quantidade de números nos bins
-labels = ['Sem Faturamento', 'Até 1k', '1k a 5k', '5k a 10k', 'Acima de 10k']
-
-# Agora a linha que deu erro vai funcionar:
+# Cria a faixa baseada no faturamento acumulado da nova planilha
 df["FAIXA_FATURAMENTO"] = pd.cut(df[COL_T_U_9_M], bins=bins, labels=labels)
 
 # =========================
@@ -684,13 +678,6 @@ if len(df_filtrado) == 1:
                 <tr><td>Acima de R$ 2.000</td><td>3x - 40/50/60 dias</td></tr>
             </table>"""
 
-        # TRATAMENTO DA DATA ÚLTIMA COMPRA
-        data_bruta = cliente['ÚLTIMA COMPRA']
-        if pd.notnull(data_bruta) and hasattr(data_bruta, 'strftime'):
-            data_formatada = data_bruta.strftime('%d/%m/%Y')
-        else:
-            data_formatada = "Sem registro"
-        
         # 3. QUADRO INFORMATIVO PRINCIPAL (CARD)
         st.markdown(
             f"""
@@ -703,7 +690,6 @@ if len(df_filtrado) == 1:
                 </div>
                 <hr style='opacity:0.2; margin:10px 0;'>
                 <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[COL_VENDEDOR]}</span><br>
-                <b>Última Compra:</b> {data_formatada}<br>
                 <b>CNPJ:</b> {cliente[COL_CNPJ]}<br>
                 <b>Segmento:</b> {cliente[COL_SEGMENTO]}<br>
                 <b>Telefone:</b> {cliente[COL_TELEFONE]}<br>
@@ -812,7 +798,7 @@ if len(df_filtrado) == 1:
             st.info("Sem histórico para este cliente.")
 else:
     # Mensagem amigável quando os filtros estão abertos (mais de 1 cliente)
-    st.info("💡 Selecione um cliente específico nos filtros ao lado para ver detalhes sobre o cliente e também adicionar notas.")
+    st.info("💡 Selecione um cliente específico nos filtros ao lado para visualizar ou adicionar notas.")
             
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
@@ -1258,7 +1244,6 @@ st.markdown(
     """, 
     unsafe_allow_html=True
 )
-
 
 
 
