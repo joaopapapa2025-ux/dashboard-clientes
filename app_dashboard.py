@@ -697,6 +697,7 @@ if len(df_filtrado) == 1:
                 </div>
                 <hr style='opacity:0.2; margin:10px 0;'>
                 <b>Vendedor:</b> <span style="color:#1f77b4">{cliente[COL_VENDEDOR]}</span><br>
+                <b>Última Compra:</b> {data_formatada}<br>
                 <b>CNPJ:</b> {cliente[COL_CNPJ]}<br>
                 <b>Segmento:</b> {cliente[COL_SEGMENTO]}<br>
                 <b>Telefone:</b> {cliente[COL_TELEFONE]}<br>
