@@ -806,7 +806,7 @@ if len(df_filtrado) == 1:
             st.info("Sem histórico para este cliente.")
 else:
     # Mensagem amigável quando os filtros estão abertos (mais de 1 cliente)
-    st.info("💡 Selecione um cliente específico nos filtros ao lado para visualizar ou adicionar notas.")
+    st.info("💡 Selecione um cliente específico nos filtros ao lado para ver detalhes sobre o cliente e também adicionar notas.")
             
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
