@@ -177,11 +177,11 @@ def calcular_status_farol(row):
     if pd.isna(fat_ant): fat_ant = 0
     
     if fat_atual > 0:
-        return "🟢 ATIVO", "#27AE60"
+        return "🟢 PEDIDO RECENTE", "#27AE60"
     elif fat_ant > 0:
         return "🟡 ALERTA", "#F1C40F"
     else:
-        return "🔴 INATIVO", "#E74C3C"
+        return "🔴 FAZ TEMPO QUE NÃO FAZ PEDIDO", "#E74C3C"
 
 # =========================
 # TRATAR FATURAMENTO
