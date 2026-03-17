@@ -635,12 +635,6 @@ if len(df_filtrado) == 1:
                 if pd.isna(txt): return ""
                 return "".join(c for c in unicodedata.normalize('NFD', str(txt).upper().strip())
                                if unicodedata.category(c) != 'Mn')
-                
-                # --- COLE AS 3 LINHAS NOVAS EXATAMENTE AQUI ---
-        data_ultima = dados_cadastrais['ÚLTIMA COMPRA']
-        data_formatada = data_ultima.strftime('%d/%m/%Y') if pd.notnull(data_ultima) and hasattr(data_ultima, 'strftime') else "Sem registro"
-        st.markdown(f"📅 **Última Compra:** {data_formatada}")
-        # ----------------------------------------------
 
             cidade_alvo = normalizar_texto(cliente[COL_CIDADE])
             uf_alvo = normalizar_texto(cliente[COL_UF])
