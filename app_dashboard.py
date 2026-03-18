@@ -17,28 +17,29 @@ from reportlab.lib import colors
 import json
 import os
 
-def limpar_e_categorizar_linha(linha_bruta, nome_produto):
-    # Força a conversão para string de forma ultra segura
-    l = str(linha_bruta if not pd.isna(linha_bruta) else "").upper().strip()
-    p = str(nome_produto if not pd.isna(nome_produto) else "").upper().strip()
+def categorizar_produto_papapa(row):
+    l = str(row.get('LINHA', '')).upper().strip()
+    p = str(row.get('DESC PRODUTO', '')).upper().strip()
     
-    # 1. Prioridade: Yoguzinho (mesmo que a planilha diga 'Papinha de Fruta')
+    # 1. Prioridade Máxima: Yoguzinho
     if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l:
         return "YOGUZINHO"
     
-    # 2. Sopinhas e Linha La Chef (180g)
+    # 2. Diferenciação LA CHEF (180G) vs SOPINHAS (240G)
+    # Se tiver 180G no nome ou for um dos pratos da linha La Chef, cai aqui
+    if "180G" in p or any(x in p for x in ["LENTILHA", "CASEIRINHO", "RISOTINHO"]):
+        return "LA CHEF"
+    
+    # 3. Sopinhas tradicionais (240G)
     if "SOPINHA" in p or "SOPINHA" in l:
         return "SOPINHAS"
-    if any(x in p for x in ["CASEIRINHO", "RISOTINHO", "LENTILHA"]):
-        return "LA CHEF"
 
-    # 3. Papinhas Salgadas (120g) vs Frutas
+    # 4. Papinhas Salgadas (120g)
     if any(x in l for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
         return "PAPINHAS SALGADAS"
-    if "FRUTA" in l or "ORG" in l:
-        return "PAPINHAS DE FRUTAS"
     
-    # 4. Outros
+    # 5. Demais categorias...
+    if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
     if "CERAL" in l or "AVEIA" in l: return "CEREAIS"
     if "DENTI" in l: return "DENTIÇÃO"
     
