@@ -884,38 +884,38 @@ if 'id_cliente' in locals() and id_cliente:
         # Silencioso para não poluir o Dashboard se o ID não estiver pronto
         pass
 
-        # ==========================================
-        # GRÁFICO DE HISTÓRICO DE COMPRAS (MÊS A MÊS)
-        # ==========================================
+    # ==========================================
+    # GRÁFICO DE HISTÓRICO DE COMPRAS (MÊS A MÊS)
+    # ==========================================
         
-        # Filtramos a base de vendas total pelo CNPJ do cliente atual
-        vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente].copy()
+    # Filtramos a base de vendas total pelo CNPJ do cliente atual
+    vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente].copy()
 
-        if not vendas_hist.empty:
-            st.markdown("---")
-            st.subheader(f"📈 Histórico de Pedidos - {cliente[COL_RAZAO]}")
+    if not vendas_hist.empty:
+        st.markdown("---")
+        st.subheader(f"📈 Histórico de Pedidos - {cliente[COL_RAZAO]}")
             
-            # Garantimos que a data seja reconhecida e agrupamos por mês
-            vendas_hist['MES_ANO'] = vendas_hist['DATA'].dt.strftime('%Y-%m')
+        # Garantimos que a data seja reconhecida e agrupamos por mês
+        vendas_hist['MES_ANO'] = vendas_hist['DATA'].dt.strftime('%Y-%m')
             
-            # Somamos o valor por mês
-            faturamento_mensal = vendas_hist.groupby('MES_ANO')['VALOR_TOTAL'].sum().reset_index()
-            faturamento_mensal.columns = ["Mês", "Valor Total"]
+        # Somamos o valor por mês
+        faturamento_mensal = vendas_hist.groupby('MES_ANO')['VALOR_TOTAL'].sum().reset_index()
+        faturamento_mensal.columns = ["Mês", "Valor Total"]
 
-            # Criamos o gráfico de barras
-            fig_hist = px.bar(
-                faturamento_mensal,
-                x="Mês",
-                y="Valor Total",
-                title="Evolução de Compras (R$)",
-                text_auto='.2s',
-                color_discrete_sequence=["#E74C3C"] # Vermelho padrão Papapá
-            )
+        # Criamos o gráfico de barras
+        fig_hist = px.bar(
+            faturamento_mensal,
+            x="Mês",
+            y="Valor Total",
+            title="Evolução de Compras (R$)",
+                ext_auto='.2s',
+            color_discrete_sequence=["#E74C3C"] # Vermelho padrão Papapá
+        )
             
-            fig_hist.update_layout(xaxis_title="Mês da Compra", yaxis_title="Valor Pedido (R$)")
-            st.plotly_chart(fig_hist, use_container_width=True)
-        else:
-            st.info("ℹ️ Não foram encontrados pedidos detalhados para este cliente na base de vendas.")
+        fig_hist.update_layout(xaxis_title="Mês da Compra", yaxis_title="Valor Pedido (R$)")
+        st.plotly_chart(fig_hist, use_container_width=True)
+    else:
+        st.info("ℹ️ Não foram encontrados pedidos detalhados para este cliente na base de vendas.")
         
 # ==========================================
 # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
