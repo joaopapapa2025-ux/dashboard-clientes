@@ -951,12 +951,14 @@ k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 # 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL)
 # ==========================================
 if len(df_filtrado) == 1:
-    id_cliente_atual = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
+    cliente = df_filtrado.iloc[0]
+    id_cliente = cliente["CNPJ_LIMPO"]
     
-    # 1. Filtramos as vendas do cliente
-    vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual].copy()
+    # --- NOVO: BLOCO DE LIMPEZA PARA OS GRÁFICOS ---
+    # 1. Filtramos as vendas do cliente na base bruta (aba MIX)
+    vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente).strip()].copy()
 
-    # 2. FUNÇÃO DE LIMPEZA
+    # 2. Definimos a regra de correção de nomes
     def normalizar_nome_linha(linha_bruta):
         l = str(linha_bruta).upper().strip()
         if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
@@ -966,13 +968,12 @@ if len(df_filtrado) == 1:
         if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
         return l
 
-    # 3. APLICANDO A LIMPEZA (Aqui é o segredo)
+    # 3. Aplicamos a limpeza na coluna 'LINHA'
     if not vendas_cliente_atual.empty:
         vendas_cliente_atual["LINHA"] = vendas_cliente_atual["LINHA"].apply(normalizar_nome_linha)
-        
-        # SOBRESCREVE A df_filtrado_vendas (ou qualquer nome que seus gráficos usem)
-        # para garantir que eles peguem o nome corrigido
-        df_vendas_graficos = vendas_cliente_atual
+    # ----------------------------------------------
+
+    # ... (aqui continua seu código de col_info, col_crm, etc) ...
 
     if not vendas_cliente_atual.empty:
         # Limpa as linhas para o Dashboard não mostrar "CERAL" ou "CARNES"
