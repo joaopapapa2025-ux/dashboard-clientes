@@ -735,43 +735,50 @@ if len(df_filtrado) == 1:
                                  file_name=f"relatorio_{id_cliente}.pdf", 
                                  mime="application/pdf", use_container_width=True)
 
-# ==========================================
-        # NOVO: GRÁFICO DE HISTÓRICO DE COMPRAS (MÊS A MÊS)
-        # ==========================================
-        if not df_vendas.empty:
-            # Filtramos a base MIX pelo CNPJ do cliente selecionado
-            # Garantimos que ambos sejam strings para bater o filtro
-            vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente)].copy()
+# ... (Final do seu código de CRM aqui) ...
+        
+    # --- SAINDO DAS COLUNAS (Largura Total) ---
+    
+    # 1. MOVER INDICADORES PARA CIMA
+    st.markdown("---")
+    col_met1, col_met2, col_met3, col_met4 = st.columns(4)
+    with col_met1:
+        st.metric("Total Clientes", len(df_filtrado))
+    with col_met2:
+        # Exemplo de lógica para ativos (ajuste conforme sua coluna de status)
+        st.metric("Clientes Ativos", "1") 
+    with col_met3:
+        st.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
+    with col_met4:
+        st.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 
-            if not vendas_hist.empty:
-                st.markdown("---")
-                st.subheader("📈 Histórico Mensal de Compras (Mix)")
-                
-                # Tratamento da Data e do Valor
-                vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
-                vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
-                
-                # Criamos a coluna de Mês/Ano para agrupar
-                vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
-                
-                # Agrupamos por mês somando a coluna 'VALOR'
-                hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
-                hist_mensal.columns = ["Mês", "Total R$"]
-                hist_mensal = hist_mensal.sort_values("Mês")
+    # 2. GRÁFICO EM PÁGINA INTEIRA (Full Width)
+    if not df_vendas.empty:
+        id_cliente_str = str(id_cliente).strip()
+        vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str].copy()
 
-                # Gráfico de Barras
-                fig_hist_cli = px.bar(
-                    hist_mensal,
-                    x="Mês",
-                    y="Total R$",
-                    text_auto='.2s',
-                    title="Evolução de Pedidos (R$)",
-                    color_discrete_sequence=["#E74C3C"] # Vermelho Papapá
-                )
-                fig_hist_cli.update_layout(xaxis_type='category')
-                st.plotly_chart(fig_hist_cli, use_container_width=True)
-            else:
-                st.info("ℹ️ Este cliente ainda não possui histórico detalhado na aba MIX.")
+        if not vendas_hist.empty:
+            st.markdown("---")
+            st.subheader("📈 Histórico Mensal de Compras (Mix)")
+            
+            vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
+            vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
+            vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
+            
+            hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
+            hist_mensal = hist_mensal.sort_values("MES_ANO")
+
+            fig_hist_cli = px.bar(
+                hist_mensal,
+                x="MES_ANO",
+                y="VALOR",
+                text_auto='.2s',
+                title="Evolução de Pedidos (R$)",
+                color_discrete_sequence=["#E74C3C"]
+            )
+            
+            # Força o gráfico a usar toda a largura disponível
+            st.plotly_chart(fig_hist_cli, use_container_width=True)
                 
     # --- COLUNA DIREITA: CRM ---
 # ==========================================
