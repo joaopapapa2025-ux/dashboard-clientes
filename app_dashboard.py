@@ -1070,6 +1070,53 @@ k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 # ANÁLISE DE MIX COMPLETA (VISÃO GERAL)
 # =========================
 
+# ==========================================
+# 🚨 BLOCO CORRETIVO: INTELIGÊNCIA DE MERCADO
+# ==========================================
+if len(df_filtrado) == 1:
+    st.markdown("---")
+    st.subheader("💡 Oportunidades de Crescimento")
+    
+    # 1. Identificamos o cliente
+    id_cliente_atual = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
+    
+    # 2. Pegamos o que ele JÁ COMPROU (Base MIX)
+    if not df_vendas.empty:
+        produtos_cliente = set(df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]["DESC PRODUTO"].unique())
+        linhas_cliente = set(df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]["LINHA"].dropna().unique())
+        
+        # 3. Pegamos o CATÁLOGO TOTAL (Limpando o que não é produto)
+        blacklist = ["CONFERIDO", "TESTE", "AJUSTE", "FRETE", "DESCONTO"]
+        regex_bl = "|".join(blacklist)
+        
+        todos_produtos = set(df_vendas[~df_vendas["DESC PRODUTO"].str.upper().str.contains(regex_bl, na=False)]["DESC PRODUTO"].unique())
+        todas_linhas = set(df_vendas["LINHA"].dropna().unique())
+        
+        # 4. Criamos as Colunas
+        c_gap, c_cross = st.columns(2)
+        
+        with c_gap:
+            faltantes = sorted(list(todos_produtos - produtos_cliente))
+            if faltantes:
+                df_gap_v2 = pd.DataFrame({"Itens para Oferecer": faltantes}).head(15)
+                st.markdown("#### 🚨 Gap de Mix")
+                st.write("Produtos que ele ainda não comprou:")
+                st.dataframe(df_gap_v2, use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ Mix completo!")
+
+        with c_cross:
+            # Removemos categorias de sistema
+            linhas_faltantes = sorted(list(todas_linhas - linhas_cliente - {"0", "nan", "", "None"}))
+            if linhas_faltantes:
+                df_cross_v2 = pd.DataFrame({"Categorias Não Exploradas": linhas_faltantes})
+                st.markdown("#### 📦 Cross-sell")
+                st.write("Linhas para introduzir:")
+                st.dataframe(df_cross_v2, use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ Todas as linhas ativas!")
+# ==========================================
+
 st.subheader("📦 Análise Geral de Mix e Produtos")
 
 if not df_vendas.empty:
