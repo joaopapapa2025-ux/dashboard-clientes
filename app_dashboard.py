@@ -759,7 +759,7 @@ if len(df_filtrado) == 1:
 
         if not vendas_hist.empty:
             st.markdown("---")
-            st.subheader("📈 Histórico Mensal de Compras (Mix)")
+            st.subheader("📈 Histórico Mensal de Compras")
             
             vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
             vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
