@@ -1059,6 +1059,19 @@ if not vendas_cliente.empty:
         st.dataframe(df_cross, use_container_width=True, hide_index=True)
 
 # =========================
+# KPIs (Sempre visíveis no topo do Dashboard Geral)
+# =========================
+
+st.divider()
+k1, k2, k3, k4 = st.columns(4)
+
+# KPIs baseados no df_filtrado (resultado dos filtros da sidebar)
+k1.metric("Total Clientes", len(df_filtrado))
+k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
+k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
+k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
+
+# =========================
 # ANÁLISE DE MIX COMPLETA (VISÃO GERAL)
 # =========================
 
@@ -1160,19 +1173,6 @@ if not df_vendas.empty:
             st.warning(f"Não há registros de venda para a categoria '{cat_sel}' com os filtros aplicados.")
     else:
         st.info("Nenhuma venda encontrada para os clientes selecionados.")
-
-# =========================
-# KPIs (Sempre visíveis no topo do Dashboard Geral)
-# =========================
-
-st.divider()
-k1, k2, k3, k4 = st.columns(4)
-
-# KPIs baseados no df_filtrado (resultado dos filtros da sidebar)
-k1.metric("Total Clientes", len(df_filtrado))
-k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
-k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
-k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 
 # =========================
 # GRÁFICOS E MAPA (SÓ APARECEM SE HOUVER MAIS DE 1 CLIENTE)
