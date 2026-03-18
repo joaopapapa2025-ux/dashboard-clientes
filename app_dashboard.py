@@ -1050,8 +1050,8 @@ if len(df_filtrado) == 1:
                 "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
             },
             "DENTIÇÃO": {
-                "Biscoito dent. Maçã e Abóbora 36g": ["DENTICAO", "MACA", "ABOBORA"],
-                "Biscoito dent Vegetais 36g": ["DENTICAO", "VEGETAIS"]
+                "Biscoito dent. Maçã e Abóbora 36g": ["ABOBORA"], # Simplificado
+                "Biscoito dent Vegetais 36g": ["VEGETAIS"]
             },
             "MACARRÃO": {
                 "Macarrão Elbow Quinoa 200g": ["ELBOW"],
@@ -1069,11 +1069,11 @@ if len(df_filtrado) == 1:
                 "Aveia - Multicereais 500g": ["CEREAL", "MULTI", "500G"]
             },
             "BISCOTTI": {
-                "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJA"],
-                "Biscotti Maçã e Canela 60g": ["BISCOTTI", "CANELA"],
-                "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
-                "Biscotti Goiaba 60g": ["BISCOTTI", "GOIABA"],
-                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJA"]
+                "Biscotti Laranja e Cenoura 60g": ["LARANJA"],
+                "Biscotti Maçã e Canela 60g": ["MACA", "CANELA"],
+                "Biscotti Banana e Cacau 60g": ["CACAU"],
+                "Biscotti Goiaba 60g": ["GOIABA"],
+                "Biscotti Maracujá e Camomila 60g": ["MARACUJA"]
             },
             "SOPINHAS": {
                 "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO"],
