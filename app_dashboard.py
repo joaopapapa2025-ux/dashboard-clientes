@@ -1013,6 +1013,11 @@ if len(df_filtrado) == 1:
             # REGRA 5: FRUTAS E OUTROS
             if "FRUTA" in l_original or "ORG" in l_original: return "PAPINHAS DE FRUTAS"
             if "CERAL" in l_original or "AVEIA" in l_original: return "CEREAIS"
+
+            # REGRA DOS PALITINHOS: 
+            # Só classifica como PALITINHOS se a palavra estiver clara no produto ou na linha
+            if "PALITINHO" in p or "PALITINHO" in l_original:
+                return "PALITINHOS"
             
             return l_original
 
