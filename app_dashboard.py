@@ -18,36 +18,25 @@ import json
 import os
 
 def normalizar_nome_linha(linha_bruta, nome_produto=""):
-    # Transformamos tudo em maiúsculo para não ter erro de digitação
     l = str(linha_bruta).upper().strip()
     p = str(nome_produto).upper().strip()
     
-    # 1. REGRA DO YOGUZINHO (Prioridade máxima)
-    # Se no nome do produto tiver 'IOGURTE' ou 'YOGU', cai aqui, 
-    # não importa o que esteja escrito na coluna LINHA
-    if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l or "YOGU" in l:
+    # Prioridade 1: Yoguzinho (pela descrição do produto)
+    if "IOGURTE" in p or "YOGU" in p:
         return "YOGUZINHO"
-
-    # 2. REGRA DAS SOPINHAS E LINHA LA CHEF
+    
+    # Prioridade 2: Sopinhas e La Chef
     if "SOPINHA" in p or "SOPINHA" in l:
         return "SOPINHAS"
-    
-    if "CASEIRINHO" in p or "RISOTINHO" in p or "LENTILHA" in p or "LA CHEF" in l:
+    if any(x in p for x in ["CASEIRINHO", "RISOTINHO", "LENTILHA"]) or "LA CHEF" in l:
         return "LA CHEF"
 
-    # 3. REGRAS GENÉRICAS (Só se não passou nas de cima)
-    if "CARNE" in l or "SALGADA" in l: 
-        return "PAPINHAS SALGADAS"
+    # Prioridade 3: Regras Gerais
+    if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
+    if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
+    if "CERAL" in l or "AVEIA" in l: return "CEREAIS" 
+    if "DENTI" in l: return "DENTIÇÃO"
     
-    if "FRUTA" in l or "ORG" in l: 
-        return "PAPINHAS DE FRUTAS"
-    
-    if "CERAL" in l or "AVEIA" in l: 
-        return "CEREAIS" 
-        
-    if "DENTI" in l: 
-        return "DENTIÇÃO"
-        
     return l
 
 # Nome do arquivo de banco de dados
