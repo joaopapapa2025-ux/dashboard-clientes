@@ -1069,11 +1069,11 @@ if len(df_filtrado) == 1:
                 "Aveia - Multicereais 500g": ["CEREAL", "MULTI", "500G"]
             },
             "BISCOTTI": {
-                "Biscotti Laranja e Cenoura 60g": ["LARANJA"],
-                "Biscotti Maçã e Canela 60g": ["MACA", "CANELA"], # Sem acento
+                "Biscotti Laranja e Cenoura 60g": ["LARANJ"], # Pega Laranja ou Laranj
+                "Biscotti Maçã e Canela 60g": ["MAC", "CANEL"], # Pega Maçã, Maca, Canela, Canel
                 "Biscotti Banana e Cacau 60g": ["CACAU"],
-                "Biscotti Goiaba 60g": ["GOIABA"],
-                "Biscotti Maracujá e Camomila 60g": ["MARACUJA"] # Sem acento
+                "Biscotti Goiaba 60g": ["GOIAB"],
+                "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] # AGORA PEGA "MARACUJ" E "MARACUJA"
             },
             "SOPINHAS": {
                 "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO"],
