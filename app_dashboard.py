@@ -998,10 +998,15 @@ if len(df_filtrado) == 1:
     # ... (aqui continua seu código de col_info, col_crm, etc) ...
 
     if not vendas_cliente_atual.empty:
-        # CRIAR A COLUNA LIMPA AQUI (Isso resolve o erro do Yoguzinho e das Sopinhas)
-        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(
-            lambda x: normalizar_nome_linha(x["LINHA"], x["DESC PRODUTO"]), axis=1
-        )
+        # Criamos a coluna LINHA_LIMPA de forma mais segura
+        def aplicar_limpeza(row):
+            # Tenta pegar 'LINHA', se não achar tenta 'Linha'
+            l = row.get('LINHA', row.get('Linha', ''))
+            # Tenta pegar 'DESC PRODUTO', se não achar tenta 'Produto'
+            p = row.get('DESC PRODUTO', row.get('Produto', ''))
+            return normalizar_nome_linha(l, p)
+
+        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(aplicar_limpeza, axis=1)
 
         # --- PASSO 2: MAPEAMENTO DO CATÁLOGO OFICIAL ---
         catalogo_papapa = {
