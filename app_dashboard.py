@@ -734,6 +734,44 @@ if len(df_filtrado) == 1:
                 st.download_button("📄 Baixar Relatório PDF", data=pdf_arq, 
                                  file_name=f"relatorio_{id_cliente}.pdf", 
                                  mime="application/pdf", use_container_width=True)
+
+# ==========================================
+        # NOVO: GRÁFICO DE HISTÓRICO DE COMPRAS (MÊS A MÊS)
+        # ==========================================
+        if not df_vendas.empty:
+            # Filtramos a base MIX pelo CNPJ do cliente selecionado
+            # Garantimos que ambos sejam strings para bater o filtro
+            vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente)].copy()
+
+            if not vendas_hist.empty:
+                st.markdown("---")
+                st.subheader("📈 Histórico Mensal de Compras (Mix)")
+                
+                # Tratamento da Data e do Valor
+                vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
+                vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
+                
+                # Criamos a coluna de Mês/Ano para agrupar
+                vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
+                
+                # Agrupamos por mês somando a coluna 'VALOR'
+                hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
+                hist_mensal.columns = ["Mês", "Total R$"]
+                hist_mensal = hist_mensal.sort_values("Mês")
+
+                # Gráfico de Barras
+                fig_hist_cli = px.bar(
+                    hist_mensal,
+                    x="Mês",
+                    y="Total R$",
+                    text_auto='.2s',
+                    title="Evolução de Pedidos (R$)",
+                    color_discrete_sequence=["#E74C3C"] # Vermelho Papapá
+                )
+                fig_hist_cli.update_layout(xaxis_type='category')
+                st.plotly_chart(fig_hist_cli, use_container_width=True)
+            else:
+                st.info("ℹ️ Este cliente ainda não possui histórico detalhado na aba MIX.")
                 
     # --- COLUNA DIREITA: CRM ---
 # ==========================================
@@ -815,44 +853,6 @@ else:
     # Mensagem amigável quando os filtros estão abertos (mais de 1 cliente)
     st.info("💡 Selecione um cliente específico nos filtros ao lado para visualizar mais detalhes sobre o cliente.")
 
-# ==========================================
-        # NOVO: GRÁFICO DE HISTÓRICO DE COMPRAS (MÊS A MÊS)
-        # ==========================================
-        if not df_vendas.empty:
-            # Filtramos a base MIX pelo CNPJ do cliente selecionado
-            # Garantimos que ambos sejam strings para bater o filtro
-            vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente)].copy()
-
-            if not vendas_hist.empty:
-                st.markdown("---")
-                st.subheader("📈 Histórico Mensal de Compras (Mix)")
-                
-                # Tratamento da Data e do Valor
-                vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
-                vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
-                
-                # Criamos a coluna de Mês/Ano para agrupar
-                vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
-                
-                # Agrupamos por mês somando a coluna 'VALOR'
-                hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
-                hist_mensal.columns = ["Mês", "Total R$"]
-                hist_mensal = hist_mensal.sort_values("Mês")
-
-                # Gráfico de Barras
-                fig_hist_cli = px.bar(
-                    hist_mensal,
-                    x="Mês",
-                    y="Total R$",
-                    text_auto='.2s',
-                    title="Evolução de Pedidos (R$)",
-                    color_discrete_sequence=["#E74C3C"] # Vermelho Papapá
-                )
-                fig_hist_cli.update_layout(xaxis_type='category')
-                st.plotly_chart(fig_hist_cli, use_container_width=True)
-            else:
-                st.info("ℹ️ Este cliente ainda não possui histórico detalhado na aba MIX.")
-            
 # ==========================================
 # CÁLCULO E EXIBIÇÃO DE LEAD TIME POR CLIENTE
 # ==========================================
