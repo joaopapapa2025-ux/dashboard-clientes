@@ -1008,18 +1008,18 @@ if len(df_filtrado) == 1:
     # ... (aqui continua seu código de col_info, col_crm, etc) ...
 
     if not vendas_cliente_atual.empty:
-        # 1. Criamos a lista que vai virar a nova coluna
         linhas_corrigidas = []
         
-        # 2. Percorremos as vendas uma por uma (mais seguro contra erros)
         for _, row in vendas_cliente_atual.iterrows():
-            # Pegamos os valores garantindo que sejam strings, se for vazio vira ""
-            l_original = str(row.get('LINHA', '')).upper()
-            p_original = str(row.get('DESC PRODUTO', '')).upper()
+            # Busca os nomes das colunas (tenta maiúsculo e minúsculo)
+            l_val = row.get('LINHA', row.get('Linha', ''))
+            p_val = row.get('DESC PRODUTO', row.get('Produto', ''))
             
-            # Chamamos a sua função de limpeza
-            resultado = normalizar_nome_linha(l_original, p_original)
+            # Chama a função blindada
+            resultado = normalizar_nome_linha(l_val, p_val)
             linhas_corrigidas.append(resultado)
+        
+        vendas_cliente_atual["LINHA_LIMPA"] = linhas_corrigidas
         
         # 3. Criamos a coluna com os valores limpos
         vendas_cliente_atual["LINHA_LIMPA"] = linhas_corrigidas
