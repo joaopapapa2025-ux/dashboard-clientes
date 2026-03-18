@@ -231,23 +231,36 @@ comentarios = carregar_comentarios()
 # =========================
 
 def gerar_pdf_cliente(cliente, vendas_cliente):
-
     buffer = BytesIO()
     styles = getSampleStyleSheet()
+    
+    # --- NOVO: FUNÇÃO INTERNA DE LIMPEZA DE LINHA ---
+    def normalizar_nome_linha(linha_bruta):
+        l = str(linha_bruta).upper().strip()
+        if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
+        if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
+        if "CERAL" in l or "AVEIA" in l: return "CEREAIS" # Corrige 'CERAL' do sistema
+        if "DENTI" in l: return "DENTIÇÃO"
+        if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
+        return l # Mantém as outras como estão (BISCOTTI, LA CHEF, etc)
+
+    # Aplicar a normalização no DataFrame de vendas antes de gerar o PDF
+    if not vendas_cliente.empty:
+        vendas_cliente = vendas_cliente.copy()
+        vendas_cliente["LINHA"] = vendas_cliente["LINHA"].apply(normalizar_nome_linha)
 
     style_tabela = styles["BodyText"]
     style_tabela.leading = 14
-
     elementos = []
 
     titulo = Paragraph("Relatório de Cliente - PAPAPÁ", styles["Title"])
-    data = Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y')}", styles["Normal"])
+    data_geracao = Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y')}", styles["Normal"])
 
     elementos.append(titulo)
-    elementos.append(data)
+    elementos.append(data_geracao)
     elementos.append(Spacer(1,20))
 
-    # Tabela de dados cadastrais usando o novo mapeamento
+    # Tabela de dados cadastrais
     dados_cliente = [
         ["Razão Social", str(cliente[COL_RAZAO])],
         ["CNPJ", str(cliente[COL_CNPJ])],
@@ -255,27 +268,25 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ["Email", str(cliente[COL_EMAIL])],
         ["Cidade", f"{cliente[COL_CIDADE]} - {cliente[COL_UF]}"],
         ["Vendedor", str(cliente[COL_VENDEDOR])],
-        ["Segmento", str(cliente[COL_SEGMENTO])], # Ajustado para SEGMENTO
+        ["Segmento", str(cliente[COL_SEGMENTO])],
         ["Faturamento 9M", f"R$ {cliente[COL_T_U_9_M]:,.2f}"],
         ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
     ]
 
     tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
-
     tabela_cliente.setStyle(TableStyle([
         ("BACKGROUND",(0,0),(0,-1),colors.lightgrey),
         ("GRID",(0,0),(-1,-1),0.5,colors.grey),
         ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
         ("FONTSIZE", (0,0), (-1,-1), 10),
     ]))
-
     elementos.append(tabela_cliente)
-
     elementos.append(Spacer(1,20))
+
     elementos.append(Paragraph("Histórico de Compras (Mix)", styles["Heading2"]))
 
     if not vendas_cliente.empty:
-        # Agrupamento baseado nas colunas da aba MIX da nova planilha
+        # Agrupamento com a LINHA já normalizada
         resumo = (
             vendas_cliente
             .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
@@ -287,15 +298,12 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         total_valor = resumo["VALOR"].sum()
         total_qtd = resumo["QTDE"].sum()
         total_skus = resumo["DESC PRODUTO"].nunique()
-
         ticket_medio = 0
         ultima_compra = ""
 
-        # Verifica se as colunas de NF e Data existem no Mix para os cálculos
         if "NUMERO NF" in vendas_cliente.columns:
             total_pedidos = vendas_cliente["NUMERO NF"].nunique()
-            if total_pedidos > 0:
-                ticket_medio = total_valor / total_pedidos
+            if total_pedidos > 0: ticket_medio = total_valor / total_pedidos
 
         if "DATA PEDIDO" in vendas_cliente.columns:
             data_max = vendas_cliente["DATA PEDIDO"].max()
@@ -315,58 +323,13 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
             ("GRID",(0,0),(-1,-1),0.5,colors.grey),
             ("FONTSIZE", (0,0), (-1,-1), 10),
         ]))
-
         elementos.append(Spacer(1,10))
         elementos.append(tabela_resumo)
         elementos.append(Spacer(1,25))
 
-        # HISTÓRICO POR PEDIDO
-        elementos.append(Paragraph("Histórico por Pedido", styles["Heading3"]))
-
-        # Agrupamento por Nota Fiscal usando as colunas da aba MIX
-        pedidos = (
-            vendas_cliente
-            .groupby(["DATA PEDIDO", "NUMERO NF"])["VALOR"]
-            .sum()
-            .reset_index()
-            .sort_values("DATA PEDIDO", ascending=False)
-        )
-
-        dados_pedidos = [["Data", "NF", "Valor Pedido"]]
-
-        for _, row in pedidos.iterrows():
-            data_str = ""
-            if not pd.isna(row["DATA PEDIDO"]):
-                # Garante conversão para datetime antes de formatar
-                data_str = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
-
-            nf = str(row["NUMERO NF"])
-            valor = f"R$ {row['VALOR']:,.2f}"
-
-            dados_pedidos.append([data_str, nf, valor])
-
-        tabela_pedidos = Table(
-            dados_pedidos,
-            colWidths=[4*cm, 4*cm, 4*cm],
-            repeatRows=1
-        )
-
-        tabela_pedidos.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
-            ("ALIGN", (2, 1), (2, -1), "RIGHT"),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ]))
-
-        elementos.append(tabela_pedidos)
-        elementos.append(Spacer(1, 25))
-
         # TOP PRODUTOS
         elementos.append(Paragraph("Top Produtos Comprados", styles["Heading3"]))
-
-        # Pega os 5 produtos de maior valor (usando o 'resumo' calculado na parte 2)
         top_produtos = resumo.head(5)
-
         dados_top = [["Produto", "Linha", "Qtd", "Valor"]]
 
         for _, row in top_produtos.iterrows():
@@ -377,12 +340,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
                 f"R$ {row['VALOR']:,.2f}"
             ])
 
-        tabela_top = Table(
-            dados_top,
-            colWidths=[8*cm, 3.5*cm, 2*cm, 2.5*cm],
-            repeatRows=1
-        )
-
+        tabela_top = Table(dados_top, colWidths=[8*cm, 3.5*cm, 2*cm, 2.5*cm], repeatRows=1)
         tabela_top.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
@@ -391,69 +349,37 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
             ("ALIGN", (3, 1), (3, -1), "RIGHT"),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
         ]))
-
         elementos.append(tabela_top)
         elementos.append(Spacer(1, 25))
 
-        # HISTÓRICO DETALHADO POR PRODUTO
+        # HISTÓRICO DETALHADO
         elementos.append(Paragraph("Histórico Detalhado de Compras", styles["Heading3"]))
+        dados_produtos = [["Data", "NF", "Produto", "Linha", "Qtd", "Valor"]]
 
-        dados_produtos = [
-            ["Data", "NF", "Produto", "Linha", "Qtd", "Valor"]
-        ]
-
-        # Itera sobre os itens individuais da venda
         for _, row in vendas_cliente.iterrows():
-            data_item = ""
-            if not pd.isna(row["DATA PEDIDO"]):
-                data_item = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y")
-
-            nf_item = str(row["NUMERO NF"]) if not pd.isna(row["NUMERO NF"]) else ""
-            prod_item = Paragraph(str(row["DESC PRODUTO"]), style_tabela)
-            lin_item = Paragraph(str(row["LINHA"]), style_tabela)
-            
-            # Tratamento para quantidade e valor nulos
-            qtd_item = int(row["QTDE"]) if pd.notna(row["QTDE"]) else 0
-            val_item = f"R$ {row['VALOR']:,.2f}" if pd.notna(row["VALOR"]) else "R$ 0.00"
-
+            data_item = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y") if pd.notna(row["DATA PEDIDO"]) else ""
             dados_produtos.append([
                 data_item,
-                nf_item,
-                prod_item,
-                lin_item,
-                qtd_item,
-                val_item
+                str(row["NUMERO NF"]) if pd.notna(row["NUMERO NF"]) else "",
+                Paragraph(str(row["DESC PRODUTO"]), style_tabela),
+                Paragraph(str(row["LINHA"]), style_tabela),
+                int(row["QTDE"]) if pd.notna(row["QTDE"]) else 0,
+                f"R$ {row['VALOR']:,.2f}"
             ])
 
-        tabela_produtos = Table(
-            dados_produtos,
-            colWidths=[2.5*cm, 2.5*cm, 7*cm, 3.5*cm, 2*cm, 2.5*cm],
-            repeatRows=1
-        )
-
+        tabela_produtos = Table(dados_produtos, colWidths=[2.5*cm, 2.5*cm, 7*cm, 3.5*cm, 1.5*cm, 2.5*cm], repeatRows=1)
         tabela_produtos.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
             ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
             ("ALIGN", (4, 1), (4, -1), "CENTER"),
             ("ALIGN", (5, 1), (5, -1), "RIGHT"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8), # Fonte menor para caber mais itens
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
         ]))
-
         elementos.append(tabela_produtos)
-
     else:
-        elementos.append(Paragraph("Nenhum histórico de compra encontrado no período.", styles["Normal"]))
+        elementos.append(Paragraph("Nenhum histórico de compra encontrado.", styles["Normal"]))
 
-    # Finalização do Documento
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=30,
-        leftMargin=30,
-        topMargin=30,
-        bottomMargin=18
-    )
-
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=18)
     doc.build(elementos)
     buffer.seek(0)
     return buffer
