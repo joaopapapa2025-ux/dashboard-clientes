@@ -1057,8 +1057,8 @@ if len(df_filtrado) == 1:
                 "Biscotti Maçã e Canela 60g": ["MAC", "CANEL"],
                 "Biscotti Banana e Cacau 60g": ["CACAU"],
                 "Biscotti Goiaba 60g": ["GOIAB"],
-                "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] # CONSIDERA MARACUJA OU MARACUJ
-            }
+                "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] 
+            }, # <--- AQUI ESTAVA FALTANDO ESSA VÍRGULA
             "PALITINHOS": {
                 "Palitinho Org. Beterraba 20g": ["BETERRABA"],
                 "Palitinho Org. Cenoura 20g": ["CENOURA"],
