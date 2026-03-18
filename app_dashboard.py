@@ -1050,7 +1050,7 @@ if len(df_filtrado) == 1:
                 "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
             },
             "DENTIÇÃO": {
-                "Biscoito dent. Maçã e Abóbora 36g": ["ABOBORA"], # Simplificado
+                "Biscoito dent. Maçã e Abóbora 36g": ["ABOBORA"], 
                 "Biscoito dent Vegetais 36g": ["VEGETAIS"]
             },
             "MACARRÃO": {
@@ -1070,10 +1070,10 @@ if len(df_filtrado) == 1:
             },
             "BISCOTTI": {
                 "Biscotti Laranja e Cenoura 60g": ["LARANJA"],
-                "Biscotti Maçã e Canela 60g": ["MACA", "CANELA"],
+                "Biscotti Maçã e Canela 60g": ["MACA", "CANELA"], # Sem acento
                 "Biscotti Banana e Cacau 60g": ["CACAU"],
                 "Biscotti Goiaba 60g": ["GOIABA"],
-                "Biscotti Maracujá e Camomila 60g": ["MARACUJA"]
+                "Biscotti Maracujá e Camomila 60g": ["MARACUJA"] # Sem acento
             },
             "SOPINHAS": {
                 "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO"],
