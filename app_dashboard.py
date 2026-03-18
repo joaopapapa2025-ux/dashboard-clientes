@@ -1162,10 +1162,10 @@ if not df_vendas.empty:
         
         linha_selecionada = st.selectbox("Selecione uma linha para detalhar a performance:", options=linhas_papapa)
         
-        # Filtrar a base MIX pelo nome da linha (garantindo que esteja em maiúsculo)
+        # Use exatamente este bloco:
         df_detalhe_linha = df_vendas[
             (df_vendas["CNPJ_LIMPO"] == id_cliente) & 
-            (df_vendas["LINHA"].str.upper().str.strip() == linha_selecionada)
+            (df_vendas["LINHA"].apply(normalizar_nome_linha) == linha_selecionada)
         ]
         
         if not df_detalhe_linha.empty:
