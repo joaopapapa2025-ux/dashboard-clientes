@@ -1063,8 +1063,7 @@ if len(df_filtrado) == 1:
                 "Palitinho Org. Beterraba 20g": ["BETERRABA"],
                 "Palitinho Org. Cenoura 20g": ["CENOURA"],
                 "Palitinho Org. Tomate/Manjericão 20g": ["TOMATE"]
-            }
-            
+            }   
         }
 
         # --- PASSO 3: LÓGICA DE COMPARAÇÃO ---
