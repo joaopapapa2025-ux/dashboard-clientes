@@ -1223,58 +1223,135 @@ if not df_vendas.empty:
             st.plotly_chart(fig_top_geral, use_container_width=True)
 
 # ==========================================
-        # 5. PERFORMANCE POR LINHA PAPAPÁ (Deep Dive)
-        # ==========================================
-        st.markdown("---")
-        st.markdown("#### 🏆 Performance por Linha de Produto")
+# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO FINAL BLINDADA
+# ==========================================
+if len(df_filtrado) == 1:
+    st.markdown("---")
+    st.subheader("💡 Oportunidades de Crescimento")
+    
+    id_cliente_atual = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
+    
+    # 1. MAPEAMENTO COM SINÔNIMOS DE LINHAS (Para bater com o Excel)
+    catalogo_v7 = {
+        "PAPINHAS SALGADAS": {
+            "keywords_linha": ["PAPINHAS SALGADAS", "PAPINHAS DE CARNES", "CARNES"],
+            "itens": {
+                "Papinha Carne Arroz Legumes 120g": ["CARNE", "ARROZ", "120G"],
+                "Papinha Frango Grão Vegetais 120g": ["FRANGO", "GRAO", "120G"]
+            }
+        },
+        "YOGUZINHO": {
+            "keywords_linha": ["YOGUZINHO", "IOGURTE"],
+            "itens": {
+                "Iogurte Frutas Amarelas e Banana 100g": ["IOGURTE", "AMARELAS"],
+                "Iogurte Frutas Vermelhas e Banana 100g": ["IOGURTE", "VERMELHAS"]
+            }
+        },
+        "PAPINHAS DE FRUTAS": {
+            "keywords_linha": ["PAPINHAS DE FRUTAS", "FRUTAS", "ORG"],
+            "itens": {
+                "Papinha Org Maçã Ameixa 100g": ["MACA", "AMEIXA"],
+                "Papinha Org Banana Mirtilo Quinoa 100g": ["BANANA", "MIRTILO"],
+                "Papinha Org Manga 100g": ["MANGA"],
+                "Papinha Org Pera Espinafre Abobrinha 100g": ["PERA", "ESPINA"],
+                "Papinha Org Maçã B. Doce Cenoura 100g": ["MACA", "DOCE", "CENOURA"],
+                "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
+            }
+        },
+        "PALITINHOS": {
+            "keywords_linha": ["PALITINHOS", "BISCOITO INFANTIL"],
+            "itens": {
+                "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
+                "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
+                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
+            }
+        },
+        "DENTIÇÃO": {
+            "keywords_linha": ["DENTIÇÃO", "DENTICAO", "FASE DA DENTIÇÃO"],
+            "itens": {
+                "Biscoito dent. Maçã e Abóbora 36g": ["DENTICAO", "MACA", "ABOBORA"],
+                "Biscoito dent Vegetais 36g": ["DENTICAO", "VEGETAIS"]
+            }
+        },
+        "MACARRÃO": {
+            "keywords_linha": ["MACARRÃO", "MACARRAO"],
+            "itens": {
+                "Macarrão Elbow Quinoa 200g": ["ELBOW"],
+                "Macarrão Fusilli Vegetais 200g": ["FUSILLI"]
+            }
+        },
+        "LA CHEF": {
+            "keywords_linha": ["LA CHEF", "RISOTINHO", "CASEIRINHO", "LENTILHA"],
+            "itens": {
+                "Lentilha Carne Legumes 180g": ["LENTILHA"],
+                "Arroz Quinoa Frango 180g": ["RISOTINHO"],
+                "Arroz Feijão Carne Leg. 180g": ["CASEIRINHO"]
+            }
+        },
+        "CEREAIS": {
+            "keywords_linha": ["CEREAIS", "CEREAL", "AVEIA"],
+            "itens": {
+                "Aveia - Morango e Beterraba 170g": ["CEREAL", "MORANGO"],
+                "Aveia - Banana e Ameixa 170g": ["CEREAL", "BANANA"],
+                "Aveia - Multicereais 170g": ["CEREAL", "MULTI", "170G"],
+                "Aveia - Multicereais 500g": ["CEREAL", "MULTI", "500G"]
+            }
+        },
+        "BISCOTTI": {
+            "keywords_linha": ["BISCOTTI"],
+            "itens": {
+                "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJA"],
+                "Biscotti Maçã e Canela 60g": ["BISCOTTI", "CANELA"],
+                "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
+                "Biscotti Goiaba 60g": ["BISCOTTI", "GOIABA"],
+                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJA"]
+            }
+        },
+        "SOPINHAS": {
+            "keywords_linha": ["SOPINHAS", "SOPINHA"],
+            "itens": {
+                "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO", "240G"],
+                "Sopinha Carne Macarrao Legumes 240g": ["SOPINHA", "MACARRAO", "240G"],
+                "Sopinha Carne Mandioquinha Leg 240g": ["SOPINHA", "MANDIOQ"],
+                "Sopinha Feijão Carne Leg 240g": ["SOPINHA", "FEIJAO", "240G"]
+            }
+        }
+    }
+
+    if not df_vendas.empty:
+        # Pega histórico de compras do cliente
+        vendas_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]
+        vendas_nomes_massa = " ".join(vendas_cliente["DESC PRODUTO"].fillna("").astype(str).str.upper().unique())
+        linhas_no_excel = set(vendas_cliente["LINHA"].fillna("").astype(str).str.upper().str.strip().unique())
         
-        # Usamos as chaves do dicionário que criamos na Inteligência de Mercado
-        linhas_papapa = [
-            "PAPINHAS SALGADAS", "YOGUZINHO", "PAPINHAS DE FRUTAS", 
-            "PALITINHOS", "DENTIÇÃO", "MACARRÃO", "LA CHEF", 
-            "CEREAIS", "BISCOTTI", "SOPINHAS"
-        ]
-        
-        linha_selecionada = st.selectbox("Selecione uma linha para detalhar a performance:", options=linhas_papapa)
-        
-        # Filtrar a base MIX pelo nome da linha (garantindo que esteja em maiúsculo)
-        df_detalhe_linha = df_vendas[
-            (df_vendas["CNPJ_LIMPO"] == id_cliente_atual) & 
-            (df_vendas["LINHA"].str.upper().str.strip() == linha_selecionada)
-        ]
-        
-        if not df_detalhe_linha.empty:
-            # Agrupar performance por SKU dentro da linha selecionada
-            performance_sku = df_detalhe_linha.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
+        gap_mix = []
+        cross_sell = []
+
+        for nome_linha_oficial, dados in catalogo_v7.items():
+            # Verifica se o cliente já compra essa linha (olhando sinônimos)
+            cliente_ja_compra_essa_linha = any(kw in linhas_no_excel for kw in dados["keywords_linha"])
             
-            c_top, c_vol = st.columns(2)
-            
-            with c_top:
-                st.success(f"⭐ **Mais Comprados: {linha_selecionada}**")
-                df_top_sku = performance_sku.head(5).copy()
-                df_top_sku["VALOR"] = df_top_sku["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
-                st.table(df_top_sku.rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Total Gasto"}))
+            for produto_nome, keywords_produto in dados["itens"].items():
+                # Verifica se o SKU específico já foi comprado
+                ja_comprou_sku = all(kw.upper() in vendas_nomes_massa for kw in keywords_produto)
                 
-            with c_vol:
-                # Mostrar o volume total dessa categoria para o cliente
-                total_linha = df_detalhe_linha["VALOR"].sum()
-                qtd_total = df_detalhe_linha["QTDE"].sum()
-                st.metric(label=f"Investimento Total em {linha_selecionada}", value=f"R$ {total_linha:,.2f}")
-                st.metric(label="Volume Total (Unidades)", value=int(qtd_total))
-                
-                # Gráfico rápido de barras para a linha
-                import plotly.express as px
-                fig_bar_linha = px.bar(performance_sku.head(5), x="VALOR", y="DESC PRODUTO", orientation='h',
-                                      title="Top 5 SKUs por Valor",
-                                      labels={"VALOR": "Valor (R$)", "DESC PRODUTO": "Produto"},
-                                      color_discrete_sequence=["#00CC96"])
-                fig_bar_linha.update_layout(height=250, margin=dict(l=0, r=0, t=30, b=0))
-                st.plotly_chart(fig_bar_linha, use_container_width=True)
-        else:
-            st.warning(f"O cliente ainda não realizou compras na linha '{linha_selecionada}'.")
-            st.info(f"💡 Dica: Veja os produtos desta linha na tabela de **Cross-sell** acima para oferecer!")
-    else:
-        st.info("Nenhuma venda encontrada para os clientes selecionados.")
+                if not ja_comprou_sku:
+                    if cliente_ja_compra_essa_linha:
+                        gap_mix.append({"Linha": nome_linha_oficial, "Oportunidade": produto_nome})
+                    else:
+                        cross_sell.append({"Linha": nome_linha_oficial, "Oportunidade": produto_nome})
+
+        # Exibição
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("#### 🚨 Gap de Mix")
+            st.caption("Itens faltantes em linhas que o cliente já opera")
+            st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+
+        with col2:
+            st.markdown("#### 📦 Cross-sell")
+            st.caption("Linhas totalmente novas para este PDV")
+            st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
 
 # =========================
 # GRÁFICOS E MAPA (SÓ APARECEM SE HOUVER MAIS DE 1 CLIENTE)
