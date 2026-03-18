@@ -959,38 +959,47 @@ if not vendas_cliente.empty:
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
-        # ==========================================
-        # GRÁFICO DE HISTÓRICO DE COMPRAS (MÊS A MÊS)
+# ==========================================
+        # NOVO TESTE DE HISTÓRICO (BLINDADO)
         # ==========================================
         
-    # Filtramos a base de vendas total pelo CNPJ do cliente atual
-    vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente].copy()
+        # 1. Garantimos que os dois lados sejam APENAS NÚMEROS e TEXTO
+        id_cliente_busca = str(id_cliente).strip()
+        df_vendas["CNPJ_LIMPO"] = df_vendas["CNPJ_LIMPO"].astype(str).str.replace(r'\D', '', regex=True)
 
-if not vendas_hist.empty:
-    st.markdown("---")
-    st.subheader(f"📈 Histórico de Pedidos - {cliente[COL_RAZAO]}")
-            
-    # Garantimos que a data seja reconhecida e agrupamos por mês
-    vendas_hist['MES_ANO'] = vendas_hist['DATA'].dt.strftime('%Y-%m')
-            
-    # Somamos o valor por mês
-    faturamento_mensal = vendas_hist.groupby('MES_ANO')['VALOR_TOTAL'].sum().reset_index()
-    faturamento_mensal.columns = ["Mês", "Valor Total"]
+        # 2. Filtramos
+        vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_busca].copy()
 
-    # Criamos o gráfico de barras
-    fig_hist = px.bar(
-        faturamento_mensal,
-        x="Mês",
-        y="Valor Total",
-        title="Evolução de Compras (R$)",
-        text_auto='.2s',
-        color_discrete_sequence=["#E74C3C"] # Vermelho padrão Papapá
-    )
+        if not vendas_hist.empty:
+            st.markdown("---")
+            st.subheader(f"📈 Histórico de Pedidos")
             
-            fig_hist.update_layout(xaxis_title="Mês da Compra", yaxis_title="Valor Pedido (R$)")
+            # 3. Tratamento da Data (Garante que o Python entenda como data)
+            vendas_hist['DATA'] = pd.to_datetime(vendas_hist['DATA'], errors='coerce')
+            vendas_hist = vendas_hist.dropna(subset=['DATA'])
+            
+            vendas_hist['MES_ANO'] = vendas_hist['DATA'].dt.strftime('%Y-%m')
+            
+            # 4. Agrupamento (Confirme se o nome da coluna é VALOR_TOTAL ou FATURAMENTO)
+            # Se no seu Excel for outro nome, mude 'VALOR_TOTAL' abaixo:
+            coluna_valor = 'VALOR_TOTAL' 
+            
+            faturamento_mensal = vendas_hist.groupby('MES_ANO')[coluna_valor].sum().reset_index()
+            faturamento_mensal.columns = ["Mês", "Valor"]
+            faturamento_mensal = faturamento_mensal.sort_values("Mês")
+
+            fig_hist = px.bar(
+                faturamento_mensal,
+                x="Mês",
+                y="Valor",
+                text_auto='.2s',
+                title="Evolução de Compras Mensais",
+                color_discrete_sequence=["#E74C3C"]
+            )
             st.plotly_chart(fig_hist, use_container_width=True)
         else:
-            st.info("ℹ️ Não foram encontrados pedidos detalhados para este cliente na base de vendas.")
+            # Se cair aqui, é porque o CNPJ que você clicou não existe na aba de Vendas
+            st.warning(f"⚠️ Atenção: O CNPJ {id_cliente_busca} não possui registros na aba de vendas.")
 
     # =========================
     # INTELIGÊNCIA DE MERCADO
