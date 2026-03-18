@@ -1005,53 +1005,61 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
     # ==========================================
-    # 🚨 FORÇANDO A EXIBIÇÃO DA INTELIGÊNCIA DE MERCADO
-    # ==========================================
+# 🚨 BLOCO CORRETIVO: INTELIGÊNCIA DE MERCADO (COM NORMALIZAÇÃO)
+# ==========================================
+if len(df_filtrado) == 1:
     st.markdown("---")
-    st.subheader("💡 Oportunidades de Venda para este Cliente")
+    st.subheader("💡 Oportunidades de Crescimento")
     
-    # Criamos as colunas para as tabelas de Gap e Cross-sell
-    col_opp1, col_opp2 = st.columns(2)
+    id_cliente_atual = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
+    
+    if not df_vendas.empty:
+        # Função interna para limpar o nome do produto e evitar erros de comparação
+        def limpar_texto(txt):
+            return str(txt).upper().strip()
 
-    # 1. Lógica para GAP DE MIX (Produtos que ele não compra)
-    with col_opp1:
-        # Pegamos o que o cliente JÁ COMPROU na base MIX
-        # Usamos id_cliente_str para garantir que o filtro funcione
-        id_cliente_str = str(id_cliente).strip()
-        produtos_que_ja_comprou = set(df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str]["DESC PRODUTO"].unique())
+        # 1. Produtos que o cliente JÁ COMPROU (Limpando os nomes)
+        vendas_do_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]
+        produtos_cliente_set = set(vendas_do_cliente["DESC PRODUTO"].apply(limpar_texto).unique())
         
-        # Pegamos TODOS os produtos que a Papapá vende (limpando lixo)
-        blacklist = ["CONFERIDO", "TESTE", "AJUSTE", "FRETE", "DESCONTO", "AM_"]
-        todos_produtos_catalogo = set(
-            df_vendas[
-                (~df_vendas["DESC PRODUTO"].str.upper().str.contains("|".join(blacklist), na=False))
-            ]["DESC PRODUTO"].unique()
-        )
+        # 2. Tudo que a Papapá vende (Limpando os nomes e removendo lixo)
+        blacklist = ["CONFERIDO", "TESTE", "AJUSTE", "FRETE", "DESCONTO"]
+        df_catalogo = df_vendas[~df_vendas["DESC PRODUTO"].str.upper().str.contains("|".join(blacklist), na=False)]
         
-        # O que falta no carrinho dele?
-        faltantes = sorted(list(todos_produtos_catalogo - produtos_que_ja_comprou))
+        # Criamos um dicionário para mapear o "Nome Limpo" de volta para o "Nome Bonito"
+        catalogo_dict = {limpar_texto(p): p for p in df_catalogo["DESC PRODUTO"].unique()}
         
-        if faltantes:
-            df_gap = pd.DataFrame({"Itens para Oferecer": faltantes}).head(20)
-            st.markdown("#### 🚨 Gap de Mix")
-            st.dataframe(df_gap, use_container_width=True, hide_index=True)
-        else:
-            st.success("✅ Este cliente já compra todo o catálogo!")
+        # 3. Comparação Inteligente
+        nomes_limpos_faltantes = sorted(list(set(catalogo_dict.keys()) - produtos_cliente_set))
+        
+        # 4. Exibição nas Colunas
+        c_gap, c_cross = st.columns(2)
+        
+        with c_gap:
+            if nomes_limpos_faltantes:
+                # Recuperamos os nomes originais (bonitos) para mostrar na tabela
+                lista_final_gap = [catalogo_dict[n] for n in nomes_limpos_faltantes]
+                df_gap_v3 = pd.DataFrame({"Itens para Oferecer": lista_final_gap}).head(15)
+                
+                st.markdown("#### 🚨 Gap de Mix")
+                st.write("Produtos que ele ainda não comprou:")
+                st.dataframe(df_gap_v3, use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ O cliente já comprou todos os itens do catálogo!")
 
-    # 2. Lógica para CROSS-SELL (Categorias que ele não compra)
-    with col_opp2:
-        linhas_que_ja_comprou = set(df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str]["LINHA"].dropna().unique())
-        todas_as_linhas = set(df_vendas["LINHA"].dropna().unique())
-        
-        # Filtramos categorias "sujas"
-        categorias_faltantes = sorted(list(todas_as_linhas - linhas_que_ja_comprou - {"0", "nan", "", "None"}))
-        
-        if categorias_faltantes:
-            df_cross_final = pd.DataFrame({"Categorias não exploradas": categorias_faltantes})
-            st.markdown("#### 📦 Cross-sell")
-            st.dataframe(df_cross_final, use_container_width=True, hide_index=True)
-        else:
-            st.success("✅ Este cliente já compra de todas as categorias!")
+        with c_cross:
+            linhas_cliente = set(vendas_do_cliente["LINHA"].astype(str).str.strip().unique())
+            todas_linhas = set(df_vendas["LINHA"].astype(str).str.strip().unique())
+            
+            linhas_faltantes = sorted(list(todas_linhas - linhas_cliente - {"0", "nan", "", "None"}))
+            
+            if linhas_faltantes:
+                df_cross_v3 = pd.DataFrame({"Categorias Não Exploradas": linhas_faltantes})
+                st.markdown("#### 📦 Cross-sell")
+                st.write("Linhas para introduzir:")
+                st.dataframe(df_cross_v3, use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ Todas as linhas estão ativas!")
 
 # =========================
 # KPIs (Sempre visíveis no topo do Dashboard Geral)
