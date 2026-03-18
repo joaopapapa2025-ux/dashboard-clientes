@@ -1201,8 +1201,8 @@ if not df_vendas.empty:
         
         linha_selecionada = st.selectbox("Selecione uma linha:", options=linhas_papapa)
 
-# Filtro corrigido:
-df_detalhe_linha = vendas_cliente_atual[vendas_cliente_atual["LINHA"] == linha_selecionada]
+        # Filtro corrigido:
+        df_detalhe_linha = vendas_cliente_atual[vendas_cliente_atual["LINHA"] == linha_selecionada]
         
         if not df_detalhe_linha.empty:
             # Agrupar performance por SKU dentro da linha selecionada
