@@ -17,6 +17,15 @@ from reportlab.lib import colors
 import json
 import os
 
+def normalizar_nome_linha(linha_bruta):
+    l = str(linha_bruta).upper().strip()
+    if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
+    if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
+    if "CERAL" in l or "AVEIA" in l: return "CEREAIS" 
+    if "DENTI" in l: return "DENTIÇÃO"
+    if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
+    return l
+
 # Nome do arquivo de banco de dados
 ARQUIVO_DATABASE = "database_comentarios.json"
 
