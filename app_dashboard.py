@@ -17,37 +17,32 @@ from reportlab.lib import colors
 import json
 import os
 
-def normalizar_nome_linha(l_bruta, p_bruto):
-    try:
-        # Força os valores a serem strings e remove espaços, tratando nulos (NaN)
-        l = str(l_bruta if l_bruta is not None else "").upper().strip()
-        p = str(p_bruto if p_bruto is not None else "").upper().strip()
-        
-        # Regra 1: Yoguzinho (Prioridade por nome do produto)
-        if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l:
-            return "YOGUZINHO"
-        
-        # Regra 2: Sopinhas e La Chef (Caseirinhos)
-        if "SOPINHA" in p or "SOPINHA" in l:
-            return "SOPINHAS"
-        if any(x in p for x in ["CASEIRINHO", "RISOTINHO", "LENTILHA"]) or "LA CHEF" in l:
-            return "LA CHEF"
+def limpar_e_categorizar_linha(linha_bruta, nome_produto):
+    # Força a conversão para string de forma ultra segura
+    l = str(linha_bruta if not pd.isna(linha_bruta) else "").upper().strip()
+    p = str(nome_produto if not pd.isna(nome_produto) else "").upper().strip()
+    
+    # 1. Prioridade: Yoguzinho (mesmo que a planilha diga 'Papinha de Fruta')
+    if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l:
+        return "YOGUZINHO"
+    
+    # 2. Sopinhas e Linha La Chef (180g)
+    if "SOPINHA" in p or "SOPINHA" in l:
+        return "SOPINHAS"
+    if any(x in p for x in ["CASEIRINHO", "RISOTINHO", "LENTILHA"]):
+        return "LA CHEF"
 
-        # Regra 3: Papinhas Salgadas (Carne/Frango)
-        if any(x in l for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
-            return "PAPINHAS SALGADAS"
-        
-        # Regra 4: Papinhas de Frutas
-        if "FRUTA" in l or "ORG" in l:
-            return "PAPINHAS DE FRUTAS"
-        
-        # Outros
-        if "CERAL" in l or "AVEIA" in l: return "CEREAIS"
-        if "DENTI" in l: return "DENTIÇÃO"
-        
-        return l # Retorna o original se não bater em nada
-    except Exception:
-        return str(l_bruta)
+    # 3. Papinhas Salgadas (120g) vs Frutas
+    if any(x in l for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
+        return "PAPINHAS SALGADAS"
+    if "FRUTA" in l or "ORG" in l:
+        return "PAPINHAS DE FRUTAS"
+    
+    # 4. Outros
+    if "CERAL" in l or "AVEIA" in l: return "CEREAIS"
+    if "DENTI" in l: return "DENTIÇÃO"
+    
+    return l if l != "" else "OUTROS"
 
 # Nome do arquivo de banco de dados
 ARQUIVO_DATABASE = "database_comentarios.json"
@@ -1010,13 +1005,16 @@ if len(df_filtrado) == 1:
     if not vendas_cliente_atual.empty:
         linhas_corrigidas = []
         
-        for _, row in vendas_cliente_atual.iterrows():
-            # Busca os nomes das colunas (tenta maiúsculo e minúsculo)
-            l_val = row.get('LINHA', row.get('Linha', ''))
-            p_val = row.get('DESC PRODUTO', row.get('Produto', ''))
+        # Transformamos em dicionário para o acesso ser ultra rápido e seguro
+        dados_vendas = vendas_cliente_atual.to_dict('records')
+        
+        for linha_venda in dados_vendas:
+            # Pegamos os valores usando .get() para não quebrar se a coluna faltar
+            valor_linha = linha_venda.get('LINHA', '')
+            valor_prod = linha_venda.get('DESC PRODUTO', '')
             
-            # Chama a função blindada
-            resultado = normalizar_nome_linha(l_val, p_val)
+            # Chamamos a nova função
+            resultado = limpar_e_categorizar_linha(valor_linha, valor_prod)
             linhas_corrigidas.append(resultado)
         
         vendas_cliente_atual["LINHA_LIMPA"] = linhas_corrigidas
