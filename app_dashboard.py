@@ -17,19 +17,37 @@ from reportlab.lib import colors
 import json
 import os
 
-def normalizar_nome_linha(linha_bruta):
+def normalizar_nome_linha(linha_bruta, nome_produto=""):
+    # Transformamos tudo em maiúsculo para não ter erro de digitação
     l = str(linha_bruta).upper().strip()
+    p = str(nome_produto).upper().strip()
     
-    # 1. REGRAS DE PRIORIDADE (O que vem primeiro aqui, o Python respeita mais)
-    if "SOPINHA" in l: return "SOPINHAS"
-    if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
+    # 1. REGRA DO YOGUZINHO (Prioridade máxima)
+    # Se no nome do produto tiver 'IOGURTE' ou 'YOGU', cai aqui, 
+    # não importa o que esteja escrito na coluna LINHA
+    if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l or "YOGU" in l:
+        return "YOGUZINHO"
+
+    # 2. REGRA DAS SOPINHAS E LINHA LA CHEF
+    if "SOPINHA" in p or "SOPINHA" in l:
+        return "SOPINHAS"
     
-    # 2. REGRAS GENÉRICAS (Só olha essas se não for Sopinha nem Yoguzinho)
-    if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
-    if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
-    if "CERAL" in l or "AVEIA" in l: return "CEREAIS" 
-    if "DENTI" in l: return "DENTIÇÃO"
+    if "CASEIRINHO" in p or "RISOTINHO" in p or "LENTILHA" in p or "LA CHEF" in l:
+        return "LA CHEF"
+
+    # 3. REGRAS GENÉRICAS (Só se não passou nas de cima)
+    if "CARNE" in l or "SALGADA" in l: 
+        return "PAPINHAS SALGADAS"
     
+    if "FRUTA" in l or "ORG" in l: 
+        return "PAPINHAS DE FRUTAS"
+    
+    if "CERAL" in l or "AVEIA" in l: 
+        return "CEREAIS" 
+        
+    if "DENTI" in l: 
+        return "DENTIÇÃO"
+        
     return l
 
 # Nome do arquivo de banco de dados
