@@ -1004,59 +1004,54 @@ if not vendas_cliente.empty:
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
-    # =========================
-    # INTELIGÊNCIA DE MERCADO
-    # =========================
+    # ==========================================
+    # 🚨 FORÇANDO A EXIBIÇÃO DA INTELIGÊNCIA DE MERCADO
+    # ==========================================
     st.markdown("---")
+    st.subheader("💡 Oportunidades de Venda para este Cliente")
+    
+    # Criamos as colunas para as tabelas de Gap e Cross-sell
     col_opp1, col_opp2 = st.columns(2)
 
+    # 1. Lógica para GAP DE MIX (Produtos que ele não compra)
     with col_opp1:
-        # PRODUTOS QUE NÃO COMPRA (Gap Analysis)
-        produtos_cliente = set(vendas_cliente["DESC PRODUTO"].unique())
+        # Pegamos o que o cliente JÁ COMPROU na base MIX
+        # Usamos id_cliente_str para garantir que o filtro funcione
+        id_cliente_str = str(id_cliente).strip()
+        produtos_que_ja_comprou = set(df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str]["DESC PRODUTO"].unique())
         
-        # Filtra a base total para pegar apenas produtos reais
-        blacklist = ["CONFERIDO", "TESTE", "AJUSTE", "FRETE", "DESCONTO"]
-        regex_blacklist = "|".join(blacklist)
-        
-        todos_produtos = set(
+        # Pegamos TODOS os produtos que a Papapá vende (limpando lixo)
+        blacklist = ["CONFERIDO", "TESTE", "AJUSTE", "FRETE", "DESCONTO", "AM_"]
+        todos_produtos_catalogo = set(
             df_vendas[
-                (~df_vendas["DESC PRODUTO"].str.upper().str.contains(regex_blacklist, na=False))
+                (~df_vendas["DESC PRODUTO"].str.upper().str.contains("|".join(blacklist), na=False))
             ]["DESC PRODUTO"].unique()
         )
         
-        produtos_nao_compra = sorted(list(todos_produtos - produtos_cliente))
-        df_nao_compra = pd.DataFrame({
-            "Sugestões de Itens para Ofertar": produtos_nao_compra
-        }).head(15)
+        # O que falta no carrinho dele?
+        faltantes = sorted(list(todos_produtos_catalogo - produtos_que_ja_comprou))
+        
+        if faltantes:
+            df_gap = pd.DataFrame({"Itens para Oferecer": faltantes}).head(20)
+            st.markdown("#### 🚨 Gap de Mix")
+            st.dataframe(df_gap, use_container_width=True, hide_index=True)
+        else:
+            st.success("✅ Este cliente já compra todo o catálogo!")
 
-        st.subheader("🚨 Gap de Mix")
-        st.write("Produtos que este cliente ainda não trabalha:")
-        st.dataframe(df_nao_compra, use_container_width=True, hide_index=True)
-
+    # 2. Lógica para CROSS-SELL (Categorias que ele não compra)
     with col_opp2:
-        # CROSS SELL (Linhas Faltantes)
-        linhas_cliente = set(
-            vendas_cliente["LINHA"]
-            .astype(str).str.strip()
-            .replace(["", "nan", "None"], pd.NA).dropna().unique()
-        )
+        linhas_que_ja_comprou = set(df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str]["LINHA"].dropna().unique())
+        todas_as_linhas = set(df_vendas["LINHA"].dropna().unique())
         
-        todas_linhas = set(
-            df_vendas["LINHA"]
-            .astype(str).str.strip()
-            .replace(["", "nan", "None"], pd.NA).dropna().unique()
-        )
+        # Filtramos categorias "sujas"
+        categorias_faltantes = sorted(list(todas_as_linhas - linhas_que_ja_comprou - {"0", "nan", "", "None"}))
         
-        # Remove a linha "0" ou vazia se existir
-        linhas_faltantes = sorted(list(todas_linhas - linhas_cliente - {"0", ""}))
-        
-        df_cross = pd.DataFrame({
-            "Categorias Não Exploradas": linhas_faltantes
-        })
-
-        st.subheader("💡 Cross-sell")
-        st.write("Linhas completas que podem ser introduzidas:")
-        st.dataframe(df_cross, use_container_width=True, hide_index=True)
+        if categorias_faltantes:
+            df_cross_final = pd.DataFrame({"Categorias não exploradas": categorias_faltantes})
+            st.markdown("#### 📦 Cross-sell")
+            st.dataframe(df_cross_final, use_container_width=True, hide_index=True)
+        else:
+            st.success("✅ Este cliente já compra de todas as categorias!")
 
 # =========================
 # KPIs (Sempre visíveis no topo do Dashboard Geral)
