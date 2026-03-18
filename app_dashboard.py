@@ -1199,13 +1199,10 @@ if not df_vendas.empty:
             "CEREAIS", "BISCOTTI", "SOPINHAS"
         ]
         
-        linha_selecionada = st.selectbox("Selecione uma linha para detalhar a performance:", options=linhas_papapa)
-        
-        # Use exatamente este bloco:
-        df_detalhe_linha = df_vendas[
-            (df_vendas["CNPJ_LIMPO"] == id_cliente) & 
-            (df_vendas["LINHA"].apply(normalizar_nome_linha) == linha_selecionada)
-        ]
+        linha_selecionada = st.selectbox("Selecione uma linha:", options=linhas_papapa)
+
+# Filtro corrigido:
+df_detalhe_linha = vendas_cliente_atual[vendas_cliente_atual["LINHA"] == linha_selecionada]
         
         if not df_detalhe_linha.empty:
             # Agrupar performance por SKU dentro da linha selecionada
