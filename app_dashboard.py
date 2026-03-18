@@ -998,8 +998,10 @@ if len(df_filtrado) == 1:
     # ... (aqui continua seu código de col_info, col_crm, etc) ...
 
     if not vendas_cliente_atual.empty:
-        # Limpa as linhas para o Dashboard não mostrar "CERAL" ou "CARNES"
-        vendas_cliente_atual["LINHA"] = vendas_cliente_atual["LINHA"].apply(normalizar_nome_linha)
+        # CRIAR A COLUNA LIMPA AQUI (Isso resolve o erro do Yoguzinho e das Sopinhas)
+        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(
+            lambda x: normalizar_nome_linha(x["LINHA"], x["DESC PRODUTO"]), axis=1
+        )
 
         # --- PASSO 2: MAPEAMENTO DO CATÁLOGO OFICIAL ---
         catalogo_papapa = {
