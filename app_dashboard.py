@@ -1004,8 +1004,8 @@ if not vendas_cliente.empty:
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
-    # ==========================================
-# 🚨 BLOCO DEFINITIVO: CATALOGO OFICIAL PAPAPÁ
+# ==========================================
+# 🚀 INTELIGÊNCIA DE MERCADO: GAP VS CROSS-SELL
 # ==========================================
 if len(df_filtrado) == 1:
     st.markdown("---")
@@ -1013,68 +1013,67 @@ if len(df_filtrado) == 1:
     
     id_cliente_atual = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
     
-    # 1. SUA LISTA OFICIAL DE PRODUTOS (Copiada do seu prompt)
-    catalogo_oficial = [
-        "Papinha Papapa Carne Arroz Legumes 120g", "Papinha Papapa Frango Grão Vegetais 120g",
-        "Papinha Papapa Iogurte Frutas Amarelas e Banana 100g", "Papinha Papapa Iogurte Frutas Vermelhas e Banana 100g",
-        "Papinha Papapá Org Maçã Ameixa 100g", "Papinha Papapá Org Banana Mirtilo Quinoa 100g",
-        "Papinha Papapá Org Manga 100g", "Papinha Papapá Org Pera Espinafre Abobrinha 100g",
-        "Papinha Papapá Org Maçã B. Doce Cenoura 100g", "Papinha Papapá Org Morango Maçã 100g",
-        "Biscoito inf Papapá Palitinho de Vegetais org. Beterraba 20g", "Biscoito inf Papapá Palitinho de Vegetais org. Cenoura 20g",
-        "Biscoito inf Papapá Palitinho de Vegetais org. Tomate/Manjericão 20g", "Biscoito Inf Papapá dent. Maçã e Abóbora 36g",
-        "Biscoito Inf Papapá dent Vegetais 36g", "Macarrao Inf Papapá m. Elbow Quinoa 200g",
-        "Macarrao Inf Papapá m. Fusilli Vegetais 200g", "Sopinha Papapá org Lentinha Carne Legumes 180g",
-        "Risotinho Papapá org Arroz quinoa frango 180g", "Caseirinho Papapá org Arroz feijão carne leg. 180g",
-        "Cereal Infantil Papapá Aveia - Morango e Beterraba sache 170g", "Cereal Infantil Papapá Aveia - Banana e Ameixa sache 170g",
-        "Cereal Infantil Papapá Aveia - Multicereais sache 170g", "Cereal Infantil Papapá Aveia - Multicereais sache 500g",
-        "Biscoito Infantil Papapá Biscotti com Laranja e Cenoura 60g", "Biscoito Infantil Papapá Biscotti com Maçã e Canela 60g",
-        "Biscoito Infantil Papapá Biscotti com Banana e Cacau 60g", "Biscoito Infantil Papapá Biscotti Goiaba 60g",
-        "Biscoito Infantil Papapá Biscotti com Maracujá e Camomila 60g", "Sopinha Papapá Frango Arroz Legumes 240g (2x 120g)",
-        "Sopinha Papapá Carne Macarrao Legumes 240g (2x 120g)", "Sopinha Papapá Carne Mandioq Leg 240g (2x 120g)",
-        "Sopinha Papapá Feijão Carne Leg 240g (2x 120g)"
-    ]
+    # 1. MAPEAMENTO DO CATÁLOGO OFICIAL POR LINHA
+    # Organizamos os produtos por suas respectivas categorias (linhas)
+    catalogo_por_linha = {
+        "PAPINHAS SALGADAS": ["Papinha Papapa Carne Arroz Legumes 120g", "Papinha Papapa Frango Grão Vegetais 120g"],
+        "YOGUZINHO": ["Papinha Papapa Iogurte Frutas Amarelas e Banana 100g", "Papinha Papapa Iogurte Frutas Vermelhas e Banana 100g"],
+        "PAPINHAS DE FRUTAS": ["Papinha Papapá Org Maçã Ameixa 100g", "Papinha Papapá Org Banana Mirtilo Quinoa 100g", "Papinha Papapá Org Manga 100g", "Papinha Papapá Org Pera Espinafre Abobrinha 100g", "Papinha Papapá Org Maçã B. Doce Cenoura 100g", "Papinha Papapá Org Morango Maçã 100g"],
+        "PALITINHOS": ["Biscoito inf Papapá Palitinho de Vegetais org. Beterraba 20g", "Biscoito inf Papapá Palitinho de Vegetais org. Cenoura 20g", "Biscoito inf Papapá Palitinho de Vegetais org. Tomate/Manjericão 20g"],
+        "DENTIÇÃO": ["Biscoito Inf Papapá dent. Maçã e Abóbora 36g", "Biscoito Inf Papapá dent Vegetais 36g"],
+        "MACARRÃO": ["Macarrao Inf Papapá m. Elbow Quinoa 200g", "Macarrao Inf Papapá m. Fusilli Vegetais 200g"],
+        "LA CHEF": ["Sopinha Papapá org Lentinha Carne Legumes 180g", "Risotinho Papapá org Arroz quinoa frango 180g", "Caseirinho Papapá org Arroz feijão carne leg. 180g"],
+        "CEREAIS": ["Cereal Infantil Papapá Aveia - Morango e Beterraba sache 170g", "Cereal Infantil Papapá Aveia - Banana e Ameixa sache 170g", "Cereal Infantil Papapá Aveia - Multicereais sache 170g", "Cereal Infantil Papapá Aveia - Multicereais sache 500g"],
+        "BISCOTTI": ["Biscoito Infantil Papapá Biscotti com Laranja e Cenoura 60g", "Biscoito Infantil Papapá Biscotti com Maçã e Canela 60g", "Biscoito Infantil Papapá Biscotti com Banana e Cacau 60g", "Biscoito Infantil Papapá Biscotti Goiaba 60g", "Biscoito Infantil Papapá Biscotti com Maracujá e Camomila 60g"],
+        "SOPINHAS": ["Sopinha Papapá Frango Arroz Legumes 240g (2x 120g)", "Sopinha Papapá Carne Macarrao Legumes 240g (2x 120g)", "Sopinha Papapá Carne Mandioq Leg 240g (2x 120g)", "Sopinha Papapá Feijão Carne Leg 240g (2x 120g)"]
+    }
 
-    # Função para normalizar texto (remove tudo que não é letra/número e deixa em maiúsculo)
     def normalizar(txt):
         import re
         if pd.isna(txt): return ""
-        # Remove acentos, símbolos e espaços extras
-        txt = str(txt).upper()
-        return re.sub(r'[^A-Z0-9]', '', txt)
+        return re.sub(r'[^A-Z0-9]', '', str(txt).upper())
 
     if not df_vendas.empty:
-        # 2. O que o cliente comprou (Normalizado)
+        # 2. IDENTIFICAÇÃO DO PERFIL DO CLIENTE
         vendas_do_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]
-        comprados_norm = set(vendas_do_cliente["DESC PRODUTO"].apply(normalizar).unique())
+        produtos_comprados_norm = set(vendas_do_cliente["DESC PRODUTO"].apply(normalizar).unique())
         
-        # 3. Comparação com o catálogo oficial
-        faltantes_finais = []
-        for p_original in catalogo_oficial:
-            if normalizar(p_original) not in comprados_norm:
-                faltantes_finais.append(p_original)
+        # Identifica as linhas (categorias) que o cliente já compra na aba MIX
+        linhas_que_o_cliente_compra = set(vendas_do_cliente["LINHA"].astype(str).str.upper().str.strip().unique())
+        
+        gap_de_mix = []
+        cross_sell = []
 
-        # 4. Interface
+        # 3. LÓGICA DE SEPARAÇÃO
+        for linha, produtos in catalogo_por_linha.items():
+            # Se ele já compra essa LINHA -> SKUs faltantes vão para o GAP
+            if linha in linhas_que_o_cliente_compra:
+                for p in produtos:
+                    if normalizar(p) not in produtos_comprados_norm:
+                        gap_de_mix.append({"Linha": linha, "Produto": p})
+            
+            # Se ele NUNCA comprou essa LINHA -> Toda a linha vai para o CROSS-SELL
+            else:
+                for p in produtos:
+                    cross_sell.append({"Linha": linha, "Produto": p})
+
+        # 4. EXIBIÇÃO NO DASHBOARD
         c_gap, c_cross = st.columns(2)
         
         with c_gap:
-            st.markdown("#### 🚨 Gap de Mix")
-            if faltantes_finais:
-                df_gap_final = pd.DataFrame({"Itens para Oferecer": faltantes_finais})
-                st.dataframe(df_gap_final.head(20), use_container_width=True, hide_index=True)
+            st.markdown("#### 🚨 Gap de Mix (SKUs faltantes em categorias ativas)")
+            if gap_de_mix:
+                st.dataframe(pd.DataFrame(gap_de_mix), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Cliente VIP! Compra todo o catálogo.")
+                st.success("✅ Mix completo nas categorias que o cliente já compra!")
 
         with c_cross:
-            st.markdown("#### 📦 Cross-sell")
-            # Lógica de categorias baseada na sua lista
-            linhas_cliente = set(vendas_do_cliente["LINHA"].astype(str).str.strip().unique())
-            todas_linhas = set(df_vendas["LINHA"].astype(str).str.strip().unique())
-            faltantes_cat = sorted(list(todas_linhas - linhas_cliente - {"0", "nan", "", "None"}))
-            
-            if faltantes_cat:
-                st.dataframe(pd.DataFrame({"Categorias faltantes": faltantes_cat}), use_container_width=True, hide_index=True)
+            st.markdown("#### 📦 Cross-sell (Categorias/Linhas nunca compradas)")
+            if cross_sell:
+                # Mostramos apenas os produtos das categorias que ele não conhece
+                st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Atua em todas as linhas.")
+                st.success("✅ O cliente já compra de todas as categorias do catálogo!")
 
 # =========================
 # KPIs (Sempre visíveis no topo do Dashboard Geral)
