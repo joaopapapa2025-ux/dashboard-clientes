@@ -1155,7 +1155,7 @@ if not df_vendas.empty:
         
         # Filtrar a base MIX pelo nome da linha (garantindo que esteja em maiúsculo)
         df_detalhe_linha = df_vendas[
-            (df_vendas["CNPJ_LIMPO"] == id_cliente_atual) & 
+            (df_vendas["CNPJ_LIMPO"] == id_cliente) & 
             (df_vendas["LINHA"].str.upper().str.strip() == linha_selecionada)
         ]
         
