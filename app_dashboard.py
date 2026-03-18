@@ -1022,7 +1022,7 @@ k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 # =========================
 
 # ==========================================
-# 🚀 AJUSTE FINAL: INTELIGÊNCIA DE MERCADO (GAP VS CROSS-SELL)
+# 🚀 CORREÇÃO CEGA: BUSCA POR TERMOS CHAVE
 # ==========================================
 if len(df_filtrado) == 1:
     st.markdown("---")
@@ -1030,81 +1030,95 @@ if len(df_filtrado) == 1:
     
     id_cliente_atual = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
     
-    # 1. CATÁLOGO OFICIAL E MAPEAMENTO
-    catalogo_por_linha = {
-        "PAPINHAS SALGADAS": ["Papinha Papapa Carne Arroz Legumes 120g", "Papinha Papapa Frango Grão Vegetais 120g"],
-        "YOGUZINHO": ["Papinha Papapa Iogurte Frutas Amarelas e Banana 100g", "Papinha Papapa Iogurte Frutas Vermelhas e Banana 100g"],
-        "PAPINHAS DE FRUTAS": ["Papinha Papapá Org Maçã Ameixa 100g", "Papinha Papapá Org Banana Mirtilo Quinoa 100g", "Papinha Papapá Org Manga 100g", "Papinha Papapá Org Pera Espinafre Abobrinha 100g", "Papinha Papapá Org Maçã B. Doce Cenoura 100g", "Papinha Papapá Org Morango Maçã 100g"],
-        "PALITINHOS": ["Biscoito inf Papapá Palitinho de Vegetais org. Beterraba 20g", "Biscoito inf Papapá Palitinho de Vegetais org. Cenoura 20g", "Biscoito inf Papapá Palitinho de Vegetais org. Tomate/Manjericão 20g"],
-        "DENTIÇÃO": ["Biscoito Inf Papapá dent. Maçã e Abóbora 36g", "Biscoito Inf Papapá dent Vegetais 36g"],
-        "MACARRÃO": ["Macarrao Inf Papapá m. Elbow Quinoa 200g", "Macarrao Inf Papapá m. Fusilli Vegetais 200g"],
-        "LA CHEF": ["Sopinha Papapá org Lentinha Carne Legumes 180g", "Risotinho Papapá org Arroz quinoa frango 180g", "Caseirinho Papapá org Arroz feijão carne leg. 180g"],
-        "CEREAIS": ["Cereal Infantil Papapá Aveia - Morango e Beterraba sache 170g", "Cereal Infantil Papapá Aveia - Banana e Ameixa sache 170g", "Cereal Infantil Papapá Aveia - Multicereais sache 170g", "Cereal Infantil Papapá Aveia - Multicereais sache 500g"],
-        "BISCOTTI": ["Biscoito Infantil Papapá Biscotti com Laranja e Cenoura 60g", "Biscoito Infantil Papapá Biscotti com Maçã e Canela 60g", "Biscoito Infantil Papapá Biscotti com Banana e Cacau 60g", "Biscoito Infantil Papapá Biscotti Goiaba 60g", "Biscoito Infantil Papapá Biscotti com Maracujá e Camomila 60g"],
-        "SOPINHAS": ["Sopinha Papapá Frango Arroz Legumes 240g (2x 120g)", "Sopinha Papapá Carne Macarrao Legumes 240g (2x 120g)", "Sopinha Papapá Carne Mandioq Leg 240g (2x 120g)", "Sopinha Papapá Feijão Carne Leg 240g (2x 120g)"]
+    # 1. MAPEAMENTO COM TERMOS DE BUSCA (Keywords)
+    # Isso garante que "MACA E AMEIXA" encontre "Maçã Ameixa"
+    catalogo_v4 = {
+        "PAPINHAS SALGADAS": {
+            "Papinha Carne Arroz Legumes 120g": ["CARNE", "ARROZ", "120G"],
+            "Papinha Frango Grão Vegetais 120g": ["FRANGO", "GRAO", "120G"]
+        },
+        "YOGUZINHO": {
+            "Iogurte Frutas Amarelas e Banana 100g": ["IOGURTE", "AMARELAS"],
+            "Iogurte Frutas Vermelhas e Banana 100g": ["IOGURTE", "VERMELHAS"]
+        },
+        "PAPINHAS DE FRUTAS": {
+            "Papinha Org Maçã Ameixa 100g": ["MACA", "AMEIXA"],
+            "Papinha Org Banana Mirtilo Quinoa 100g": ["BANANA", "MIRTILO"],
+            "Papinha Org Manga 100g": ["MANGA"],
+            "Papinha Org Pera Espinafre Abobrinha 100g": ["PERA", "ESPINA FRE"],
+            "Papinha Org Maçã B. Doce Cenoura 100g": ["MACA", "DOCE", "CENOURA"],
+            "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
+        },
+        "PALITINHOS": {
+            "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
+            "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
+            "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
+        },
+        "DENTIÇÃO": {
+            "Biscoito Maçã e Abóbora 36g": ["DENTICÃO", "MACA", "ABOBORA"],
+            "Biscoito Vegetais 36g": ["DENTICÃO", "VEGETAIS"]
+        },
+        "MACARRÃO": {
+            "Macarrão Elbow Quinoa 200g": ["ELBOW"],
+            "Macarrão Fusilli Vegetais 200g": ["FUSILLI"]
+        },
+        "LA CHEF": {
+            "Lentilha Carne Legumes 180g": ["LENTILHA"],
+            "Arroz Quinoa Frango 180g": ["RISOTINHO"],
+            "Arroz Feijão Carne Leg. 180g": ["CASEIRINHO"]
+        },
+        "CEREAIS": {
+            "Aveia - Morango e Beterraba 170g": ["CEREAL", "MORANGO"],
+            "Aveia - Banana e Ameixa 170g": ["CEREAL", "BANANA"],
+            "Aveia - Multicereais 170g": ["CEREAL", "MULTI", "170G"],
+            "Aveia - Multicereais 500g": ["CEREAL", "MULTI", "500G"]
+        },
+        "BISCOTTI": {
+            "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJA"],
+            "Biscotti Maçã e Canela 60g": ["BISCOTTI", "CANELA"],
+            "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
+            "Biscotti Goiaba 60g": ["BISCOTTI", "GOIABA"],
+            "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJA"]
+        },
+        "SOPINHAS": {
+            "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO", "240G"],
+            "Sopinha Carne Macarrão Legumes 240g": ["SOPINHA", "MACARRAO", "240G"],
+            "Sopinha Carne Mandioquinha Leg 240g": ["SOPINHA", "MANDIOQ"],
+            "Sopinha Feijão Carne Leg 240g": ["SOPINHA", "FEIJAO", "240G"]
+        }
     }
 
-    # Função de normalização ultra-limpa (remove acentos e caracteres especiais)
-    def normalizar_v2(txt):
-        import unicodedata
-        import re
-        if pd.isna(txt): return ""
-        # Remove acentos
-        nks = unicodedata.normalize('NFKD', str(txt).upper())
-        txt_sem_acento = "".join([c for c in nks if not unicodedata.combining(c)])
-        # Deixa apenas letras e números
-        return re.sub(r'[^A-Z0-9]', '', txt_sem_acento)
-
     if not df_vendas.empty:
-        # 2. FILTRAGEM DO HISTÓRICO REAL DO CLIENTE (Aba MIX)
-        vendas_do_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual].copy()
+        # Pega todo o histórico de nomes de produtos que esse cliente já comprou
+        vendas_cliente_nomes = " ".join(df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]["DESC PRODUTO"].fillna("").astype(str).upper().unique())
         
-        # Criamos conjuntos de comparação normalizados
-        produtos_comprados_norm = set(vendas_do_cliente["DESC PRODUTO"].apply(normalizar_v2).unique())
+        # Identifica linhas ativas pelo histórico
+        linhas_ativas = set(df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]["LINHA"].fillna("").astype(str).upper().str.strip().unique())
         
-        # Identificamos as linhas que ele já comprou (baseado na coluna LINHA do Excel)
-        linhas_ativas_cliente = set(vendas_do_cliente["LINHA"].astype(str).str.upper().str.strip().unique())
-        
-        gap_de_mix = []
+        gap_mix = []
         cross_sell = []
 
-        # 3. COMPARAÇÃO LÓGICA
-        for linha, produtos in catalogo_por_linha.items():
-            # Linha Normalizada para comparação com a coluna do Excel
-            linha_norm = linha.upper().strip()
-            
-            if linha_norm in linhas_ativas_cliente:
-                # GAP: Se ele já compra a LINHA, mostramos apenas SKUs faltantes
-                for p in produtos:
-                    if normalizar_v2(p) not in produtos_comprados_norm:
-                        gap_de_mix.append({"Linha": linha, "Produto": p})
-            else:
-                # CROSS-SELL: Se ele NUNCA comprou essa LINHA, mostramos todos os produtos dela
-                # Mas conferimos SKU por SKU por segurança contra erros de cadastro de "Linha"
-                for p in produtos:
-                    if normalizar_v2(p) not in produtos_comprados_norm:
-                        cross_sell.append({"Linha": linha, "Produto": p})
+        for linha, produtos in catalogo_v4.items():
+            for nome_bonito, keywords in produtos.items():
+                # Verifica se TODAS as keywords do produto estão no histórico de compras
+                ja_comprou = all(kw.upper() in vendas_cliente_nomes for kw in keywords)
+                
+                if not ja_comprou:
+                    if linha.upper() in linhas_ativas:
+                        gap_mix.append({"Linha": linha, "Produto": nome_bonito})
+                    else:
+                        cross_sell.append({"Linha": linha, "Produto": nome_bonito})
 
-        # 4. EXIBIÇÃO
-        c_gap, c_cross = st.columns(2)
-        
-        with c_gap:
+        # Exibição
+        c1, c2 = st.columns(2)
+        with c1:
             st.markdown("#### 🚨 Gap de Mix")
-            st.caption("Produtos que faltam em categorias que a cliente já trabalha")
-            if gap_de_mix:
-                st.dataframe(pd.DataFrame(gap_de_mix), use_container_width=True, hide_index=True)
-            else:
-                st.success("✅ Mix completo nas categorias ativas!")
-
-        with c_cross:
+            st.caption("SKUs que faltam em linhas que ela já compra")
+            st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+        with c2:
             st.markdown("#### 📦 Cross-sell")
-            st.caption("Novas linhas/categorias para introduzir")
-            if cross_sell:
-                # Removemos duplicatas caso o SKU tenha sido pego no GAP por erro de categoria
-                df_cs = pd.DataFrame(cross_sell)
-                st.dataframe(df_cs, use_container_width=True, hide_index=True)
-            else:
-                st.success("✅ O cliente já compra de todo o catálogo!")
+            st.caption("Linhas novas para oferecer")
+            st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
                 
 # ==========================================
 
