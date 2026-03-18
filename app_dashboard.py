@@ -1222,31 +1222,57 @@ if not df_vendas.empty:
                                    color_continuous_scale="Reds")
             st.plotly_chart(fig_top_geral, use_container_width=True)
 
-        # 5. PERFORMANCE POR CATEGORIA (Deep Dive)
+# ==========================================
+        # 5. PERFORMANCE POR LINHA PAPAPÁ (Deep Dive)
+        # ==========================================
         st.markdown("---")
-        st.markdown("#### 🏆 Destaques por Categoria")
+        st.markdown("#### 🏆 Performance por Linha de Produto")
         
-        categorias_full = ["Papinhas e Sopinhas", "Snacks", "Macarrões", "Cereais"]
-        cat_sel = st.selectbox("Selecione uma categoria para detalhar:", options=categorias_full)
+        # Usamos as chaves do dicionário que criamos na Inteligência de Mercado
+        linhas_papapa = [
+            "PAPINHAS SALGADAS", "YOGUZINHO", "PAPINHAS DE FRUTAS", 
+            "PALITINHOS", "DENTIÇÃO", "MACARRÃO", "LA CHEF", 
+            "CEREAIS", "BISCOTTI", "SOPINHAS"
+        ]
         
-        df_cat = vendas_geral[vendas_geral["CAT_CATALOGO"] == cat_sel]
+        linha_selecionada = st.selectbox("Selecione uma linha para detalhar a performance:", options=linhas_papapa)
         
-        if not df_cat.empty:
-            rank = df_cat.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
+        # Filtrar a base MIX pelo nome da linha (garantindo que esteja em maiúsculo)
+        df_detalhe_linha = df_vendas[
+            (df_vendas["CNPJ_LIMPO"] == id_cliente_atual) & 
+            (df_vendas["LINHA"].str.upper().str.strip() == linha_selecionada)
+        ]
+        
+        if not df_detalhe_linha.empty:
+            # Agrupar performance por SKU dentro da linha selecionada
+            performance_sku = df_detalhe_linha.groupby("DESC PRODUTO")["VALOR"].sum().sort_values(ascending=False).reset_index()
             
-            ce, cd = st.columns(2)
-            with ce:
-                st.success(f"⭐ **TOP 3: {cat_sel.upper()}**")
-                df_top3 = rank.head(3).copy()
-                df_top3["VALOR"] = df_top3["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
-                st.table(df_top3.rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Total"}))
-            with cd:
-                st.error(f"⚠️ **OPORTUNIDADE (Menos Vendidos): {cat_sel.upper()}**")
-                df_tail3 = rank.tail(3).sort_values("VALOR").copy()
-                df_tail3["VALOR"] = df_tail3["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
-                st.table(df_tail3.rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Total"}))
+            c_top, c_vol = st.columns(2)
+            
+            with c_top:
+                st.success(f"⭐ **Mais Comprados: {linha_selecionada}**")
+                df_top_sku = performance_sku.head(5).copy()
+                df_top_sku["VALOR"] = df_top_sku["VALOR"].apply(lambda x: f"R$ {x:,.2f}")
+                st.table(df_top_sku.rename(columns={"DESC PRODUTO": "Produto", "VALOR": "Total Gasto"}))
+                
+            with c_vol:
+                # Mostrar o volume total dessa categoria para o cliente
+                total_linha = df_detalhe_linha["VALOR"].sum()
+                qtd_total = df_detalhe_linha["QTDE"].sum()
+                st.metric(label=f"Investimento Total em {linha_selecionada}", value=f"R$ {total_linha:,.2f}")
+                st.metric(label="Volume Total (Unidades)", value=int(qtd_total))
+                
+                # Gráfico rápido de barras para a linha
+                import plotly.express as px
+                fig_bar_linha = px.bar(performance_sku.head(5), x="VALOR", y="DESC PRODUTO", orientation='h',
+                                      title="Top 5 SKUs por Valor",
+                                      labels={"VALOR": "Valor (R$)", "DESC PRODUTO": "Produto"},
+                                      color_discrete_sequence=["#00CC96"])
+                fig_bar_linha.update_layout(height=250, margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig_bar_linha, use_container_width=True)
         else:
-            st.warning(f"Não há registros de venda para a categoria '{cat_sel}' com os filtros aplicados.")
+            st.warning(f"O cliente ainda não realizou compras na linha '{linha_selecionada}'.")
+            st.info(f"💡 Dica: Veja os produtos desta linha na tabela de **Cross-sell** acima para oferecer!")
     else:
         st.info("Nenhuma venda encontrada para os clientes selecionados.")
 
