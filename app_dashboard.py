@@ -1003,13 +1003,21 @@ if len(df_filtrado) == 1:
     # ... (aqui continua seu código de col_info, col_crm, etc) ...
 
     if not vendas_cliente_atual.empty:
-        # Criamos a coluna LINHA_LIMPA de forma mais segura
-        def aplicar_limpeza(row):
-            # Tenta pegar 'LINHA', se não achar tenta 'Linha'
-            l = row.get('LINHA', row.get('Linha', ''))
-            # Tenta pegar 'DESC PRODUTO', se não achar tenta 'Produto'
-            p = row.get('DESC PRODUTO', row.get('Produto', ''))
-            return normalizar_nome_linha(l, p)
+        # 1. Criamos a lista que vai virar a nova coluna
+        linhas_corrigidas = []
+        
+        # 2. Percorremos as vendas uma por uma (mais seguro contra erros)
+        for _, row in vendas_cliente_atual.iterrows():
+            # Pegamos os valores garantindo que sejam strings, se for vazio vira ""
+            l_original = str(row.get('LINHA', '')).upper()
+            p_original = str(row.get('DESC PRODUTO', '')).upper()
+            
+            # Chamamos a sua função de limpeza
+            resultado = normalizar_nome_linha(l_original, p_original)
+            linhas_corrigidas.append(resultado)
+        
+        # 3. Criamos a coluna com os valores limpos
+        vendas_cliente_atual["LINHA_LIMPA"] = linhas_corrigidas
 
         vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(aplicar_limpeza, axis=1)
 
