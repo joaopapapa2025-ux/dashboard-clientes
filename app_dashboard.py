@@ -18,22 +18,27 @@ import json
 import os
 
 def normalizar_nome_linha(linha_bruta, nome_produto=""):
+    # Converte para string e limpa espaços para evitar erro de 'None'
     l = str(linha_bruta).upper().strip()
     p = str(nome_produto).upper().strip()
     
-    # Prioridade 1: Yoguzinho (pela descrição do produto)
-    if "IOGURTE" in p or "YOGU" in p:
+    # 1. Prioridade Máxima: Yoguzinho (mesmo que a planilha diga 'Papinha')
+    if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l:
         return "YOGUZINHO"
     
-    # Prioridade 2: Sopinhas e La Chef
+    # 2. Sopinhas e Linha La Chef
     if "SOPINHA" in p or "SOPINHA" in l:
         return "SOPINHAS"
     if any(x in p for x in ["CASEIRINHO", "RISOTINHO", "LENTILHA"]) or "LA CHEF" in l:
         return "LA CHEF"
 
-    # Prioridade 3: Regras Gerais
-    if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
-    if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
+    # 3. Papinhas Salgadas (120g) vs Frutas
+    if "CARNE" in l or "SALGADA" in l or "FRANGO" in p:
+        return "PAPINHAS SALGADAS"
+    if "FRUTA" in l or "ORG" in l:
+        return "PAPINHAS DE FRUTAS"
+    
+    # 4. Outras categorias
     if "CERAL" in l or "AVEIA" in l: return "CEREAIS" 
     if "DENTI" in l: return "DENTIÇÃO"
     
