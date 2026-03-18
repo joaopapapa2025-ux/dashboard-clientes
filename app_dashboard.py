@@ -18,30 +18,33 @@ import json
 import os
 
 def categorizar_produto_papapa(row):
-    # Forçamos a leitura como string para evitar erros de tipo
-    l = str(row.get('LINHA', '')).upper().strip()
-    p = str(row.get('DESC PRODUTO', '')).upper().strip()
+    # 1. Captura os dados de forma segura
+    l_raw = row.get('LINHA', '')
+    p_raw = row.get('DESC PRODUTO', '')
     
-    # --- 1. PRIORIDADE MÁXIMA: YOGUZINHO ---
-    if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l:
+    # Se for nulo ou vazio, evita erro de conversão
+    l = str(l_raw if l_raw is not None else "").upper().strip()
+    p = str(p_raw if p_raw is not None else "").upper().strip()
+    
+    # --- REGRA 1: YOGUZINHO (SEMPRE PRIORIDADE) ---
+    if any(x in p for x in ["IOGURTE", "YOGU"]) or "IOGURTE" in l:
         return "YOGUZINHO"
     
-    # --- 2. PRIORIDADE MÉDIA: LA CHEF (180G) ---
-    # Se o produto tiver '180G' ou for um prato específico da La Chef, 
-    # ele DEVE ser La Chef, mesmo que o nome comece com 'Sopinha'
+    # --- REGRA 2: LA CHEF (180G) - ESTA REGRA TEM QUE VIR ANTES DE 'SOPINHAS' ---
+    # Verificamos se é 180G ou se tem as palavras exclusivas da linha La Chef
     if "180G" in p or any(x in p for x in ["LENTILHA", "CASEIRINHO", "RISOTINHO"]):
         return "LA CHEF"
     
-    # --- 3. SOPINHAS TRADICIONAIS (240G) ---
-    # Só cai aqui se NÃO for 180g
+    # --- REGRA 3: SOPINHAS TRADICIONAIS (240G) ---
+    # Só vai entrar aqui se o teste de cima (180G) falhar
     if "SOPINHA" in p or "SOPINHA" in l:
         return "SOPINHAS"
 
-    # --- 4. PAPINHAS SALGADAS (120G) ---
-    if any(x in l for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
+    # --- REGRA 4: PAPINHAS SALGADAS (120G) ---
+    if "120G" in p or any(x in l for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
         return "PAPINHAS SALGADAS"
     
-    # --- 5. OUTRAS CATEGORIAS ---
+    # --- OUTRAS CATEGORIAS ---
     if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
     if "CERAL" in l or "AVEIA" in l: return "CEREAIS"
     if "DENTI" in l: return "DENTIÇÃO"
