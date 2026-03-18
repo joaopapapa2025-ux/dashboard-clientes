@@ -18,30 +18,34 @@ import json
 import os
 
 def categorizar_produto_papapa(row):
+    # Forçamos a leitura como string para evitar erros de tipo
     l = str(row.get('LINHA', '')).upper().strip()
     p = str(row.get('DESC PRODUTO', '')).upper().strip()
     
-    # 1. Prioridade Máxima: Yoguzinho
+    # --- 1. PRIORIDADE MÁXIMA: YOGUZINHO ---
     if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l:
         return "YOGUZINHO"
     
-    # 2. Diferenciação LA CHEF (180G) vs SOPINHAS (240G)
-    # Se tiver 180G no nome ou for um dos pratos da linha La Chef, cai aqui
+    # --- 2. PRIORIDADE MÉDIA: LA CHEF (180G) ---
+    # Se o produto tiver '180G' ou for um prato específico da La Chef, 
+    # ele DEVE ser La Chef, mesmo que o nome comece com 'Sopinha'
     if "180G" in p or any(x in p for x in ["LENTILHA", "CASEIRINHO", "RISOTINHO"]):
         return "LA CHEF"
     
-    # 3. Sopinhas tradicionais (240G)
+    # --- 3. SOPINHAS TRADICIONAIS (240G) ---
+    # Só cai aqui se NÃO for 180g
     if "SOPINHA" in p or "SOPINHA" in l:
         return "SOPINHAS"
 
-    # 4. Papinhas Salgadas (120g)
+    # --- 4. PAPINHAS SALGADAS (120G) ---
     if any(x in l for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
         return "PAPINHAS SALGADAS"
     
-    # 5. Demais categorias...
+    # --- 5. OUTRAS CATEGORIAS ---
     if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
     if "CERAL" in l or "AVEIA" in l: return "CEREAIS"
     if "DENTI" in l: return "DENTIÇÃO"
+    if "PALIT" in l or "PALIT" in p: return "PALITINHOS"
     
     return l if l != "" else "OUTROS"
 
