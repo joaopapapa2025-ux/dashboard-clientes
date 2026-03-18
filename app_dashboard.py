@@ -19,11 +19,17 @@ import os
 
 def normalizar_nome_linha(linha_bruta):
     l = str(linha_bruta).upper().strip()
+    
+    # 1. REGRAS DE PRIORIDADE (O que vem primeiro aqui, o Python respeita mais)
+    if "SOPINHA" in l: return "SOPINHAS"
+    if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
+    
+    # 2. REGRAS GENÉRICAS (Só olha essas se não for Sopinha nem Yoguzinho)
     if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
     if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
     if "CERAL" in l or "AVEIA" in l: return "CEREAIS" 
     if "DENTI" in l: return "DENTIÇÃO"
-    if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
+    
     return l
 
 # Nome do arquivo de banco de dados
