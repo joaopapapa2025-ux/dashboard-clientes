@@ -981,42 +981,50 @@ if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
     id_cliente = cliente["CNPJ_LIMPO"]
     
-    # --- NOVO: BLOCO DE LIMPEZA PARA OS GRÁFICOS ---
-    # 1. Filtramos as vendas do cliente na base bruta (aba MIX)
+    # 1. Filtramos as vendas do cliente
     vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente).strip()].copy()
 
-    # 2. Definimos a regra de correção de nomes
-    def normalizar_nome_linha(linha_bruta):
-        l = str(linha_bruta).upper().strip()
-        if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
-        if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
-        if "CERAL" in l or "AVEIA" in l: return "CEREAIS" 
-        if "DENTI" in l: return "DENTIÇÃO"
-        if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
-        return l
-
-    # 3. Aplicamos a limpeza na coluna 'LINHA'
     if not vendas_cliente_atual.empty:
-        vendas_cliente_atual["LINHA"] = vendas_cliente_atual["LINHA"].apply(normalizar_nome_linha)
-    # ----------------------------------------------
+        # --- FUNÇÃO DE LIMPEZA ÚNICA E BLINDADA ---
+        def categorizar_produto_papapa(row):
+            # Tratamento de valores nulos e conversão para texto
+            l = str(row.get('LINHA', '')).upper().strip()
+            p = str(row.get('DESC PRODUTO', '')).upper().strip()
+            
+            # Regra 1: Yoguzinho (Prioridade por nome do produto ou linha suja)
+            if "IOGURTE" in p or "YOGU" in p or "IOGURTE" in l:
+                return "YOGUZINHO"
+            
+            # Regra 2: Sopinhas (Diferenciar das papinhas de 120g)
+            if "SOPINHA" in p or "SOPINHA" in l:
+                return "SOPINHAS"
+            
+            # Regra 3: La Chef / Caseirinhos (180g)
+            if any(x in p for x in ["CASEIRINHO", "RISOTINHO", "LENTILHA"]) or "LA CHEF" in l:
+                return "LA CHEF"
 
-    # ... (aqui continua seu código de col_info, col_crm, etc) ...
+            # Regra 4: Papinhas Salgadas (120g)
+            if any(x in l for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
+                return "PAPINHAS SALGADAS"
+            
+            # Regra 5: Papinhas de Frutas / Orgânicas
+            if "FRUTA" in l or "ORG" in l:
+                return "PAPINHAS DE FRUTAS"
+            
+            # Outras Categorias
+            if "CERAL" in l or "AVEIA" in l: return "CEREAIS"
+            if "DENTI" in l: return "DENTIÇÃO"
+            if "PALIT" in l or "PALIT" in p: return "PALITINHOS"
+            if "BISCOTTI" in l or "BISCOTTI" in p: return "BISCOTTI"
+            if "MACARRAO" in l or "MACARRAO" in p: return "MACARRÃO"
+            
+            return l if l != "" else "OUTROS"
 
-    if not vendas_cliente_atual.empty:
-        # 1. Definimos a função de ajuda LOGO ANTES de usar
-        def ajustar_linha(row):
-            l = row.get('LINHA', '')
-            p = row.get('DESC PRODUTO', '')
-            # Aqui chamamos aquela função que você colou no topo do arquivo
-            return limpar_e_categorizar_linha(l, p)
-
-        # 2. Aplicamos a função criada acima
-        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(ajustar_linha, axis=1)
+        # 2. Criamos a coluna LINHA_LIMPA de uma vez só (evita NameError e TypeError)
+        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(categorizar_produto_papapa, axis=1)
         
-        # 3. Criamos a coluna com os valores limpos
-        vendas_cliente_atual["LINHA_LIMPA"] = linhas_corrigidas
-
-        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(aplicar_limpeza, axis=1)
+        # Sincronizamos a coluna LINHA original para os filtros do Gap de Mix funcionarem
+        vendas_cliente_atual["LINHA"] = vendas_cliente_atual["LINHA_LIMPA"]
 
         # --- PASSO 2: MAPEAMENTO DO CATÁLOGO OFICIAL ---
         catalogo_papapa = {
@@ -1076,15 +1084,16 @@ if len(df_filtrado) == 1:
         }
 
         # --- PASSO 3: LÓGICA DE COMPARAÇÃO ---
+        # Unimos todas as descrições em uma massa única para busca
         vendas_nomes_massa = " ".join(vendas_cliente_atual["DESC PRODUTO"].fillna("").astype(str).str.upper().unique())
-        linhas_ativas = set(vendas_cliente_atual["LINHA"].unique())
+        linhas_ativas = set(vendas_cliente_atual["LINHA_LIMPA"].unique())
         
         gap_mix = []
         cross_sell = []
 
         for linha_oficial, produtos in catalogo_papapa.items():
             for nome_bonito, keywords in produtos.items():
-                # Verifica se já comprou o item (independente do nome no Excel)
+                # Verifica se já comprou o item
                 ja_comprou = all(kw.upper() in vendas_nomes_massa for kw in keywords)
                 
                 if not ja_comprou:
