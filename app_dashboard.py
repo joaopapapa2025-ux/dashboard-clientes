@@ -18,37 +18,33 @@ import json
 import os
 
 def categorizar_produto_papapa(row):
-    # 1. Captura os dados de forma segura
-    l_raw = row.get('LINHA', '')
-    p_raw = row.get('DESC PRODUTO', '')
+    # 1. Pega os dados brutos e limpa
+    l = str(row.get('LINHA', '')).upper().strip()
+    p = str(row.get('DESC PRODUTO', '')).upper().strip()
     
-    # Se for nulo ou vazio, evita erro de conversão
-    l = str(l_raw if l_raw is not None else "").upper().strip()
-    p = str(p_raw if p_raw is not None else "").upper().strip()
-    
-    # --- REGRA 1: YOGUZINHO (SEMPRE PRIORIDADE) ---
-    if any(x in p for x in ["IOGURTE", "YOGU"]) or "IOGURTE" in l:
+    # --- REGRA 1: YOGUZINHO (PRIORIDADE ABSOLUTA) ---
+    if "IOGURTE" in p or "YOGU" in p:
         return "YOGUZINHO"
-    
-    # --- REGRA 2: LA CHEF (180G) - ESTA REGRA TEM QUE VIR ANTES DE 'SOPINHAS' ---
-    # Verificamos se é 180G ou se tem as palavras exclusivas da linha La Chef
-    if "180G" in p or any(x in p for x in ["LENTILHA", "CASEIRINHO", "RISOTINHO"]):
+
+    # --- REGRA 2: LA CHEF (IDENTIFICAÇÃO POR PALAVRA-CHAVE DO PRODUTO) ---
+    # Se no nome do produto tiver Lentilha, Risotinho ou Caseirinho, 
+    # vira LA CHEF na hora, não importa o que diz a coluna LINHA.
+    palavras_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "180G"]
+    if any(x in p for x in palavras_la_chef):
         return "LA CHEF"
-    
-    # --- REGRA 3: SOPINHAS TRADICIONAIS (240G) ---
-    # Só vai entrar aqui se o teste de cima (180G) falhar
+
+    # --- REGRA 3: SOPINHAS (APENAS SE NÃO FOR LA CHEF) ---
     if "SOPINHA" in p or "SOPINHA" in l:
         return "SOPINHAS"
 
     # --- REGRA 4: PAPINHAS SALGADAS (120G) ---
-    if "120G" in p or any(x in l for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
+    if "120G" in p or "CARNE" in l or "SALGADA" in l or "FRANGO" in p:
         return "PAPINHAS SALGADAS"
     
-    # --- OUTRAS CATEGORIAS ---
+    # --- REGRA 5: PAPINHAS DE FRUTAS / OUTROS ---
     if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
     if "CERAL" in l or "AVEIA" in l: return "CEREAIS"
     if "DENTI" in l: return "DENTIÇÃO"
-    if "PALIT" in l or "PALIT" in p: return "PALITINHOS"
     
     return l if l != "" else "OUTROS"
 
