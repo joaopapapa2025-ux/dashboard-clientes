@@ -1223,7 +1223,7 @@ if not df_vendas.empty:
             st.plotly_chart(fig_top_geral, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO FINAL BLINDADA
+# 🚀 ESTRUTURA COMPLETA: 10 LINHAS PAPAPÁ
 # ==========================================
 if len(df_filtrado) == 1:
     st.markdown("---")
@@ -1231,128 +1231,100 @@ if len(df_filtrado) == 1:
     
     id_cliente_atual = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
     
-    # 1. MAPEAMENTO COM SINÔNIMOS DE LINHAS (Para bater com o Excel)
-    catalogo_v7 = {
+    # 1. MAPEAMENTO OFICIAL (Todas as linhas enviadas)
+    catalogo_v6 = {
         "PAPINHAS SALGADAS": {
-            "keywords_linha": ["PAPINHAS SALGADAS", "PAPINHAS DE CARNES", "CARNES"],
-            "itens": {
-                "Papinha Carne Arroz Legumes 120g": ["CARNE", "ARROZ", "120G"],
-                "Papinha Frango Grão Vegetais 120g": ["FRANGO", "GRAO", "120G"]
-            }
+            "Papinha Carne Arroz Legumes 120g": ["CARNE", "ARROZ", "120G"],
+            "Papinha Frango Grão Vegetais 120g": ["FRANGO", "GRAO", "120G"]
         },
         "YOGUZINHO": {
-            "keywords_linha": ["YOGUZINHO", "IOGURTE"],
-            "itens": {
-                "Iogurte Frutas Amarelas e Banana 100g": ["IOGURTE", "AMARELAS"],
-                "Iogurte Frutas Vermelhas e Banana 100g": ["IOGURTE", "VERMELHAS"]
-            }
+            "Iogurte Frutas Amarelas e Banana 100g": ["IOGURTE", "AMARELAS"],
+            "Iogurte Frutas Vermelhas e Banana 100g": ["IOGURTE", "VERMELHAS"]
         },
         "PAPINHAS DE FRUTAS": {
-            "keywords_linha": ["PAPINHAS DE FRUTAS", "FRUTAS", "ORG"],
-            "itens": {
-                "Papinha Org Maçã Ameixa 100g": ["MACA", "AMEIXA"],
-                "Papinha Org Banana Mirtilo Quinoa 100g": ["BANANA", "MIRTILO"],
-                "Papinha Org Manga 100g": ["MANGA"],
-                "Papinha Org Pera Espinafre Abobrinha 100g": ["PERA", "ESPINA"],
-                "Papinha Org Maçã B. Doce Cenoura 100g": ["MACA", "DOCE", "CENOURA"],
-                "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
-            }
+            "Papinha Org Maçã Ameixa 100g": ["MACA", "AMEIXA"],
+            "Papinha Org Banana Mirtilo Quinoa 100g": ["BANANA", "MIRTILO"],
+            "Papinha Org Manga 100g": ["MANGA"],
+            "Papinha Org Pera Espinafre Abobrinha 100g": ["PERA", "ESPINA"],
+            "Papinha Org Maçã B. Doce Cenoura 100g": ["MACA", "DOCE", "CENOURA"],
+            "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
         },
         "PALITINHOS": {
-            "keywords_linha": ["PALITINHOS", "BISCOITO INFANTIL"],
-            "itens": {
-                "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
-                "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
-            }
+            "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
+            "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
+            "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
         },
         "DENTIÇÃO": {
-            "keywords_linha": ["DENTIÇÃO", "DENTICAO", "FASE DA DENTIÇÃO"],
-            "itens": {
-                "Biscoito dent. Maçã e Abóbora 36g": ["DENTICAO", "MACA", "ABOBORA"],
-                "Biscoito dent Vegetais 36g": ["DENTICAO", "VEGETAIS"]
-            }
+            "Biscoito dent. Maçã e Abóbora 36g": ["DENTICAO", "MACA", "ABOBORA"],
+            "Biscoito dent Vegetais 36g": ["DENTICAO", "VEGETAIS"]
         },
         "MACARRÃO": {
-            "keywords_linha": ["MACARRÃO", "MACARRAO"],
-            "itens": {
-                "Macarrão Elbow Quinoa 200g": ["ELBOW"],
-                "Macarrão Fusilli Vegetais 200g": ["FUSILLI"]
-            }
+            "Macarrão Elbow Quinoa 200g": ["ELBOW"],
+            "Macarrão Fusilli Vegetais 200g": ["FUSILLI"]
         },
         "LA CHEF": {
-            "keywords_linha": ["LA CHEF", "RISOTINHO", "CASEIRINHO", "LENTILHA"],
-            "itens": {
-                "Lentilha Carne Legumes 180g": ["LENTILHA"],
-                "Arroz Quinoa Frango 180g": ["RISOTINHO"],
-                "Arroz Feijão Carne Leg. 180g": ["CASEIRINHO"]
-            }
+            "Sopinha Lentinha Carne Legumes 180g": ["LENTILHA"],
+            "Risotinho Arroz Quinoa Frango 180g": ["RISOTINHO"],
+            "Caseirinho Arroz Feijão Carne Leg. 180g": ["CASEIRINHO"]
         },
         "CEREAIS": {
-            "keywords_linha": ["CEREAIS", "CEREAL", "AVEIA"],
-            "itens": {
-                "Aveia - Morango e Beterraba 170g": ["CEREAL", "MORANGO"],
-                "Aveia - Banana e Ameixa 170g": ["CEREAL", "BANANA"],
-                "Aveia - Multicereais 170g": ["CEREAL", "MULTI", "170G"],
-                "Aveia - Multicereais 500g": ["CEREAL", "MULTI", "500G"]
-            }
+            "Cereal Aveia - Morango e Beterraba 170g": ["CEREAL", "MORANGO", "170G"],
+            "Cereal Aveia - Banana e Ameixa 170g": ["CEREAL", "BANANA", "170G"],
+            "Cereal Aveia - Multicereais 170g": ["CEREAL", "MULTI", "170G"],
+            "Cereal Aveia - Multicereais 500g": ["CEREAL", "MULTI", "500G"]
         },
         "BISCOTTI": {
-            "keywords_linha": ["BISCOTTI"],
-            "itens": {
-                "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJA"],
-                "Biscotti Maçã e Canela 60g": ["BISCOTTI", "CANELA"],
-                "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
-                "Biscotti Goiaba 60g": ["BISCOTTI", "GOIABA"],
-                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJA"]
-            }
+            "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJA"],
+            "Biscotti Maçã e Canela 60g": ["BISCOTTI", "CANELA"],
+            "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
+            "Biscotti Goiaba 60g": ["BISCOTTI", "GOIABA"],
+            "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJA"]
         },
         "SOPINHAS": {
-            "keywords_linha": ["SOPINHAS", "SOPINHA"],
-            "itens": {
-                "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO", "240G"],
-                "Sopinha Carne Macarrao Legumes 240g": ["SOPINHA", "MACARRAO", "240G"],
-                "Sopinha Carne Mandioquinha Leg 240g": ["SOPINHA", "MANDIOQ"],
-                "Sopinha Feijão Carne Leg 240g": ["SOPINHA", "FEIJAO", "240G"]
-            }
+            "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO", "240G"],
+            "Sopinha Carne Macarrao Legumes 240g": ["SOPINHA", "MACARRAO", "240G"],
+            "Sopinha Carne Mandioquinha Leg 240g": ["SOPINHA", "MANDIOQ"],
+            "Sopinha Feijão Carne Leg 240g": ["SOPINHA", "FEIJAO", "240G"]
         }
     }
 
     if not df_vendas.empty:
-        # Pega histórico de compras do cliente
-        vendas_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]
-        vendas_nomes_massa = " ".join(vendas_cliente["DESC PRODUTO"].fillna("").astype(str).str.upper().unique())
-        linhas_no_excel = set(vendas_cliente["LINHA"].fillna("").astype(str).str.upper().str.strip().unique())
+        # Pega histórico de nomes e linhas de forma segura (.str)
+        vendas_cliente_nomes = " ".join(
+            df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]["DESC PRODUTO"]
+            .fillna("").astype(str).str.upper().unique()
+        )
+        
+        linhas_ativas_cliente = set(
+            df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]["LINHA"]
+            .fillna("").astype(str).str.upper().str.strip().unique()
+        )
         
         gap_mix = []
         cross_sell = []
 
-        for nome_linha_oficial, dados in catalogo_v7.items():
-            # Verifica se o cliente já compra essa linha (olhando sinônimos)
-            cliente_ja_compra_essa_linha = any(kw in linhas_no_excel for kw in dados["keywords_linha"])
-            
-            for produto_nome, keywords_produto in dados["itens"].items():
-                # Verifica se o SKU específico já foi comprado
-                ja_comprou_sku = all(kw.upper() in vendas_nomes_massa for kw in keywords_produto)
+        for linha, produtos in catalogo_v6.items():
+            for nome_bonito, keywords in produtos.items():
+                # Validação por keywords (se encontrar todas as palavras, considera comprado)
+                ja_comprou = all(kw.upper() in vendas_cliente_nomes for kw in keywords)
                 
-                if not ja_comprou_sku:
-                    if cliente_ja_compra_essa_linha:
-                        gap_mix.append({"Linha": nome_linha_oficial, "Oportunidade": produto_nome})
+                if not ja_comprou:
+                    if linha.upper() in linhas_ativas_cliente:
+                        gap_mix.append({"Linha": linha, "Produto": nome_bonito})
                     else:
-                        cross_sell.append({"Linha": nome_linha_oficial, "Oportunidade": produto_nome})
+                        cross_sell.append({"Linha": linha, "Produto": nome_bonito})
 
         # Exibição
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### 🚨 Gap de Mix")
-            st.caption("Itens faltantes em linhas que o cliente já opera")
+            st.caption("Aumentar volume em categorias que ela já compra")
             st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
 
         with col2:
             st.markdown("#### 📦 Cross-sell")
-            st.caption("Linhas totalmente novas para este PDV")
+            st.caption("Introduzir novas linhas de produtos")
             st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
-
 # =========================
 # GRÁFICOS E MAPA (SÓ APARECEM SE HOUVER MAIS DE 1 CLIENTE)
 # =========================
