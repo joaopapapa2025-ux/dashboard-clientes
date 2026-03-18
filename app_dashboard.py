@@ -1022,7 +1022,7 @@ k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 # =========================
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO: GAP VS CROSS-SELL
+# 🚀 AJUSTE FINAL: INTELIGÊNCIA DE MERCADO (GAP VS CROSS-SELL)
 # ==========================================
 if len(df_filtrado) == 1:
     st.markdown("---")
@@ -1030,8 +1030,7 @@ if len(df_filtrado) == 1:
     
     id_cliente_atual = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
     
-    # 1. MAPEAMENTO DO CATÁLOGO OFICIAL POR LINHA
-    # Organizamos os produtos por suas respectivas categorias (linhas)
+    # 1. CATÁLOGO OFICIAL E MAPEAMENTO
     catalogo_por_linha = {
         "PAPINHAS SALGADAS": ["Papinha Papapa Carne Arroz Legumes 120g", "Papinha Papapa Frango Grão Vegetais 120g"],
         "YOGUZINHO": ["Papinha Papapa Iogurte Frutas Amarelas e Banana 100g", "Papinha Papapa Iogurte Frutas Vermelhas e Banana 100g"],
@@ -1045,52 +1044,67 @@ if len(df_filtrado) == 1:
         "SOPINHAS": ["Sopinha Papapá Frango Arroz Legumes 240g (2x 120g)", "Sopinha Papapá Carne Macarrao Legumes 240g (2x 120g)", "Sopinha Papapá Carne Mandioq Leg 240g (2x 120g)", "Sopinha Papapá Feijão Carne Leg 240g (2x 120g)"]
     }
 
-    def normalizar(txt):
+    # Função de normalização ultra-limpa (remove acentos e caracteres especiais)
+    def normalizar_v2(txt):
+        import unicodedata
         import re
         if pd.isna(txt): return ""
-        return re.sub(r'[^A-Z0-9]', '', str(txt).upper())
+        # Remove acentos
+        nks = unicodedata.normalize('NFKD', str(txt).upper())
+        txt_sem_acento = "".join([c for c in nks if not unicodedata.combining(c)])
+        # Deixa apenas letras e números
+        return re.sub(r'[^A-Z0-9]', '', txt_sem_acento)
 
     if not df_vendas.empty:
-        # 2. IDENTIFICAÇÃO DO PERFIL DO CLIENTE
-        vendas_do_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual]
-        produtos_comprados_norm = set(vendas_do_cliente["DESC PRODUTO"].apply(normalizar).unique())
+        # 2. FILTRAGEM DO HISTÓRICO REAL DO CLIENTE (Aba MIX)
+        vendas_do_cliente = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_atual].copy()
         
-        # Identifica as linhas (categorias) que o cliente já compra na aba MIX
-        linhas_que_o_cliente_compra = set(vendas_do_cliente["LINHA"].astype(str).str.upper().str.strip().unique())
+        # Criamos conjuntos de comparação normalizados
+        produtos_comprados_norm = set(vendas_do_cliente["DESC PRODUTO"].apply(normalizar_v2).unique())
+        
+        # Identificamos as linhas que ele já comprou (baseado na coluna LINHA do Excel)
+        linhas_ativas_cliente = set(vendas_do_cliente["LINHA"].astype(str).str.upper().str.strip().unique())
         
         gap_de_mix = []
         cross_sell = []
 
-        # 3. LÓGICA DE SEPARAÇÃO
+        # 3. COMPARAÇÃO LÓGICA
         for linha, produtos in catalogo_por_linha.items():
-            # Se ele já compra essa LINHA -> SKUs faltantes vão para o GAP
-            if linha in linhas_que_o_cliente_compra:
-                for p in produtos:
-                    if normalizar(p) not in produtos_comprados_norm:
-                        gap_de_mix.append({"Linha": linha, "Produto": p})
+            # Linha Normalizada para comparação com a coluna do Excel
+            linha_norm = linha.upper().strip()
             
-            # Se ele NUNCA comprou essa LINHA -> Toda a linha vai para o CROSS-SELL
-            else:
+            if linha_norm in linhas_ativas_cliente:
+                # GAP: Se ele já compra a LINHA, mostramos apenas SKUs faltantes
                 for p in produtos:
-                    cross_sell.append({"Linha": linha, "Produto": p})
+                    if normalizar_v2(p) not in produtos_comprados_norm:
+                        gap_de_mix.append({"Linha": linha, "Produto": p})
+            else:
+                # CROSS-SELL: Se ele NUNCA comprou essa LINHA, mostramos todos os produtos dela
+                # Mas conferimos SKU por SKU por segurança contra erros de cadastro de "Linha"
+                for p in produtos:
+                    if normalizar_v2(p) not in produtos_comprados_norm:
+                        cross_sell.append({"Linha": linha, "Produto": p})
 
-        # 4. EXIBIÇÃO NO DASHBOARD
+        # 4. EXIBIÇÃO
         c_gap, c_cross = st.columns(2)
         
         with c_gap:
-            st.markdown("#### 🚨 Gap de Mix (SKUs faltantes em categorias ativas)")
+            st.markdown("#### 🚨 Gap de Mix")
+            st.caption("Produtos que faltam em categorias que a cliente já trabalha")
             if gap_de_mix:
                 st.dataframe(pd.DataFrame(gap_de_mix), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Mix completo nas categorias que o cliente já compra!")
+                st.success("✅ Mix completo nas categorias ativas!")
 
         with c_cross:
-            st.markdown("#### 📦 Cross-sell (Categorias/Linhas nunca compradas)")
+            st.markdown("#### 📦 Cross-sell")
+            st.caption("Novas linhas/categorias para introduzir")
             if cross_sell:
-                # Mostramos apenas os produtos das categorias que ele não conhece
-                st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
+                # Removemos duplicatas caso o SKU tenha sido pego no GAP por erro de categoria
+                df_cs = pd.DataFrame(cross_sell)
+                st.dataframe(df_cs, use_container_width=True, hide_index=True)
             else:
-                st.success("✅ O cliente já compra de todas as categorias do catálogo!")
+                st.success("✅ O cliente já compra de todo o catálogo!")
                 
 # ==========================================
 
