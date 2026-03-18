@@ -959,47 +959,41 @@ if not vendas_cliente.empty:
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
-# ==========================================
-        # NOVO TESTE DE HISTÓRICO (BLINDADO)
-        # ==========================================
-        
-        # 1. Garantimos que os dois lados sejam APENAS NÚMEROS e TEXTO
-        id_cliente_busca = str(id_cliente).strip()
-        df_vendas["CNPJ_LIMPO"] = df_vendas["CNPJ_LIMPO"].astype(str).str.replace(r'\D', '', regex=True)
+# ESTE BLOCO DEVE FICAR DENTRO DO: if len(df_filtrado) == 1:
+    
+    st.markdown("---")
+    st.subheader("📊 Análise de Histórico") # Se isso aqui aparecer, o código chegou no lugar certo!
 
-        # 2. Filtramos
-        vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_busca].copy()
+    # 1. Garantir que temos a base de vendas
+    if 'df_vendas' in locals() or 'df_vendas' in globals():
+        # Limpeza relâmpago de CNPJ
+        id_cliente_str = str(id_cliente).strip()
+        df_vendas["CNPJ_LIMPO"] = df_vendas["CNPJ_LIMPO"].astype(str).str.replace(r'\D', '', regex=True)
+        
+        # Filtro
+        vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str].copy()
 
         if not vendas_hist.empty:
-            st.markdown("---")
-            st.subheader(f"📈 Histórico de Pedidos")
-            
-            # 3. Tratamento da Data (Garante que o Python entenda como data)
+            # Converte data e agrupa
             vendas_hist['DATA'] = pd.to_datetime(vendas_hist['DATA'], errors='coerce')
-            vendas_hist = vendas_hist.dropna(subset=['DATA'])
+            vendas_hist['MES_ANO'] = vendas_hist['DATA'].dt.strftime('%m/%Y')
             
-            vendas_hist['MES_ANO'] = vendas_hist['DATA'].dt.strftime('%Y-%m')
+            # Agrupamento (Confirme se a coluna é VALOR_TOTAL ou FATURAMENTO no seu Excel)
+            faturamento_mensal = vendas_hist.groupby('MES_ANO')['VALOR_TOTAL'].sum().reset_index()
             
-            # 4. Agrupamento (Confirme se o nome da coluna é VALOR_TOTAL ou FATURAMENTO)
-            # Se no seu Excel for outro nome, mude 'VALOR_TOTAL' abaixo:
-            coluna_valor = 'VALOR_TOTAL' 
-            
-            faturamento_mensal = vendas_hist.groupby('MES_ANO')[coluna_valor].sum().reset_index()
-            faturamento_mensal.columns = ["Mês", "Valor"]
-            faturamento_mensal = faturamento_mensal.sort_values("Mês")
-
             fig_hist = px.bar(
                 faturamento_mensal,
-                x="Mês",
-                y="Valor",
-                text_auto='.2s',
-                title="Evolução de Compras Mensais",
-                color_discrete_sequence=["#E74C3C"]
+                x="MES_ANO",
+                y="VALOR_TOTAL",
+                title="Histórico de Compras por Mês",
+                color_discrete_sequence=["#E74C3C"],
+                text_auto='.2s'
             )
             st.plotly_chart(fig_hist, use_container_width=True)
         else:
-            # Se cair aqui, é porque o CNPJ que você clicou não existe na aba de Vendas
-            st.warning(f"⚠️ Atenção: O CNPJ {id_cliente_busca} não possui registros na aba de vendas.")
+            st.warning("Nenhum pedido encontrado para este CNPJ na aba de vendas.")
+    else:
+        st.error("Erro: A tabela 'df_vendas' não foi carregada no início do código.")
 
     # =========================
     # INTELIGÊNCIA DE MERCADO
