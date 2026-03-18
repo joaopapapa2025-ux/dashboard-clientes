@@ -1003,21 +1003,15 @@ if len(df_filtrado) == 1:
     # ... (aqui continua seu código de col_info, col_crm, etc) ...
 
     if not vendas_cliente_atual.empty:
-        linhas_corrigidas = []
-        
-        # Transformamos em dicionário para o acesso ser ultra rápido e seguro
-        dados_vendas = vendas_cliente_atual.to_dict('records')
-        
-        for linha_venda in dados_vendas:
-            # Pegamos os valores usando .get() para não quebrar se a coluna faltar
-            valor_linha = linha_venda.get('LINHA', '')
-            valor_prod = linha_venda.get('DESC PRODUTO', '')
-            
-            # Chamamos a nova função
-            resultado = limpar_e_categorizar_linha(valor_linha, valor_prod)
-            linhas_corrigidas.append(resultado)
-        
-        vendas_cliente_atual["LINHA_LIMPA"] = linhas_corrigidas
+        # 1. Definimos a função de ajuda LOGO ANTES de usar
+        def ajustar_linha(row):
+            l = row.get('LINHA', '')
+            p = row.get('DESC PRODUTO', '')
+            # Aqui chamamos aquela função que você colou no topo do arquivo
+            return limpar_e_categorizar_linha(l, p)
+
+        # 2. Aplicamos a função criada acima
+        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(ajustar_linha, axis=1)
         
         # 3. Criamos a coluna com os valores limpos
         vendas_cliente_atual["LINHA_LIMPA"] = linhas_corrigidas
