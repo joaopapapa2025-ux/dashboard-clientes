@@ -456,8 +456,8 @@ if busca_cnpj:
     if "CNPJ_LIMPO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_l, na=False)]
 
-# RAZÃO SOCIAL (COMPONENTE) - Vamos definir a lista depois de processar os filtros de baixo
-# Para a cascata funcionar, criamos um placeholder aqui para manter a posição visual no topo
+# RAZÃO SOCIAL (PLACEHOLDER PARA CASCATA)
+# Criamos o espaço aqui para ele aparecer no topo, mas a lista só carrega depois dos filtros de baixo
 placeholder_razao = st.sidebar.empty()
 
 # E-MAIL
@@ -476,8 +476,9 @@ if tel_busca:
 # 2. FILTROS DE SEGMENTAÇÃO (PARTE INFERIOR)
 # ==========================================
 
-# MÊS
-meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
+# MÊS DA ÚLTIMA COMPRA
+meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), 
+                     key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
 mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="f_mes")
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
@@ -488,29 +489,32 @@ vendedor_sel = st.sidebar.multiselect("Vendedor", v_list, key="f_vend")
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
 
-# UF / CIDADE / BAIRRO
+# ESTADO (UF)
 uf_list = sorted(df_filtrado[COL_UF].dropna().unique().tolist())
 uf_sel = st.sidebar.multiselect("Estado (UF)", uf_list, key="f_uf")
 if uf_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(uf_sel)]
 
+# CIDADE
 c_list = sorted(df_filtrado[COL_CIDADE].dropna().unique().tolist())
 cidade_sel = st.sidebar.multiselect("Cidade", c_list, key="f_cid")
 if cidade_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_CIDADE].isin(cidade_sel)]
 
+# BAIRRO
 b_list = sorted(df_filtrado[COL_BAIRRO].dropna().unique().tolist())
 bairro_sel = st.sidebar.multiselect("Bairro", b_list, key="f_bair")
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_BAIRRO].isin(bairro_sel)]
 
-# SEGMENTO / FATURAMENTO
-if "SEGMENTO" in df_filtrado.columns:
-    seg_list = sorted(df_filtrado["SEGMENTO"].dropna().unique().tolist())
+# SEGMENTO
+if COL_SEGMENTO in df_filtrado.columns:
+    seg_list = sorted(df_filtrado[COL_SEGMENTO].dropna().unique().tolist())
     seg_sel = st.sidebar.multiselect("Segmento", seg_list, key="f_seg")
     if seg_sel:
-        df_filtrado = df_filtrado[df_filtrado["SEGMENTO"].isin(seg_sel)]
+        df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
+# FAIXA DE FATURAMENTO
 if "FAIXA_FATURAMENTO" in df_filtrado.columns:
     fat_list = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique().tolist())
     fat_sel = st.sidebar.multiselect("Faixa de Faturamento", fat_list, key="f_fat")
@@ -518,73 +522,15 @@ if "FAIXA_FATURAMENTO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(fat_sel)]
 
 # ==========================================
-# 3. VOLTAMOS PARA FILTRAR A RAZÃO SOCIAL (NO TOPO)
+# 3. FINALIZAÇÃO DA RAZÃO SOCIAL (TOPO DINÂMICO)
 # ==========================================
+# Agora a lista de clientes só mostra quem sobrou dos filtros acima
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 cliente_sel = placeholder_razao.selectbox("Buscar Razão Social", options=lista_clientes, key="b_razao")
 if cliente_sel != "":
     df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_sel]
-        
-# =========================
-# FILTROS DE SELEÇÃO MÚLTIPLA
-# =========================
 
-# =========================
-# FILTRO DE MÊS COM ORDEM CRONOLÓGICA
-# =========================
-
-# 1. Pegamos os meses únicos
-meses_unicos = df_filtrado["MES_REF"].dropna().unique().tolist()
-
-# 2. Ordenamos logicamente (Convertendo string "MM/YYYY" para data real e ordenando)
-# Usamos reverse=True para o mês mais recente (2026) aparecer no topo
-meses_lista = sorted(
-    meses_unicos, 
-    key=lambda x: pd.to_datetime(x, format='%m/%Y'), 
-    reverse=True
-)
-
-# 3. Exibimos o filtro
-mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="filtro_mes")
-
-if mes_sel:
-    df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
-
-# Vendedor
-vendedores = sorted(df_filtrado[COL_VENDEDOR].dropna().unique())
-vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores, key="filtro_vendedor")
-if vendedor_sel:
-    df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
-
-# UF (Estado)
-ufs = sorted(df_filtrado[COL_UF].dropna().unique())
-uf_sel = st.sidebar.multiselect("Estado (UF)", ufs, key="filtro_uf")
-if uf_sel:
-    df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(uf_sel)]
-
-# Cidade
-cidades = sorted(df_filtrado[COL_CIDADE].dropna().unique())
-cidade_sel = st.sidebar.multiselect("Cidade", cidades, key="filtro_cidade")
-if cidade_sel:
-    df_filtrado = df_filtrado[df_filtrado[COL_CIDADE].isin(cidade_sel)]
-
-# Bairro
-bairros = sorted(df_filtrado[COL_BAIRRO].dropna().unique())
-bairro_sel = st.sidebar.multiselect("Bairro", bairros, key="filtro_bairro")
-if bairro_sel:
-    df_filtrado = df_filtrado[df_filtrado[COL_BAIRRO].isin(bairro_sel)]
-
-# Segmento
-lista_segmentos = sorted(df_filtrado[COL_SEGMENTO].dropna().unique())
-segmento_sel = st.sidebar.multiselect("Segmento", lista_segmentos, key="filtro_segmento")
-if segmento_sel:
-    df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(segmento_sel)]
-
-# Faixa de Faturamento
-faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
-faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_faturamento")
-if faixa_sel:
-    df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(faixa_sel)]
+# --- FIM DO BLOCO DA SIDEBAR ---
 
 # =========================
 # TÍTULO
