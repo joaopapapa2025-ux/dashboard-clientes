@@ -416,7 +416,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     return buffer
     
 # ==========================================
-# SIDEBAR COMPLETA (CORRIGIDA E SEM DUPLICATAS)
+# SIDEBAR - CONFIGURAÇÃO COMPLETA
 # ==========================================
 
 # --- CONFIGURAÇÃO DE COLUNAS (MAPEAMENTO) ---
@@ -435,83 +435,89 @@ else:
     df["MES_REF"] = "Sem Data"
 
 # --------------------------------------------------
+
 st.sidebar.title("Filtros")
 
-# 1. BOTÃO LIMPAR (Resetando todos os estados corretamente)
-if st.sidebar.button("Limpar todos os filtros"):
-    for key in st.session_state.keys():
-        del st.session_state[key]
+# Botão Limpar: Agora ele limpa as chaves específicas para não travar o app
+if st.sidebar.button("Limpar filtros"):
+    chaves_para_limpar = [
+        "filtro_vendedor", "filtro_cidade", "filtro_mes", 
+        "busca_cnpj", "busca_nome_v4", "busca_email", "busca_tel_v1"
+    ]
+    for chave in chaves_para_limpar:
+        if chave in st.session_state:
+            st.session_state[chave] = "" if "busca" in chave else "Todos" if "filtro" in chave else []
     st.rerun()
 
 # Inicializamos o DataFrame filtrado com a base original
 df_filtrado = df.copy()
 
 # ==========================================
-# 2. FILTROS DE SEGMENTAÇÃO (ORDEM DE CASCATA)
+# 1. FILTROS DE SEGMENTAÇÃO (ORDEM DE CASCATA)
 # ==========================================
 
 # --- FILTRO DE VENDEDOR ---
-vendedores = ["Todos"] + sorted(df[COL_VENDEDOR].dropna().unique().tolist())
-vendedor_sel = st.sidebar.selectbox("Vendedor", vendedores, key="vendedor_filtro_v1")
+v_list = ["Todos"] + sorted(df[COL_VENDEDOR].dropna().unique().tolist())
+vendedor_sel = st.sidebar.selectbox("Vendedor", v_list, key="filtro_vendedor")
 
 if vendedor_sel != "Todos":
     df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR] == vendedor_sel]
 
 # --- FILTRO DE CIDADE ---
-cidades = ["Todas"] + sorted(df_filtrado[COL_CIDADE].dropna().unique().tolist())
-cidade_sel = st.sidebar.selectbox("Cidade", cidades, key="cidade_filtro_v1")
+c_list = ["Todas"] + sorted(df_filtrado[COL_CIDADE].dropna().unique().tolist())
+cidade_sel = st.sidebar.selectbox("Cidade", c_list, key="filtro_cidade")
 
 if cidade_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado[COL_CIDADE] == cidade_sel]
 
-# --- FILTRO DE MÊS DA ÚLTIMA COMPRA ---
+# --- FILTRO DE MÊS ---
 meses_unicos = df_filtrado["MES_REF"].dropna().unique().tolist()
 meses_lista = sorted(meses_unicos, key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
-mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="mes_filtro_v1")
+mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="filtro_mes")
 
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("🔍 Buscas Específicas")
+st.sidebar.subheader("Buscas Textuais")
 
 # =========================
-# 3. BUSCAS TEXTUAIS (USANDO O DF JÁ FILTRADO ACIMA)
+# 2. BUSCAS ESPECÍFICAS
 # =========================
 
 # 1. Busca por CNPJ
-busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj_v1")
+busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
 if busca_cnpj:
-    cnpj_limpo = "".join(filter(str.isdigit, busca_cnpj)) 
+    cnpj_busca_limpo = "".join(filter(str.isdigit, busca_cnpj)) 
     if "CNPJ_LIMPO" in df_filtrado.columns:
-        df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_limpo, na=False)]
+        df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_busca_limpo, na=False)]
 
 # 2. Busca Inteligente Razão Social (Autocomplete Dinâmico)
-# AQUI ESTÁ A MÁGICA: lista_clientes é criada DEPOIS dos filtros acima
+# Ela só mostra os clientes que sobraram dos filtros acima
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 
 cliente_selecionado = st.sidebar.selectbox(
     "Buscar Razão Social (Autocomplete)",
     options=lista_clientes,
     index=0,
-    key="busca_nome_v5",
-    help="Esta lista mostra apenas PDVs do Vendedor ou Cidade selecionados acima."
+    key="busca_nome_v4",
+    help="Se filtrar o vendedor antes, esta lista mostrará apenas os clientes dele."
 )
 
 if cliente_selecionado != "":
     df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_selecionado]
 
 # 3. Busca por E-mail
-busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email_v1")
+busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
 if busca_email:
     df_filtrado = df_filtrado[df_filtrado[COL_EMAIL].str.contains(busca_email, case=False, na=False)]
 
 # 4. Busca por Telefone
-tel_busca = st.sidebar.text_input("Buscar por Telefone:", key="busca_tel_v2")
+tel_busca = st.sidebar.text_input("Buscar por Telefone:", key="busca_tel_v1")
 if tel_busca:
-    tel_limpo = "".join(filter(str.isdigit, tel_busca))
-    if "TEL_LIMPO" in df_filtrado.columns:
-        df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(tel_limpo, na=False)]
+    tel_busca_limpo = "".join(filter(str.isdigit, tel_busca))
+    if tel_busca_limpo and "TEL_LIMPO" in df_filtrado.columns:
+        df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(tel_busca_limpo, na=False)]
 # =========================
 # FILTROS DE SELEÇÃO MÚLTIPLA
 # =========================
