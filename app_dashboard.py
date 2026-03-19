@@ -416,10 +416,10 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     return buffer
     
 # ==========================================
-# SIDEBAR - LAYOUT INTEGRAL E LIMPEZA TOTAL
+# SIDEBAR - LAYOUT INTEGRAL (SEM DUPLICATAS)
 # ==========================================
 
-# --- CONFIGURAÇÃO E TRATAMENTO ---
+# --- TRATAMENTO DE DADOS (Mantenha no topo da Sidebar) ---
 COL_DATA_ULTIMA_COMPRA = "ÚLTIMA COMPRA"
 if COL_TELEFONE in df.columns:
     df["TEL_LIMPO"] = df[COL_TELEFONE].astype(str).str.replace(r'\D', '', regex=True)
@@ -434,19 +434,19 @@ else:
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR - Reseta as chaves exatas sem deslogar
-if st.sidebar.button("Limpar filtros"):
-    chaves_atuais = [
+# BOTÃO LIMPAR - Reseta as chaves exatas sem derrubar o login
+if st.sidebar.button("Limpar todos os filtros"):
+    chaves_resets = [
         "busca_cnpj", "busca_nome", "busca_email", "busca_tel",
         "filtro_mes", "filtro_vendedor", "filtro_uf", "filtro_cidade", "filtro_bairro"
     ]
-    for chave in chaves_atuais:
+    for chave in chaves_resets:
         if chave in st.session_state:
-            # Reseta multiselect para lista vazia e campos de texto para string vazia
+            # Se for lista (multiselect) limpa para [], se for texto limpa para ""
             st.session_state[chave] = [] if isinstance(st.session_state[chave], list) else ""
     st.rerun()
 
-# Inicializamos o DataFrame para a cascata funcionar
+# DataFrame que será afunilado pelos filtros abaixo
 df_filtrado = df.copy()
 
 # ==========================================
@@ -461,7 +461,7 @@ if busca_cnpj:
         df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_l, na=False)]
 
 # 2. Buscar Razão Social (Autocomplete Dinâmico)
-# Esta lista reage a QUALQUER filtro selecionado abaixo (Vendedor, Cidade, etc)
+# Esta lista agora reage a QUALQUER filtro selecionado abaixo (Vendedor, Cidade, etc)
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 cliente_sel = st.sidebar.selectbox("Buscar Razão Social", options=lista_clientes, key="busca_nome")
 if cliente_sel != "":
