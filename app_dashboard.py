@@ -419,6 +419,9 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 # SIDEBAR
 # =========================
 
+# --- CONFIGURAÇÃO DE COLUNAS (MAPEAMENTO) ---
+COL_DATA_ULTIMA_COMPRA = "ÚLTIMA COMPRA"
+
 # --- TRATAMENTO DE COLUNAS ANTES DOS FILTROS ---
 # Tratamento de Telefone
 if COL_TELEFONE in df.columns:
@@ -426,11 +429,11 @@ if COL_TELEFONE in df.columns:
 else:
     df["TEL_LIMPO"] = ""
 
-# Tratamento de Data para o Novo Filtro
-# Assume que COL_DATA_ULTIMA_COMPRA foi definida no seu mapeamento inicial
+# Tratamento de Data para o Novo Filtro de Mês
 if COL_DATA_ULTIMA_COMPRA in df.columns:
+    # Converte para o formato de data do Pandas
     df[COL_DATA_ULTIMA_COMPRA] = pd.to_datetime(df[COL_DATA_ULTIMA_COMPRA], errors='coerce')
-    # Cria a coluna de exibição para o filtro (Mês/Ano)
+    # Cria a coluna técnica de exibição (Mês/Ano)
     df["MES_REF"] = df[COL_DATA_ULTIMA_COMPRA].dt.strftime('%m/%Y')
 else:
     df["MES_REF"] = "Sem Data"
@@ -439,7 +442,7 @@ else:
 
 st.sidebar.title("Filtros")
 
-# Inicialização de estados caso não existam
+# Inicialização de estados para evitar erros de carregamento
 if "busca_cnpj" not in st.session_state: st.session_state["busca_cnpj"] = ""
 if "busca_nome" not in st.session_state: st.session_state["busca_nome"] = ""
 if "filtro_mes" not in st.session_state: st.session_state["filtro_mes"] = []
@@ -461,7 +464,7 @@ if st.sidebar.button("Limpar filtros"):
 df_filtrado = df.copy()
 
 # =========================
-# BUSCAS TEXTUAIS (CNPJ, NOME, EMAIL, TEL)
+# BUSCAS TEXTUAIS
 # =========================
 
 busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
@@ -489,9 +492,9 @@ if tel_busca_limpo:
 # FILTROS DE SELEÇÃO MÚLTIPLA
 # =========================
 
-# NOVO: Filtro de Mês do Último Pedido (Multiselect para maior flexibilidade)
+# Filtro de Mês do Último Pedido
 meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), reverse=True)
-mes_sel = st.sidebar.multiselect("Mês do Último Pedido", meses_lista, key="filtro_mes")
+mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="filtro_mes")
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
 
