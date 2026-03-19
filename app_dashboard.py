@@ -1309,6 +1309,52 @@ if len(df_filtrado) > 1:
     st.divider()
 
 # ==========================================
+# 🏆 RESULTADO FINANCEIRO E RANKING DE VENDAS
+# ==========================================
+
+st.markdown("### 💰 Resultado Financeiro e Ranking")
+
+if not df_filtrado.empty:
+    # 1. Identificamos as colunas de meses (padrão MMM/AA)
+    colunas_financeiras = [c for c in df_filtrado.columns if "/" in c and len(c) == 6]
+    meses_selecionados = st.session_state.get("filtro_mes", [])
+
+    # Se nenhum mês for selecionado, avisamos que o ranking precisa de um mês
+    if not meses_selecionados:
+        st.info("💡 Selecione um ou mais meses no filtro lateral para visualizar o faturamento e o ranking.")
+    else:
+        # 2. Tratamento de dados: Garantimos que os valores dos meses sejam numéricos
+        df_calc = df_filtrado.copy()
+        for col in meses_selecionados:
+            df_calc[col] = pd.to_numeric(df_calc[col], errors='coerce').fillna(0)
+
+        # 3. Cálculo do Faturamento Total do Período Selecionado
+        total_periodo = df_calc[meses_selecionados].sum().sum()
+        
+        # 4. Criação do Ranking por Vendedor
+        # Somamos as colunas dos meses selecionados para cada linha e agrupamos por vendedor
+        df_calc["TOTAL_VENDAS"] = df_calc[meses_selecionados].sum(axis=1)
+        ranking = df_calc.groupby(COL_VENDEDOR)["TOTAL_VENDAS"].sum().sort_values(ascending=False).reset_index()
+
+        # 5. Exibição dos KPIs Principais
+        col_kpi1, col_kpi2 = st.columns([1, 1])
+        with col_kpi1:
+            st.metric(f"Faturamento Total ({', '.join(meses_selecionados)})", 
+                      f"R$ {total_periodo:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        with col_kpi2:
+            st.metric("Total de Clientes Atendidos", f"{df_filtrado[COL_RAZAO].nunique()} PDVs")
+
+        # 6. Exibição do Ranking formatado
+        st.markdown("#### 🥇 Ranking de Vendas por Vendedor")
+        
+        # Formatamos a tabela de ranking para ficar visualmente limpa
+        for i, row in ranking.iterrows():
+            valor_formatado = f"R$ {row['TOTAL_VENDAS']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            # Estilização básica para o Top 1
+            emoji = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "👤"
+            st.write(f"**{i+1}º {emoji} {row[COL_VENDEDOR]}** — {valor_formatado}")
+
+# ==========================================
 # 📂 EXPORTAÇÃO E LISTAGEM COM WHATSAPP
 # ==========================================
 
