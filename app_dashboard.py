@@ -492,9 +492,24 @@ if tel_busca_limpo:
 # FILTROS DE SELEÇÃO MÚLTIPLA
 # =========================
 
-# Filtro de Mês do Último Pedido
-meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), reverse=True)
+# =========================
+# FILTRO DE MÊS COM ORDEM CRONOLÓGICA
+# =========================
+
+# 1. Pegamos os meses únicos
+meses_unicos = df_filtrado["MES_REF"].dropna().unique().tolist()
+
+# 2. Ordenamos logicamente (Convertendo string "MM/YYYY" para data real e ordenando)
+# Usamos reverse=True para o mês mais recente (2026) aparecer no topo
+meses_lista = sorted(
+    meses_unicos, 
+    key=lambda x: pd.to_datetime(x, format='%m/%Y'), 
+    reverse=True
+)
+
+# 3. Exibimos o filtro
 mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="filtro_mes")
+
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
 
