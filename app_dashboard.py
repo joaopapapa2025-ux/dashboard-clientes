@@ -1334,6 +1334,7 @@ col_down, col_spacer = st.columns([1, 3])
 
 with col_down:
     if not df_filtrado.empty:
+        # Geramos o Excel com a base filtrada
         excel_data = gerar_excel(df_filtrado)
         st.download_button(
             label="📥 Baixar Base Filtrada (Excel)",
@@ -1345,36 +1346,48 @@ with col_down:
 
 st.subheader("📋 Listagem Detalhada")
 
-# Função para criar o link do WhatsApp
+# 1. Função para criar o link do WhatsApp
 def criar_link_whatsapp(tel):
     if not tel or pd.isna(tel):
         return None
+    # Remove caracteres especiais para o link funcionar
     num = "".join(filter(str.isdigit, str(tel)))
+    # Garante o código do país (55)
     if len(num) > 0 and not num.startswith("55"):
         num = "55" + num
     return f"https://wa.me/{num}"
 
-# Criamos a coluna de contato para a tabela
+# 2. Criamos a coluna de contato
 df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
 
-# Definimos quais colunas esconder para a tabela ficar limpa
+# 3. REORDENAR: Movemos a coluna 'CONTATO' para ficar logo após 'TELEFONE'
+cols = list(df_filtrado.columns)
+if "TELEFONE" in cols and "CONTATO" in cols:
+    idx_tel = cols.index("TELEFONE")
+    # Remove de onde estiver e insere na posição seguinte ao telefone
+    cols.insert(idx_tel + 1, cols.pop(cols.index("CONTATO")))
+    df_filtrado = df_filtrado[cols]
+
+# 4. Definimos as colunas técnicas que não precisam aparecer
 colunas_para_esconder = ["CNPJ_LIMPO", "TEL_LIMPO", "FAIXA_FATURAMENTO"]
 
+# 5. Exibição da Tabela com Configuração de Link
 st.dataframe(
     df_filtrado,
     column_config={
         "CONTATO": st.column_config.LinkColumn(
             "WhatsApp",
             display_text="💬 Chamar no Whats",
-            help="Clique para abrir o chat direto"
+            help="Clique para abrir o chat direto no WhatsApp Web ou App"
         ),
-        # Esconde as colunas técnicas
+        # Aplica 'None' para esconder as colunas técnicas
         **{col: None for col in colunas_para_esconder if col in df_filtrado.columns}
     },
     use_container_width=True,
     hide_index=True
 )
 
+# Rodapé formatado
 st.markdown(
     """
     <div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>
@@ -1383,7 +1396,6 @@ st.markdown(
     """, 
     unsafe_allow_html=True
 )
-
 
 
 
