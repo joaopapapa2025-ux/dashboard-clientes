@@ -1333,35 +1333,6 @@ with col_down:
             use_container_width=True
         )
 
-# ==========================================
-# 📊 RESUMO FINANCEIRO (KPIs)
-# ==========================================
-
-st.markdown("---")
-st.markdown("### 💰 Resultado Financeiro do Filtro")
-
-# Calculamos os totais baseados no que está filtrado na tela
-if not df_filtrado.empty:
-    total_faturado = df_filtrado[COL_VALOR_TOTAL].sum()
-    qtd_clientes = df_filtrado[COL_RAZAO].nunique()
-    ticket_medio = total_faturado / qtd_clientes if qtd_clientes > 0 else 0
-    
-    # Criamos três colunas para os cartões de indicadores
-    kpi1, kpi2, kpi3 = st.columns(3)
-    
-    with kpi1:
-        st.metric("Faturamento Total", f"R$ {total_faturado:,.2f}".replace(",", "v").replace(".", ",").replace("v", "."))
-    
-    with kpi2:
-        st.metric("Qtd. de Clientes", f"{qtd_clientes} PDVs")
-        
-    with kpi3:
-        st.metric("Ticket Médio", f"R$ {ticket_medio:,.2f}".replace(",", "v").replace(".", ",").replace("v", "."))
-else:
-    st.warning("Nenhum dado encontrado para os filtros selecionados.")
-
-st.markdown("---")
-
 st.subheader("📋 Listagem Detalhada")
 
 # 1. Função para criar o link do WhatsApp
