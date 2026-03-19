@@ -464,25 +464,43 @@ if st.sidebar.button("Limpar filtros"):
 df_filtrado = df.copy()
 
 # =========================
-# BUSCA INTELIGENTE POR CLIENTE (AUTOCOMPLETE)
+# BUSCAS TEXTUAIS (CNPJ, NOME, E-MAIL, TEL)
 # =========================
 
-# Criamos a lista de nomes baseada no que já está filtrado (ex: por vendedor)
-# Adicionamos uma opção vazia no início para o filtro não vir pré-selecionado
+# 1. Busca por CNPJ
+busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
+if busca_cnpj:
+    # Use a função limpar_cnpj que você já tem no código
+    cnpj_busca_limpo = "".join(filter(str.isdigit, busca_cnpj)) 
+    if "CNPJ_LIMPO" in df_filtrado.columns:
+        df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_busca_limpo, na=False)]
+
+# 2. Busca Inteligente Razão Social (Autocomplete Dinâmico)
+# Ela pega os clientes que sobraram dos filtros anteriores (como o de Vendedor)
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 
-# O selectbox do Streamlit já permite que o usuário digite e ele filtre a lista automaticamente
 cliente_selecionado = st.sidebar.selectbox(
-    "Buscar Razão Social (Digite o nome)",
+    "Buscar Razão Social (Digite para filtrar)",
     options=lista_clientes,
     index=0,
-    key="busca_nome_v3",
-    help="Se você filtrar um vendedor antes, aparecerão apenas os clientes dele aqui."
+    key="busca_nome_v4",
+    help="Dica: Se filtrar o vendedor antes, esta lista mostrará apenas os clientes dele."
 )
 
-# Se o usuário escolher um cliente, aplicamos o filtro final
 if cliente_selecionado != "":
     df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_selecionado]
+
+# 3. Busca por E-mail
+busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
+if busca_email:
+    df_filtrado = df_filtrado[df_filtrado[COL_EMAIL].str.contains(busca_email, case=False, na=False)]
+
+# 4. Busca por Telefone
+tel_busca = st.sidebar.text_input("Buscar por Telefone:", key="busca_tel_v1")
+if tel_busca:
+    tel_busca_limpo = "".join(filter(str.isdigit, tel_busca))
+    if tel_busca_limpo and "TEL_LIMPO" in df_filtrado.columns:
+        df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(tel_busca_limpo, na=False)]
 
 # =========================
 # FILTROS DE SELEÇÃO MÚLTIPLA
