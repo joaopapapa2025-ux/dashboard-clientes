@@ -461,13 +461,6 @@ cidade_sel = st.sidebar.selectbox("Cidade", c_list, key="f_cid")
 if cidade_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado[COL_CIDADE] == city_sel]
 
-# 3. Mês da Última Compra
-meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), 
-                     key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
-mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="f_mes")
-if mes_sel:
-    df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
-
 # 4. Busca por CNPJ
 busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="b_cnpj")
 if busca_cnpj:
