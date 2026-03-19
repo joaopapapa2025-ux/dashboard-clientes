@@ -1309,37 +1309,45 @@ if len(df_filtrado) > 1:
     st.divider()
 
 # ==========================================
-# 📊 RESUMO FINANCEIRO, EXPORTAÇÃO E TABELA
+# 📊 RESUMO FINANCEIRO DINÂMICO POR MÊS
 # ==========================================
 
 st.markdown("### 📂 Exportação e Dados")
 
-# 1. Função para gerar o arquivo Excel (Protegida contra colunas extras)
+# 1. Função para gerar o arquivo Excel
 def gerar_excel(df_para_exportar):
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        # Lista de colunas técnicas que criamos e não precisam ir para o Excel
         cols_extras = ["MES_REF", "CONTATO", "TEL_LIMPO", "CNPJ_LIMPO"]
         df_limpo = df_para_exportar.drop(columns=[c for c in cols_extras if c in df_para_exportar.columns])
         df_limpo.to_excel(writer, index=False, sheet_name="Dados_Papapa")
     return buffer.getvalue()
 
-# 2. Lógica de exibição (Só mostra se houver dados filtrados)
 if not df_filtrado.empty:
     
-    # --- CÁLCULO DOS INDICADORES (KPIs) ---
-    # Tentamos encontrar a coluna de valor. Se "VALOR TOTAL" não existir, usamos "ÚLTIMA COMPRA" ou o que estiver disponível
-    col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_filtrado.columns else "Faturamento 9M"
+    # --- CÁLCULO FINANCEIRO DINÂMICO (COLUNAS HORIZONTAIS) ---
+    # Identificamos quais colunas de meses o usuário selecionou no filtro
+    # Se nenhum mês estiver selecionado, somamos todos os meses disponíveis no DF
+    meses_selecionados = st.session_state.get("filtro_mes", [])
     
-    # Garantimos que o valor seja numérico para o cálculo
-    valor_total_calc = pd.to_numeric(df_filtrado[col_valor], errors='coerce').sum()
+    # Lista todas as colunas que seguem o padrão "MMM/AA" (ex: JAN/26)
+    colunas_financeiras = [c for c in df_filtrado.columns if "/" in c and len(c) == 6]
+    
+    if meses_selecionados:
+        # Soma apenas as colunas que o usuário filtrou
+        colunas_para_somar = [c for c in colunas_financeiras if c in meses_selecionados]
+        valor_total_calc = df_filtrado[colunas_para_somar].sum().sum()
+    else:
+        # Se não filtrou mês, soma o faturamento de todas as colunas de meses
+        valor_total_calc = df_filtrado[colunas_financeiras].sum().sum()
+
     qtd_clientes = df_filtrado[COL_RAZAO].nunique()
     ticket_medio = valor_total_calc / qtd_clientes if qtd_clientes > 0 else 0
 
-    # Layout de 3 colunas para os cartões
+    # Exibição dos KPIs
     kpi1, kpi2, kpi3 = st.columns(3)
     with kpi1:
-        st.metric("Faturamento Total", f"R$ {valor_total_calc:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        st.metric("Faturamento (Período)", f"R$ {valor_total_calc:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
     with kpi2:
         st.metric("Qtd. de Clientes", f"{qtd_clientes} PDVs")
     with kpi3:
@@ -1350,7 +1358,7 @@ if not df_filtrado.empty:
     st.download_button(
         label="📥 Baixar Base Filtrada (Excel)",
         data=excel_data,
-        file_name=f"relatorio_vendas_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
+        file_name=f"faturamento_papapa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
@@ -1365,17 +1373,16 @@ if not df_filtrado.empty:
         if len(num) > 0 and not num.startswith("55"): num = "55" + num
         return f"https://wa.me/{num}"
 
-    # Criamos a coluna de contato
     df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
 
-    # Reordenamos para o WhatsApp ficar ao lado do telefone
+    # Reordenar colunas (WhatsApp ao lado do Telefone)
     cols = list(df_filtrado.columns)
     if "TELEFONE" in cols and "CONTATO" in cols:
         idx_tel = cols.index("TELEFONE")
         cols.insert(idx_tel + 1, cols.pop(cols.index("CONTATO")))
         df_filtrado = df_filtrado[cols]
 
-    # Exibição final da Tabela
+    # Exibição da Tabela com configuração de colunas
     st.dataframe(
         df_filtrado,
         column_config={
@@ -1388,10 +1395,7 @@ if not df_filtrado.empty:
     )
 
 else:
-    st.warning("Nenhum cliente encontrado com os filtros atuais. Tente limpar os filtros na lateral.")
-
-# Rodapé
-st.markdown("<div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>Dashboard Inside Sales Papapá © 2026 - v1.1</div>", unsafe_allow_html=True)
+    st.warning("Nenhum dado encontrado para os filtros aplicados.")
 
 
 
