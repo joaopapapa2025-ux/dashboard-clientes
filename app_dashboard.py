@@ -1303,30 +1303,6 @@ if len(df_filtrado) > 1:
 
     st.divider()
 
-# ==========================================
-# 🏆 PERFORMANCE POR LINHA (SÓ APARECE SE HOUVER 1 CLIENTE SELECIONADO)
-# ==========================================
-
-# Esta parte evita o NameError que você recebeu
-if len(df_filtrado) == 1:
-    # Verificamos se a variável de vendas foi criada lá em cima no bloco de inteligência
-    if 'vendas_cliente_atual' in locals() and not vendas_cliente_atual.empty:
-        st.markdown("---")
-        st.subheader("🏆 Performance por Linha de Produto")
-        
-        # Criamos as opções de linha baseadas no que esse cliente já comprou
-        linhas_disponiveis = sorted(vendas_cliente_atual["LINHA"].unique())
-        
-        linha_selecionada = st.selectbox("Selecione uma linha para detalhar:", options=linhas_disponiveis)
-
-        # Filtro seguro que não dará NameError
-        df_detalhe_linha = vendas_cliente_atual[vendas_cliente_atual["LINHA"] == linha_selecionada]
-        
-        # Exemplo de visualização simples da performance
-        st.dataframe(df_detalhe_linha[["DATA", "DESC PRODUTO", "QTD", "VALOR TOTAL"]], use_container_width=True, hide_index=True)
-    else:
-        st.info("ℹ️ Este cliente não possui histórico de vendas para análise de performance.")
-
 # =========================
 # DOWNLOAD E TABELA FINAL
 # =========================
