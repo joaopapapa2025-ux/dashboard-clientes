@@ -416,7 +416,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     return buffer
     
 # ==========================================
-# SIDEBAR - VERSÃO FINAL SEM ERROS
+# SIDEBAR - VERSÃO FINAL (SEM DUPLICATAS)
 # ==========================================
 
 # --- TRATAMENTO DE DADOS ---
@@ -434,11 +434,11 @@ else:
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR - Reseta as chaves novas sem deslogar
+# BOTÃO LIMPAR - Reseta as chaves específicas sem deslogar
 if st.sidebar.button("Limpar todos os filtros"):
     chaves_atuais = [
         "b_cnpj", "b_razao", "b_email", "b_tel",
-        "f_mes", "f_vend", "f_uf", "f_cid", "f_bairro"
+        "f_mes", "f_vend", "f_uf", "f_cid", "f_bairro", "f_seg", "f_fat"
     ]
     for chave in chaves_atuais:
         if chave in st.session_state:
@@ -448,28 +448,28 @@ if st.sidebar.button("Limpar todos os filtros"):
 df_filtrado = df.copy()
 
 # ==========================================
-# FILTROS NA ORDEM ORIGINAL (IMAGEM)
+# ORDEM DOS FILTROS (CONFORME SOLICITADO)
 # ==========================================
 
-# 1. Buscar por CNPJ
+# 1. CNPJ
 busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="b_cnpj")
 if busca_cnpj:
     cnpj_l = "".join(filter(str.isdigit, busca_cnpj)) 
     if "CNPJ_LIMPO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_l, na=False)]
 
-# 2. Buscar Razão Social (Autocomplete Dinâmico)
+# 2. Razão Social (Autocomplete Dinâmico)
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 cliente_sel = st.sidebar.selectbox("Buscar Razão Social", options=lista_clientes, key="b_razao")
 if cliente_sel != "":
     df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_sel]
 
-# 3. Buscar por E-mail
+# 3. E-mail
 busca_email = st.sidebar.text_input("Buscar por E-mail", key="b_email")
 if busca_email:
     df_filtrado = df_filtrado[df_filtrado[COL_EMAIL].str.contains(busca_email, case=False, na=False)]
 
-# 4. Buscar por Telefone
+# 4. Telefone
 tel_busca = st.sidebar.text_input("Buscar por Telefone", key="b_tel")
 if tel_busca:
     tel_l = "".join(filter(str.isdigit, tel_busca))
@@ -506,6 +506,20 @@ b_list = sorted(df_filtrado[COL_BAIRRO].dropna().unique().tolist())
 bairro_sel = st.sidebar.multiselect("Bairro", b_list, key="f_bairro")
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_BAIRRO].isin(bairro_sel)]
+
+# 10. Segmento (Adicionado conforme sua lista)
+if "SEGMENTO" in df_filtrado.columns:
+    seg_list = sorted(df_filtrado["SEGMENTO"].dropna().unique().tolist())
+    seg_sel = st.sidebar.multiselect("Segmento", seg_list, key="f_seg")
+    if seg_sel:
+        df_filtrado = df_filtrado[df_filtrado["SEGMENTO"].isin(seg_sel)]
+
+# 11. Faixa de Faturamento (Adicionado conforme sua lista)
+if "FAIXA_FATURAMENTO" in df_filtrado.columns:
+    fat_list = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique().tolist())
+    fat_sel = st.sidebar.multiselect("Faixa de Faturamento", fat_list, key="f_fat")
+    if fat_sel:
+        df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(fat_sel)]
         
 # =========================
 # FILTROS DE SELEÇÃO MÚLTIPLA
