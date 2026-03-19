@@ -1309,7 +1309,7 @@ if len(df_filtrado) > 1:
     st.divider()
 
 # ==========================================
-# 🏆 RESULTADO FINANCEIRO E RANKING DE VENDAS
+# 🏆 RESULTADO FINANCEIRO E RANKING (VISUAL PREMIUM)
 # ==========================================
 
 st.markdown("### 💰 Resultado Financeiro e Ranking")
@@ -1320,109 +1320,122 @@ if not df_filtrado.empty:
     if not meses_selecionados:
         st.info("💡 Selecione um ou mais meses no filtro lateral para visualizar o faturamento e o ranking.")
     else:
-        # 1. Dicionário Tradutor (Filtro MM/YYYY -> Planilha MMM/AA)
+        # 1. Tradutor de Meses (Filtro -> Planilha)
         tradutor_meses = {
             "01": "JAN", "02": "FEV", "03": "MAR", "04": "ABR",
             "05": "MAI", "06": "JUN", "07": "JUL", "08": "AGO",
             "09": "SET", "10": "OUT", "11": "NOV", "12": "DEZ"
         }
 
-        # 2. Identifica quais colunas da planilha correspondem aos meses filtrados
-        colunas_reais_planilha = []
+        colunas_reais = []
         for m in meses_selecionados:
             try:
                 mes_num, ano_num = m.split("/")
                 nome_coluna = f"{tradutor_meses[mes_num]}/{ano_num[2:]}"
                 if nome_coluna in df_filtrado.columns:
-                    colunas_reais_planilha.append(nome_coluna)
-            except:
-                continue
+                    colunas_reais.append(nome_coluna)
+            except: continue
 
-        if not colunas_reais_planilha:
-            st.warning("⚠️ Não foram encontradas colunas de faturamento para os meses selecionados (ex: JAN/26).")
+        if not colunas_reais:
+            st.warning("⚠️ Nenhuma coluna de faturamento encontrada para este período.")
         else:
-            # 3. Tratamento de dados: Garantimos que os valores sejam numéricos
+            # 2. Cálculos
             df_calc = df_filtrado.copy()
-            for col in colunas_reais_planilha:
+            for col in colunas_reais:
                 df_calc[col] = pd.to_numeric(df_calc[col], errors='coerce').fillna(0)
 
-            # 4. Cálculo do Faturamento Total e Ranking
-            df_calc["TOTAL_VENDAS"] = df_calc[colunas_reais_planilha].sum(axis=1)
+            df_calc["TOTAL_VENDAS"] = df_calc[colunas_reais].sum(axis=1)
             total_periodo = df_calc["TOTAL_VENDAS"].sum()
+            qtd_clientes = df_filtrado[COL_RAZAO].nunique()
             
             ranking = df_calc.groupby(COL_VENDEDOR)["TOTAL_VENDAS"].sum().sort_values(ascending=False).reset_index()
 
-            # 5. Exibição dos KPIs Principais
-            col_kpi1, col_kpi2 = st.columns([1, 1])
-            with col_kpi1:
-                st.metric(f"Faturamento Total ({', '.join(colunas_reais_planilha)})", 
-                          f"R$ {total_periodo:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-            with col_kpi2:
-                st.metric("Total de Clientes Atendidos", f"{df_filtrado[COL_RAZAO].nunique()} PDVs")
+            # 3. ESTILIZAÇÃO DOS CARDS (KPIs)
+            st.markdown("---")
+            c1, c2 = st.columns(2)
+            
+            with c1:
+                st.markdown(f"""
+                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #2e7bcf;">
+                        <p style="color: #555; margin-bottom: 5px; font-size: 14px; font-weight: bold;">FATURAMENTO TOTAL ({', '.join(colunas_reais)})</p>
+                        <h2 style="color: #1f77b4; margin: 0;">R$ {total_periodo:,.2f}</h2>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with c2:
+                st.markdown(f"""
+                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b;">
+                        <p style="color: #555; margin-bottom: 5px; font-size: 14px; font-weight: bold;">CLIENTES ATENDIDOS</p>
+                        <h2 style="color: #ff4b4b; margin: 0;">{qtd_clientes}</h2>
+                    </div>
+                """, unsafe_allow_html=True)
 
-            # 6. Exibição do Ranking formatado
-            st.markdown("#### 🥇 Ranking de Vendas por Vendedor")
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # 4. RANKING ESTILIZADO EM TABELA LIMPA
+            st.markdown("#### 🥇 Ranking de Performance")
+            
+            # Criando uma visualização de ranking mais elegante
             for i, row in ranking.iterrows():
-                valor_formatado = f"R$ {row['TOTAL_VENDAS']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                emoji = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "👤"
-                st.write(f"**{i+1}º {emoji} {row[COL_VENDEDOR]}** — {valor_formatado}")
+                valor = f"R$ {row['TOTAL_VENDAS']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                
+                # Cores e ícones por posição
+                cor_fundo = "#fffdf0" if i == 0 else "#f8f9fa"
+                emoji = "🏆" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else "👤"
+                
+                st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: center; 
+                                background-color: {cor_fundo}; padding: 10px 15px; border-radius: 8px; 
+                                margin-bottom: 5px; border: 1px solid #eee;">
+                        <span style="font-weight: bold; color: #333;">{i+1}º {emoji} {row[COL_VENDEDOR]}</span>
+                        <span style="font-family: monospace; font-weight: bold; color: #2e7bcf;">{valor}</span>
+                    </div>
+                """, unsafe_allow_html=True)
 
 # ==========================================
-# 📂 EXPORTAÇÃO E LISTAGEM DETALHADA
+# 📂 EXPORTAÇÃO E LISTAGEM (MANTIDOS)
 # ==========================================
 st.markdown("---")
-st.markdown("### 📂 Exportação da Base")
-
-def gerar_excel(df_exp):
-    buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        cols_extras = ["MES_REF", "CONTATO", "TEL_LIMPO", "CNPJ_LIMPO", "TOTAL_VENDAS"]
-        df_limpo = df_exp.drop(columns=[c for c in cols_extras if c in df_exp.columns])
-        df_limpo.to_excel(writer, index=False, sheet_name="Relatório_Papapa")
-    return buffer.getvalue()
-
 if not df_filtrado.empty:
-    st.download_button(
-        label="📥 Baixar Lista de Clientes (Excel)",
-        data=gerar_excel(df_filtrado),
-        file_name=f"vendas_papapa_{datetime.now().strftime('%d_%m')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
+    def gerar_excel(df_exp):
+        buffer = BytesIO()
+        with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+            cols_excluir = ["MES_REF", "CONTATO", "TEL_LIMPO", "CNPJ_LIMPO", "TOTAL_VENDAS"]
+            df_exp.drop(columns=[c for c in cols_excluir if c in df_exp.columns]).to_excel(writer, index=False)
+        return buffer.getvalue()
+
+    st.download_button(label="📥 Baixar Base Completa", data=gerar_excel(df_filtrado), 
+                       file_name="vendas_papapa.xlsx", use_container_width=True)
 
 st.subheader("📋 Listagem Detalhada")
 
-# 1. Função WhatsApp
+# WhatsApp e Tabela (Sua lógica que já funciona)
 def criar_link_whatsapp(tel):
     if not tel or pd.isna(tel): return None
     num = "".join(filter(str.isdigit, str(tel)))
     if len(num) > 0 and not num.startswith("55"): num = "55" + num
     return f"https://wa.me/{num}"
 
-# 2. Coluna de contato e Reordenação
 df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
 cols = list(df_filtrado.columns)
 if "TELEFONE" in cols and "CONTATO" in cols:
-    idx_tel = cols.index("TELEFONE")
-    cols.insert(idx_tel + 1, cols.pop(cols.index("CONTATO")))
+    idx = cols.index("TELEFONE")
+    cols.insert(idx + 1, cols.pop(cols.index("CONTATO")))
     df_filtrado = df_filtrado[cols]
 
-# 3. Configuração da Tabela Final
-colunas_para_esconder = ["CNPJ_LIMPO", "TEL_LIMPO", "FAIXA_FATURAMENTO", "MES_REF", "TOTAL_VENDAS"]
-# Identifica todas as colunas de meses (MMM/AA) para formatar como Moeda
+# Configurações de exibição
 colunas_meses = [c for c in df_filtrado.columns if "/" in c and len(c) == 6]
 config_moeda = {c: st.column_config.NumberColumn(c, format="R$ %.2f") for c in colunas_meses}
 
 st.dataframe(
     df_filtrado,
     column_config={
-        "CONTATO": st.column_config.LinkColumn("WhatsApp", display_text="💬 Chamar no Whats"),
+        "CONTATO": st.column_config.LinkColumn("WhatsApp", display_text="💬 Chamar"),
         "ÚLTIMA COMPRA": st.column_config.DateColumn("Última Compra", format="DD/MM/YYYY"),
         **config_moeda,
-        **{col: None for col in colunas_para_esconder if col in df_filtrado.columns}
+        **{c: None for c in ["CNPJ_LIMPO", "TEL_LIMPO", "MES_REF", "TOTAL_VENDAS"] if c in df_filtrado.columns}
     },
-    use_container_width=True,
-    hide_index=True
+    use_container_width=True, hide_index=True
 )
 
 st.markdown("<div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>Dashboard Inside Sales Papapá © 2026 - v1.2</div>", unsafe_allow_html=True)
