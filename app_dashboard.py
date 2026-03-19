@@ -463,6 +463,40 @@ if st.sidebar.button("Limpar filtros"):
 
 df_filtrado = df.copy()
 
+# ==========================================
+# 1. RESET E FILTROS DE SEGMENTAÇÃO (COLE ACIMA DAS BUSCAS)
+# ==========================================
+
+# Garante que começamos com a base completa para os filtros funcionarem
+df_filtrado = df.copy()
+
+# --- FILTRO DE VENDEDOR ---
+vendedores = ["Todos"] + sorted(df[COL_VENDEDOR].dropna().unique().tolist())
+vendedor_sel = st.sidebar.selectbox("Vendedor", vendedores, key="filtro_vendedor")
+
+if vendedor_sel != "Todos":
+    df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR] == vendedor_sel]
+
+# --- FILTRO DE CIDADE (OU OUTROS) ---
+# Adicione aqui qualquer outro filtro (Cidade, Estado, etc.) 
+# Eles devem vir ANTES das buscas textuais para a 'cascata' funcionar
+cidades = ["Todas"] + sorted(df_filtrado[COL_CIDADE].dropna().unique().tolist())
+cidade_sel = st.sidebar.selectbox("Cidade", cidades, key="filtro_cidade")
+
+if cidade_sel != "Todas":
+    df_filtrado = df_filtrado[df_filtrado[COL_CIDADE] == cidade_sel]
+
+# --- FILTRO DE MÊS ---
+meses_unicos = df_filtrado["MES_REF"].dropna().unique().tolist()
+meses_lista = sorted(meses_unicos, key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
+mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="filtro_mes")
+
+if mes_sel:
+    df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
+
+st.sidebar.markdown("---")
+# O BLOCO DE BUSCAS TEXTUAIS QUE VOCÊ JÁ TEM VEM LOGO ABAIXO DISSO
+
 # =========================
 # BUSCAS TEXTUAIS (CNPJ, NOME, E-MAIL, TEL)
 # =========================
