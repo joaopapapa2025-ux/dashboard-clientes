@@ -416,7 +416,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     return buffer
     
 # ==========================================
-# SIDEBAR - VERSÃO FINAL (ORDEM ORIGINAL)
+# SIDEBAR - LAYOUT INTEGRAL E LIMPEZA TOTAL
 # ==========================================
 
 # --- CONFIGURAÇÃO E TRATAMENTO ---
@@ -434,22 +434,23 @@ else:
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR - Reseta as chaves exatas da sua imagem
-if st.sidebar.button("Limpar todos os filtros"):
+# BOTÃO LIMPAR - Reseta as chaves exatas sem deslogar
+if st.sidebar.button("Limpar filtros"):
     chaves_atuais = [
         "busca_cnpj", "busca_nome", "busca_email", "busca_tel",
         "filtro_mes", "filtro_vendedor", "filtro_uf", "filtro_cidade", "filtro_bairro"
     ]
     for chave in chaves_atuais:
         if chave in st.session_state:
-            # Reseta multiselect para lista vazia e campos de texto/select para vazio
+            # Reseta multiselect para lista vazia e campos de texto para string vazia
             st.session_state[chave] = [] if isinstance(st.session_state[chave], list) else ""
     st.rerun()
 
+# Inicializamos o DataFrame para a cascata funcionar
 df_filtrado = df.copy()
 
 # ==========================================
-# FILTROS NA ORDEM DA SUA IMAGEM
+# FILTROS NA ORDEM ORIGINAL (IMAGEM)
 # ==========================================
 
 # 1. Buscar por CNPJ
@@ -460,7 +461,7 @@ if busca_cnpj:
         df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_l, na=False)]
 
 # 2. Buscar Razão Social (Autocomplete Dinâmico)
-# A lista é gerada com base no que sobrar dos filtros abaixo
+# Esta lista reage a QUALQUER filtro selecionado abaixo (Vendedor, Cidade, etc)
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 cliente_sel = st.sidebar.selectbox("Buscar Razão Social", options=lista_clientes, key="busca_nome")
 if cliente_sel != "":
