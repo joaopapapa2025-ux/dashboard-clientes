@@ -1309,7 +1309,7 @@ if len(df_filtrado) > 1:
     st.divider()
 
 # ==========================================
-# 📊 RESUMO FINANCEIRO DINÂMICO POR MÊS
+# 📊 RESUMO FINANCEIRO DINÂMICO (CORRIGIDO)
 # ==========================================
 
 st.markdown("### 📂 Exportação e Dados")
@@ -1325,26 +1325,27 @@ def gerar_excel(df_para_exportar):
 
 if not df_filtrado.empty:
     
-    # --- CÁLCULO FINANCEIRO DINÂMICO (COLUNAS HORIZONTAIS) ---
-    # Identificamos quais colunas de meses o usuário selecionou no filtro
-    # Se nenhum mês estiver selecionado, somamos todos os meses disponíveis no DF
-    meses_selecionados = st.session_state.get("filtro_mes", [])
-    
-    # Lista todas as colunas que seguem o padrão "MMM/AA" (ex: JAN/26)
+    # --- TRATAMENTO E CÁLCULO FINANCEIRO ---
+    # Identifica colunas no formato MMM/AA (ex: JUN/25, JAN/26)
     colunas_financeiras = [c for c in df_filtrado.columns if "/" in c and len(c) == 6]
     
+    # Criamos uma cópia temporária para converter tudo que for mês em número (evita o TypeError)
+    df_temp_calc = df_filtrado[colunas_financeiras].apply(pd.to_numeric, errors='coerce').fillna(0)
+    
+    meses_selecionados = st.session_state.get("filtro_mes", [])
+    
     if meses_selecionados:
-        # Soma apenas as colunas que o usuário filtrou
+        # Soma apenas as colunas que batem com o filtro de meses lateral
         colunas_para_somar = [c for c in colunas_financeiras if c in meses_selecionados]
-        valor_total_calc = df_filtrado[colunas_para_somar].sum().sum()
+        valor_total_calc = df_temp_calc[colunas_para_somar].sum().sum()
     else:
-        # Se não filtrou mês, soma o faturamento de todas as colunas de meses
-        valor_total_calc = df_filtrado[colunas_financeiras].sum().sum()
+        # Se nada for filtrado, soma o histórico total de todos os meses
+        valor_total_calc = df_temp_calc.sum().sum()
 
     qtd_clientes = df_filtrado[COL_RAZAO].nunique()
     ticket_medio = valor_total_calc / qtd_clientes if qtd_clientes > 0 else 0
 
-    # Exibição dos KPIs
+    # Exibição dos KPIs formatados
     kpi1, kpi2, kpi3 = st.columns(3)
     with kpi1:
         st.metric("Faturamento (Período)", f"R$ {valor_total_calc:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
@@ -1366,7 +1367,7 @@ if not df_filtrado.empty:
     st.markdown("---")
     st.subheader("📋 Listagem Detalhada")
 
-    # --- LÓGICA DO WHATSAPP E TABELA ---
+    # --- LÓGICA DO WHATSAPP E TABELA (MANTIDA) ---
     def criar_link_whatsapp(tel):
         if not tel or pd.isna(tel): return None
         num = "".join(filter(str.isdigit, str(tel)))
@@ -1375,25 +1376,27 @@ if not df_filtrado.empty:
 
     df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
 
-    # Reordenar colunas (WhatsApp ao lado do Telefone)
     cols = list(df_filtrado.columns)
     if "TELEFONE" in cols and "CONTATO" in cols:
         idx_tel = cols.index("TELEFONE")
         cols.insert(idx_tel + 1, cols.pop(cols.index("CONTATO")))
         df_filtrado = df_filtrado[cols]
 
-    # Exibição da Tabela com configuração de colunas
+    # Configuração da Tabela
+    # Criamos um dicionário para formatar todas as colunas de meses como Moeda
+    config_meses = {c: st.column_config.NumberColumn(c, format="R$ %.2f") for c in colunas_financeiras}
+    
     st.dataframe(
         df_filtrado,
         column_config={
             "CONTATO": st.column_config.LinkColumn("WhatsApp", display_text="💬 Chamar"),
             "ÚLTIMA COMPRA": st.column_config.DateColumn("Última Compra", format="DD/MM/YYYY"),
-            "MES_REF": None, "TEL_LIMPO": None, "CNPJ_LIMPO": None, "FAIXA_FATURAMENTO": None
+            "MES_REF": None, "TEL_LIMPO": None, "CNPJ_LIMPO": None, "FAIXA_FATURAMENTO": None,
+            **config_meses # Aplica a formatação de R$ em todos os meses
         },
         use_container_width=True,
         hide_index=True
     )
-
 else:
     st.warning("Nenhum dado encontrado para os filtros aplicados.")
 
