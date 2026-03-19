@@ -1309,96 +1309,82 @@ if len(df_filtrado) > 1:
     st.divider()
 
 # ==========================================
-# 📊 RESUMO FINANCEIRO DINÂMICO (CORRIGIDO)
+# 📂 EXPORTAÇÃO E LISTAGEM COM WHATSAPP
 # ==========================================
 
-st.markdown("### 📂 Exportação e Dados")
-
-# 1. Função para gerar o arquivo Excel
-def gerar_excel(df_para_exportar):
+def gerar_excel(df):
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        cols_extras = ["MES_REF", "CONTATO", "TEL_LIMPO", "CNPJ_LIMPO"]
-        df_limpo = df_para_exportar.drop(columns=[c for c in cols_extras if c in df_para_exportar.columns])
-        df_limpo.to_excel(writer, index=False, sheet_name="Dados_Papapa")
+        df.to_excel(writer, index=False, sheet_name="Clientes_Filtrados")
     return buffer.getvalue()
 
-if not df_filtrado.empty:
-    
-    # --- TRATAMENTO E CÁLCULO FINANCEIRO ---
-    # Identifica colunas no formato MMM/AA (ex: JUN/25, JAN/26)
-    colunas_financeiras = [c for c in df_filtrado.columns if "/" in c and len(c) == 6]
-    
-    # Criamos uma cópia temporária para converter tudo que for mês em número (evita o TypeError)
-    df_temp_calc = df_filtrado[colunas_financeiras].apply(pd.to_numeric, errors='coerce').fillna(0)
-    
-    meses_selecionados = st.session_state.get("filtro_mes", [])
-    
-    if meses_selecionados:
-        # Soma apenas as colunas que batem com o filtro de meses lateral
-        colunas_para_somar = [c for c in colunas_financeiras if c in meses_selecionados]
-        valor_total_calc = df_temp_calc[colunas_para_somar].sum().sum()
-    else:
-        # Se nada for filtrado, soma o histórico total de todos os meses
-        valor_total_calc = df_temp_calc.sum().sum()
+st.markdown("### 📂 Exportação e Dados")
+col_down, col_spacer = st.columns([1, 3])
 
-    qtd_clientes = df_filtrado[COL_RAZAO].nunique()
-    ticket_medio = valor_total_calc / qtd_clientes if qtd_clientes > 0 else 0
+with col_down:
+    if not df_filtrado.empty:
+        # Geramos o Excel com a base filtrada
+        excel_data = gerar_excel(df_filtrado)
+        st.download_button(
+            label="📥 Baixar Base Filtrada (Excel)",
+            data=excel_data,
+            file_name=f"clientes_papapa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
 
-    # Exibição dos KPIs formatados
-    kpi1, kpi2, kpi3 = st.columns(3)
-    with kpi1:
-        st.metric("Faturamento (Período)", f"R$ {valor_total_calc:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-    with kpi2:
-        st.metric("Qtd. de Clientes", f"{qtd_clientes} PDVs")
-    with kpi3:
-        st.metric("Ticket Médio", f"R$ {ticket_medio:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+st.subheader("📋 Listagem Detalhada")
 
-    # --- BOTÃO DE DOWNLOAD ---
-    excel_data = gerar_excel(df_filtrado)
-    st.download_button(
-        label="📥 Baixar Base Filtrada (Excel)",
-        data=excel_data,
-        file_name=f"faturamento_papapa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
+# 1. Função para criar o link do WhatsApp
+def criar_link_whatsapp(tel):
+    if not tel or pd.isna(tel):
+        return None
+    # Remove caracteres especiais para o link funcionar
+    num = "".join(filter(str.isdigit, str(tel)))
+    # Garante o código do país (55)
+    if len(num) > 0 and not num.startswith("55"):
+        num = "55" + num
+    return f"https://wa.me/{num}"
 
-    st.markdown("---")
-    st.subheader("📋 Listagem Detalhada")
+# 2. Criamos a coluna de contato
+df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
 
-    # --- LÓGICA DO WHATSAPP E TABELA (MANTIDA) ---
-    def criar_link_whatsapp(tel):
-        if not tel or pd.isna(tel): return None
-        num = "".join(filter(str.isdigit, str(tel)))
-        if len(num) > 0 and not num.startswith("55"): num = "55" + num
-        return f"https://wa.me/{num}"
+# 3. REORDENAR: Movemos a coluna 'CONTATO' para ficar logo após 'TELEFONE'
+cols = list(df_filtrado.columns)
+if "TELEFONE" in cols and "CONTATO" in cols:
+    idx_tel = cols.index("TELEFONE")
+    # Remove de onde estiver e insere na posição seguinte ao telefone
+    cols.insert(idx_tel + 1, cols.pop(cols.index("CONTATO")))
+    df_filtrado = df_filtrado[cols]
 
-    df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
+# 4. Definimos as colunas técnicas que não precisam aparecer
+colunas_para_esconder = ["CNPJ_LIMPO", "TEL_LIMPO", "FAIXA_FATURAMENTO"]
 
-    cols = list(df_filtrado.columns)
-    if "TELEFONE" in cols and "CONTATO" in cols:
-        idx_tel = cols.index("TELEFONE")
-        cols.insert(idx_tel + 1, cols.pop(cols.index("CONTATO")))
-        df_filtrado = df_filtrado[cols]
+# 5. Exibição da Tabela com Configuração de Link
+st.dataframe(
+    df_filtrado,
+    column_config={
+        "CONTATO": st.column_config.LinkColumn(
+            "WhatsApp",
+            display_text="💬 Chamar no Whats",
+            help="Clique para abrir o chat direto no WhatsApp Web ou App"
+        ),
+        # Aplica 'None' para esconder as colunas técnicas
+        **{col: None for col in colunas_para_esconder if col in df_filtrado.columns}
+    },
+    use_container_width=True,
+    hide_index=True
+)
 
-    # Configuração da Tabela
-    # Criamos um dicionário para formatar todas as colunas de meses como Moeda
-    config_meses = {c: st.column_config.NumberColumn(c, format="R$ %.2f") for c in colunas_financeiras}
-    
-    st.dataframe(
-        df_filtrado,
-        column_config={
-            "CONTATO": st.column_config.LinkColumn("WhatsApp", display_text="💬 Chamar"),
-            "ÚLTIMA COMPRA": st.column_config.DateColumn("Última Compra", format="DD/MM/YYYY"),
-            "MES_REF": None, "TEL_LIMPO": None, "CNPJ_LIMPO": None, "FAIXA_FATURAMENTO": None,
-            **config_meses # Aplica a formatação de R$ em todos os meses
-        },
-        use_container_width=True,
-        hide_index=True
-    )
-else:
-    st.warning("Nenhum dado encontrado para os filtros aplicados.")
+# Rodapé formatado
+st.markdown(
+    """
+    <div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>
+        Dashboard Inside Sales Papapá © 2026 - v1.0
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 
 
 
