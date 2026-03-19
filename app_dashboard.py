@@ -464,29 +464,25 @@ if st.sidebar.button("Limpar filtros"):
 df_filtrado = df.copy()
 
 # =========================
-# BUSCAS TEXTUAIS
+# BUSCA INTELIGENTE POR CLIENTE (AUTOCOMPLETE)
 # =========================
 
-busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
-if busca_cnpj:
-    cnpj_busca_limpo = limpar_cnpj(busca_cnpj)
-    df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_busca_limpo, na=False)]
+# Criamos a lista de nomes baseada no que já está filtrado (ex: por vendedor)
+# Adicionamos uma opção vazia no início para o filtro não vir pré-selecionado
+lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 
-busca_nome = st.sidebar.text_input("Buscar Razão Social", key="busca_nome")
-if busca_nome:
-    sugestoes = df[df[COL_RAZAO].str.contains(busca_nome, case=False, na=False)][COL_RAZAO].drop_duplicates().head(50)
-    if len(sugestoes) > 0:
-        cliente_escolhido = st.sidebar.selectbox("Selecione o cliente", sugestoes)
-        df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_escolhido]
+# O selectbox do Streamlit já permite que o usuário digite e ele filtre a lista automaticamente
+cliente_selecionado = st.sidebar.selectbox(
+    "Buscar Razão Social (Digite o nome)",
+    options=lista_clientes,
+    index=0,
+    key="busca_nome_v3",
+    help="Se você filtrar um vendedor antes, aparecerão apenas os clientes dele aqui."
+)
 
-busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
-if busca_email:
-    df_filtrado = df_filtrado[df_filtrado[COL_EMAIL].str.contains(busca_email, case=False, na=False)]
-
-tel_busca = st.sidebar.text_input("Buscar por Telefone:")
-tel_busca_limpo = "".join(filter(str.isdigit, tel_busca))
-if tel_busca_limpo:
-    df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(tel_busca_limpo, na=False)]
+# Se o usuário escolher um cliente, aplicamos o filtro final
+if cliente_selecionado != "":
+    df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_selecionado]
 
 # =========================
 # FILTROS DE SELEÇÃO MÚLTIPLA
