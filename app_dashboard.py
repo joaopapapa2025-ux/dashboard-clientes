@@ -1319,9 +1319,9 @@ if len(df_filtrado) > 1:
 
     st.divider()
 
-# =========================
-# DOWNLOAD E TABELA FINAL
-# =========================
+# ==========================================
+# 📂 EXPORTAÇÃO E LISTAGEM COM WHATSAPP
+# ==========================================
 
 def gerar_excel(df):
     buffer = BytesIO()
@@ -1344,10 +1344,45 @@ with col_down:
         )
 
 st.subheader("📋 Listagem Detalhada")
-colunas_exibicao = [c for c in df_filtrado.columns if c not in ["CNPJ_LIMPO", "TEL_LIMPO", "FAIXA_FATURAMENTO"]]
-st.dataframe(df_filtrado[colunas_exibicao], use_container_width=True, hide_index=True)
 
-st.markdown("<div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>Dashboard Inside Sales Papapá © 2026 - v1.0</div>", unsafe_allow_html=True)
+# Função para criar o link do WhatsApp
+def criar_link_whatsapp(tel):
+    if not tel or pd.isna(tel):
+        return None
+    num = "".join(filter(str.isdigit, str(tel)))
+    if len(num) > 0 and not num.startswith("55"):
+        num = "55" + num
+    return f"https://wa.me/{num}"
+
+# Criamos a coluna de contato para a tabela
+df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
+
+# Definimos quais colunas esconder para a tabela ficar limpa
+colunas_para_esconder = ["CNPJ_LIMPO", "TEL_LIMPO", "FAIXA_FATURAMENTO"]
+
+st.dataframe(
+    df_filtrado,
+    column_config={
+        "CONTATO": st.column_config.LinkColumn(
+            "WhatsApp",
+            display_text="💬 Chamar no Whats",
+            help="Clique para abrir o chat direto"
+        ),
+        # Esconde as colunas técnicas
+        **{col: None for col in colunas_para_esconder if col in df_filtrado.columns}
+    },
+    use_container_width=True,
+    hide_index=True
+)
+
+st.markdown(
+    """
+    <div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>
+        Dashboard Inside Sales Papapá © 2026 - v1.0
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 
 
 
