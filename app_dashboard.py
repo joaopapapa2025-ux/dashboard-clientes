@@ -1355,29 +1355,27 @@ if not df_filtrado.empty:
             st.write(f"**{i+1}º {emoji} {row[COL_VENDEDOR]}** — {valor_formatado}")
 
 # ==========================================
-# 📂 EXPORTAÇÃO E LISTAGEM COM WHATSAPP
+# 📂 EXPORTAÇÃO E LISTAGEM DETALHADA
 # ==========================================
+st.markdown("---")
+st.markdown("### 📂 Exportação da Base")
 
-def gerar_excel(df):
+# Botão de download (Baseado no que está filtrado)
+def gerar_excel(df_exp):
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Clientes_Filtrados")
+        cols_extras = ["MES_REF", "CONTATO", "TEL_LIMPO", "CNPJ_LIMPO", "TOTAL_VENDAS"]
+        df_exp.drop(columns=[c for c in cols_extras if c in df_exp.columns]).to_excel(writer, index=False)
     return buffer.getvalue()
 
-st.markdown("### 📂 Exportação e Dados")
-col_down, col_spacer = st.columns([1, 3])
-
-with col_down:
-    if not df_filtrado.empty:
-        # Geramos o Excel com a base filtrada
-        excel_data = gerar_excel(df_filtrado)
-        st.download_button(
-            label="📥 Baixar Base Filtrada (Excel)",
-            data=excel_data,
-            file_name=f"clientes_papapa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
+if not df_filtrado.empty:
+    st.download_button(
+        label="📥 Baixar Lista de Clientes (Excel)",
+        data=gerar_excel(df_filtrado),
+        file_name=f"vendas_papapa_{datetime.now().strftime('%d_%m')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
 
 st.subheader("📋 Listagem Detalhada")
 
