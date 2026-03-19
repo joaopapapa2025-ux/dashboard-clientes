@@ -1050,7 +1050,9 @@ if len(df_filtrado) == 1:
                 "Papinha Org Maçã Ameixa 100g": ["MACA", "AMEIXA"],
                 "Papinha Org Banana Mirtilo Quinoa 100g": ["BANANA", "MIRTILO"],
                 "Papinha Org Manga 100g": ["MANGA"],
-                "Papinha Org Pera Espinafre Abobrinha 100g": ["PERA", "ESPINA"]
+                "Papinha Org Pera Espinafre Abobrinha 100g": ["PERA", "ESPINA"],
+                "Papinha Org Maçã B. Doce Cenoura 100g": ["DOCE", "CENOURA"],
+                "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
             },
             "BISCOTTI": {
                 "Biscotti Laranja e Cenoura 60g": ["LARANJ"],
@@ -1058,11 +1060,25 @@ if len(df_filtrado) == 1:
                 "Biscotti Banana e Cacau 60g": ["CACAU"],
                 "Biscotti Goiaba 60g": ["GOIAB"],
                 "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] 
-            }, # <--- AQUI ESTAVA FALTANDO ESSA VÍRGULA
+            },
             "PALITINHOS": {
                 "Palitinho Org. Beterraba 20g": ["PALIT", "BETERRABA"],
-                "Palitinho Org. Cenoura 20g": ["PALIT", "CENOURA"], # Exige as duas palavras
+                "Palitinho Org. Cenoura 20g": ["PALIT", "CENOURA"],
                 "Palitinho Org. Tomate/Manjericão 20g": ["PALIT", "TOMATE"]
+            },
+            "DENTIÇÃO": {
+                "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
+                "Biscoito de Dentição Vegetais": ["DENTICAO", "VEGETAIS"]
+            },
+            "MACARRÃO": {
+                "Macarrão Inf. Elbow Quinoa 200g": ["ELBOW", "QUINOA"],
+                "Macarrão Inf. Fusilli Vegetais 200g": ["FUSILLI", "VEGETAIS"]
+            },
+            "CEREAIS": {
+                "Cereal Aveia Morango e Beterraba 170g": ["CEREAL", "MORANGO"],
+                "Cereal Aveia Banana e Ameixa 170g": ["CEREAL", "BANANA"],
+                "Cereal Multicereais 170g": ["CEREAL", "MULTI", "170G"],
+                "Cereal Multicereais 500g": ["CEREAL", "MULTI", "500G"]
             }
         }
 
