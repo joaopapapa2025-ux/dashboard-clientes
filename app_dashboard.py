@@ -463,41 +463,20 @@ if st.sidebar.button("Limpar filtros"):
 
 df_filtrado = df.copy()
 
-# ==========================================
-# 1. FILTROS DE SEGMENTAÇÃO (VENDEDOR E MÊS)
-# ==========================================
-st.sidebar.header("Filtros de Segmentação")
-
-# Filtro de Vendedor (Este deve vir ANTES de tudo)
-vendedores = ["Todos"] + sorted(df[COL_VENDEDOR].dropna().unique().tolist())
-vendedor_sel = st.sidebar.selectbox("Vendedor", vendedores, key="filtro_vendedor_v5")
-
-if vendedor_sel != "Todos":
-    df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR] == vendedor_sel]
-
-# Filtro de Mês
-meses_unicos = df_filtrado["MES_REF"].dropna().unique().tolist()
-meses_lista = sorted(meses_unicos, key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
-mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="filtro_mes")
-
-if mes_sel:
-    df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
-
-# ==========================================
-# 2. BUSCAS TEXTUAIS (O BLOCO QUE VOCÊ MANDOU)
-# ==========================================
-st.sidebar.markdown("---")
-st.sidebar.subheader("Busca Específica")
+# =========================
+# BUSCAS TEXTUAIS (CNPJ, NOME, E-MAIL, TEL)
+# =========================
 
 # 1. Busca por CNPJ
 busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
 if busca_cnpj:
+    # Use a função limpar_cnpj que você já tem no código
     cnpj_busca_limpo = "".join(filter(str.isdigit, busca_cnpj)) 
     if "CNPJ_LIMPO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_busca_limpo, na=False)]
 
 # 2. Busca Inteligente Razão Social (Autocomplete Dinâmico)
-# Agora ele filtra AUTOMATICAMENTE pelo vendedor escolhido acima
+# Ela pega os clientes que sobraram dos filtros anteriores (como o de Vendedor)
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 
 cliente_selecionado = st.sidebar.selectbox(
