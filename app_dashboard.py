@@ -416,7 +416,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     return buffer
     
 # ==========================================
-# SIDEBAR - VERSÃO FINAL (RANKING + CASCATA)
+# SIDEBAR - VERSÃO FINAL (FIX RANKING + SEM DUPLICATAS)
 # ==========================================
 
 # --- TRATAMENTO DE DADOS ---
@@ -434,9 +434,10 @@ else:
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR - Reseta as chaves e força o Rerun
+# BOTÃO LIMPAR - Reseta as chaves novas e as antigas (para garantir o ranking)
 if st.sidebar.button("Limpar todos os filtros"):
-    for c in ["b_cnpj", "b_razao", "b_email", "b_tel", "f_mes", "f_vend", "f_uf", "f_cid", "f_bair", "f_seg", "f_fat"]:
+    chaves = ["b_cnpj", "b_razao", "b_email", "b_tel", "f_mes", "f_vend", "f_uf", "f_cid", "f_bair", "f_seg", "f_fat", "filtro_mes"]
+    for c in chaves:
         if c in st.session_state:
             st.session_state[c] = [] if isinstance(st.session_state[c], list) else ""
     st.rerun()
@@ -466,17 +467,19 @@ if b_tel:
         df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(t_l, na=False)]
 
 # ==========================================
-# 2. FILTROS DE SEGMENTAÇÃO (AQUI O RANKING VOLTA)
+# 2. FILTROS DE SEGMENTAÇÃO (RANKING FIX)
 # ==========================================
 
 m_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
 mes_sel = st.sidebar.multiselect("Mês da Última Compra", m_lista, key="f_mes")
 
-# --- LINHA CRUCIAL PARA O RANKING ---
-# Sincroniza a variável que o ranking usa com a nova chave da sidebar
+# --- A PONTE PARA O RANKING VOLTAR ---
+# Forçamos o valor selecionado para a chave que o seu dashboard original usa
+st.session_state["filtro_mes"] = mes_sel 
+
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
-# ------------------------------------
+# -------------------------------------
 
 v_lista = sorted(df_filtrado[COL_VENDEDOR].dropna().unique().tolist())
 vendedor_sel = st.sidebar.multiselect("Vendedor", v_lista, key="f_vend")
@@ -511,12 +514,13 @@ if "FAIXA_FATURAMENTO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(fat_sel)]
 
 # ==========================================
-# 3. CARREGAMENTO DA RAZÃO SOCIAL (PÓS-FILTROS)
+# 3. RAZÃO SOCIAL (CASCATA ATIVA)
 # ==========================================
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 cliente_sel = placeholder_razao.selectbox("Buscar Razão Social", options=lista_clientes, key="b_razao")
 if cliente_sel != "":
     df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_sel]
+    
 # =========================
 # TÍTULO
 # =========================
