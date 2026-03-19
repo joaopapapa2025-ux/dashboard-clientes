@@ -419,144 +419,115 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 # SIDEBAR
 # =========================
 
-# --- ADICIONE ESTE BLOCO LOGO APÓS CARREGAR O DF ---
-# Garante que a coluna de telefone seja tratada e limpa para a busca
+# --- TRATAMENTO DE COLUNAS ANTES DOS FILTROS ---
+# Tratamento de Telefone
 if COL_TELEFONE in df.columns:
     df["TEL_LIMPO"] = df[COL_TELEFONE].astype(str).str.replace(r'\D', '', regex=True)
 else:
-    # Caso a coluna não exista, cria uma vazia para não dar erro no filtro
     df["TEL_LIMPO"] = ""
+
+# Tratamento de Data para o Novo Filtro
+# Assume que COL_DATA_ULTIMA_COMPRA foi definida no seu mapeamento inicial
+if COL_DATA_ULTIMA_COMPRA in df.columns:
+    df[COL_DATA_ULTIMA_COMPRA] = pd.to_datetime(df[COL_DATA_ULTIMA_COMPRA], errors='coerce')
+    # Cria a coluna de exibição para o filtro (Mês/Ano)
+    df["MES_REF"] = df[COL_DATA_ULTIMA_COMPRA].dt.strftime('%m/%Y')
+else:
+    df["MES_REF"] = "Sem Data"
+
 # --------------------------------------------------
 
 st.sidebar.title("Filtros")
 
-# Inicialização de estados caso não existam (evita erros no primeiro carregamento)
+# Inicialização de estados caso não existam
 if "busca_cnpj" not in st.session_state: st.session_state["busca_cnpj"] = ""
 if "busca_nome" not in st.session_state: st.session_state["busca_nome"] = ""
+if "filtro_mes" not in st.session_state: st.session_state["filtro_mes"] = []
 
 if st.sidebar.button("Limpar filtros"):
-
     st.session_state["busca_cnpj"] = ""
     st.session_state["busca_nome"] = ""
     st.session_state["busca_email"] = ""
     st.session_state["busca_tel"] = ""
-
     st.session_state["filtro_vendedor"] = []
     st.session_state["filtro_uf"] = []
     st.session_state["filtro_cidade"] = []
     st.session_state["filtro_bairro"] = []
-    st.session_state["filtro_categoria"] = [] # Internamente mapeado para SEGMENTO
+    st.session_state["filtro_segmento"] = []
     st.session_state["filtro_faturamento"] = []
-
+    st.session_state["filtro_mes"] = []
     st.rerun()
 
 df_filtrado = df.copy()
 
 # =========================
-# BUSCA CNPJ
+# BUSCAS TEXTUAIS (CNPJ, NOME, EMAIL, TEL)
 # =========================
 
 busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="busca_cnpj")
-
 if busca_cnpj:
-    # Usa a função limpar_cnpj que definimos na Parte 1
     cnpj_busca_limpo = limpar_cnpj(busca_cnpj)
-
-    df_filtrado = df_filtrado[
-        df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_busca_limpo, na=False)
-    ]
-
-# =========================
-# BUSCA RAZÃO SOCIAL
-# =========================
+    df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_busca_limpo, na=False)]
 
 busca_nome = st.sidebar.text_input("Buscar Razão Social", key="busca_nome")
-
-cliente_escolhido = None
-
 if busca_nome:
-    # Usa COL_RAZAO da nossa configuração
-    sugestoes = df[
-        df[COL_RAZAO].str.contains(busca_nome, case=False, na=False)
-    ][COL_RAZAO].drop_duplicates().head(50)
-
+    sugestoes = df[df[COL_RAZAO].str.contains(busca_nome, case=False, na=False)][COL_RAZAO].drop_duplicates().head(50)
     if len(sugestoes) > 0:
-
-        cliente_escolhido = st.sidebar.selectbox(
-            "Selecione o cliente",
-            sugestoes
-        )
-
-        df_filtrado = df_filtrado[
-            df_filtrado[COL_RAZAO] == cliente_escolhido
-        ]
-        
-# =========================
-# BUSCA EMAIL
-# =========================
+        cliente_escolhido = st.sidebar.selectbox("Selecione o cliente", sugestoes)
+        df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_escolhido]
 
 busca_email = st.sidebar.text_input("Buscar por E-mail", key="busca_email")
-
 if busca_email:
-    # Usa COL_EMAIL definido no bloco de mapeamento
-    df_filtrado = df_filtrado[
-        df_filtrado[COL_EMAIL].str.contains(busca_email, case=False, na=False)
-    ]
-
-# =========================
-# BUSCA TELEFONE
-# =========================
+    df_filtrado = df_filtrado[df_filtrado[COL_EMAIL].str.contains(busca_email, case=False, na=False)]
 
 tel_busca = st.sidebar.text_input("Buscar por Telefone:")
-# Limpa o que o usuário digitou (remove parênteses e traços)
 tel_busca_limpo = "".join(filter(str.isdigit, tel_busca))
-
 if tel_busca_limpo:
     df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(tel_busca_limpo, na=False)]
 
 # =========================
-# FILTROS MULTISELECT
+# FILTROS DE SELEÇÃO MÚLTIPLA
 # =========================
+
+# NOVO: Filtro de Mês do Último Pedido (Multiselect para maior flexibilidade)
+meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), reverse=True)
+mes_sel = st.sidebar.multiselect("Mês do Último Pedido", meses_lista, key="filtro_mes")
+if mes_sel:
+    df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
 
 # Vendedor
 vendedores = sorted(df_filtrado[COL_VENDEDOR].dropna().unique())
 vendedor_sel = st.sidebar.multiselect("Vendedor", vendedores, key="filtro_vendedor")
-
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
 
 # UF (Estado)
 ufs = sorted(df_filtrado[COL_UF].dropna().unique())
 uf_sel = st.sidebar.multiselect("Estado (UF)", ufs, key="filtro_uf")
-
 if uf_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(uf_sel)]
 
 # Cidade
 cidades = sorted(df_filtrado[COL_CIDADE].dropna().unique())
 cidade_sel = st.sidebar.multiselect("Cidade", cidades, key="filtro_cidade")
-
 if cidade_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_CIDADE].isin(cidade_sel)]
 
 # Bairro
 bairros = sorted(df_filtrado[COL_BAIRRO].dropna().unique())
 bairro_sel = st.sidebar.multiselect("Bairro", bairros, key="filtro_bairro")
-
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_BAIRRO].isin(bairro_sel)]
 
-# Segmento (Antiga Categoria)
+# Segmento
 lista_segmentos = sorted(df_filtrado[COL_SEGMENTO].dropna().unique())
 segmento_sel = st.sidebar.multiselect("Segmento", lista_segmentos, key="filtro_segmento")
-
 if segmento_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(segmento_sel)]
 
 # Faixa de Faturamento
 faixas = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique())
 faixa_sel = st.sidebar.multiselect("Faixa de Faturamento", faixas, key="filtro_faturamento")
-
 if faixa_sel:
     df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(faixa_sel)]
 
