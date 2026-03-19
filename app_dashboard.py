@@ -416,10 +416,10 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     return buffer
     
 # ==========================================
-# SIDEBAR - LAYOUT INTEGRAL E LIMPEZA TOTAL
+# SIDEBAR - VERSÃO FINAL (ORDEM ORIGINAL)
 # ==========================================
 
-# --- CONFIGURAÇÃO E TRATAMENTO (Mantenha como está) ---
+# --- CONFIGURAÇÃO E TRATAMENTO ---
 COL_DATA_ULTIMA_COMPRA = "ÚLTIMA COMPRA"
 if COL_TELEFONE in df.columns:
     df["TEL_LIMPO"] = df[COL_TELEFONE].astype(str).str.replace(r'\D', '', regex=True)
@@ -434,9 +434,8 @@ else:
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR - Configurado para as suas chaves exatas
-if st.sidebar.button("Limpar filtros"):
-    # Lista de todas as chaves que aparecem no seu layout
+# BOTÃO LIMPAR - Reseta as chaves exatas da sua imagem
+if st.sidebar.button("Limpar todos os filtros"):
     chaves_atuais = [
         "busca_cnpj", "busca_nome", "busca_email", "busca_tel",
         "filtro_mes", "filtro_vendedor", "filtro_uf", "filtro_cidade", "filtro_bairro"
@@ -461,7 +460,7 @@ if busca_cnpj:
         df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_l, na=False)]
 
 # 2. Buscar Razão Social (Autocomplete Dinâmico)
-# Filtra a lista com base em qualquer seleção feita abaixo (Vendedor, Cidade, etc)
+# A lista é gerada com base no que sobrar dos filtros abaixo
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 cliente_sel = st.sidebar.selectbox("Buscar Razão Social", options=lista_clientes, key="busca_nome")
 if cliente_sel != "":
