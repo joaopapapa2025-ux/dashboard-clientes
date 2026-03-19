@@ -416,7 +416,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     return buffer
     
 # ==========================================
-# SIDEBAR - VERSÃO FINAL (SEM DUPLICATAS)
+# SIDEBAR - VERSÃO FINAL (ORDEM ORIGINAL + CASCATA)
 # ==========================================
 
 # --- TRATAMENTO DE DADOS ---
@@ -434,92 +434,96 @@ else:
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR - Reseta as chaves específicas sem deslogar
+# BOTÃO LIMPAR - Reseta as chaves sem deslogar
 if st.sidebar.button("Limpar todos os filtros"):
-    chaves_atuais = [
-        "b_cnpj", "b_razao", "b_email", "b_tel",
-        "f_mes", "f_vend", "f_uf", "f_cid", "f_bairro", "f_seg", "f_fat"
-    ]
-    for chave in chaves_atuais:
+    chaves_resets = ["b_cnpj", "b_razao", "b_email", "b_tel", "f_mes", "f_vend", "f_uf", "f_cid", "f_bair", "f_seg", "f_fat"]
+    for chave in chaves_resets:
         if chave in st.session_state:
             st.session_state[chave] = [] if isinstance(st.session_state[chave], list) else ""
     st.rerun()
 
+# --- INICIALIZAÇÃO DO FILTRO ---
 df_filtrado = df.copy()
 
 # ==========================================
-# ORDEM DOS FILTROS (CONFORME SOLICITADO)
+# 1. ENTRADAS DE TEXTO (PARTE SUPERIOR)
 # ==========================================
 
-# 1. CNPJ
+# CNPJ
 busca_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="b_cnpj")
 if busca_cnpj:
     cnpj_l = "".join(filter(str.isdigit, busca_cnpj)) 
     if "CNPJ_LIMPO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_l, na=False)]
 
-# 2. Razão Social (Autocomplete Dinâmico)
-lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
-cliente_sel = st.sidebar.selectbox("Buscar Razão Social", options=lista_clientes, key="b_razao")
-if cliente_sel != "":
-    df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_sel]
+# RAZÃO SOCIAL (COMPONENTE) - Vamos definir a lista depois de processar os filtros de baixo
+# Para a cascata funcionar, criamos um placeholder aqui para manter a posição visual no topo
+placeholder_razao = st.sidebar.empty()
 
-# 3. E-mail
+# E-MAIL
 busca_email = st.sidebar.text_input("Buscar por E-mail", key="b_email")
 if busca_email:
     df_filtrado = df_filtrado[df_filtrado[COL_EMAIL].str.contains(busca_email, case=False, na=False)]
 
-# 4. Telefone
+# TELEFONE
 tel_busca = st.sidebar.text_input("Buscar por Telefone", key="b_tel")
 if tel_busca:
     tel_l = "".join(filter(str.isdigit, tel_busca))
     if "TEL_LIMPO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(tel_l, na=False)]
 
-# 5. Mês da Última Compra
-meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), 
-                     key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
+# ==========================================
+# 2. FILTROS DE SEGMENTAÇÃO (PARTE INFERIOR)
+# ==========================================
+
+# MÊS
+meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
 mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="f_mes")
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
 
-# 6. Vendedor
+# VENDEDOR
 v_list = sorted(df_filtrado[COL_VENDEDOR].dropna().unique().tolist())
 vendedor_sel = st.sidebar.multiselect("Vendedor", v_list, key="f_vend")
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
 
-# 7. Estado (UF)
+# UF / CIDADE / BAIRRO
 uf_list = sorted(df_filtrado[COL_UF].dropna().unique().tolist())
 uf_sel = st.sidebar.multiselect("Estado (UF)", uf_list, key="f_uf")
 if uf_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(uf_sel)]
 
-# 8. Cidade
 c_list = sorted(df_filtrado[COL_CIDADE].dropna().unique().tolist())
 cidade_sel = st.sidebar.multiselect("Cidade", c_list, key="f_cid")
 if cidade_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_CIDADE].isin(cidade_sel)]
 
-# 9. Bairro
 b_list = sorted(df_filtrado[COL_BAIRRO].dropna().unique().tolist())
-bairro_sel = st.sidebar.multiselect("Bairro", b_list, key="f_bairro")
+bairro_sel = st.sidebar.multiselect("Bairro", b_list, key="f_bair")
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_BAIRRO].isin(bairro_sel)]
 
-# 10. Segmento (Adicionado conforme sua lista)
+# SEGMENTO / FATURAMENTO
 if "SEGMENTO" in df_filtrado.columns:
     seg_list = sorted(df_filtrado["SEGMENTO"].dropna().unique().tolist())
     seg_sel = st.sidebar.multiselect("Segmento", seg_list, key="f_seg")
     if seg_sel:
         df_filtrado = df_filtrado[df_filtrado["SEGMENTO"].isin(seg_sel)]
 
-# 11. Faixa de Faturamento (Adicionado conforme sua lista)
 if "FAIXA_FATURAMENTO" in df_filtrado.columns:
     fat_list = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique().tolist())
     fat_sel = st.sidebar.multiselect("Faixa de Faturamento", fat_list, key="f_fat")
     if fat_sel:
         df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(fat_sel)]
+
+# ==========================================
+# 3. VOLTAMOS PARA FILTRAR A RAZÃO SOCIAL (NO TOPO)
+# ==========================================
+lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
+cliente_sel = placeholder_razao.selectbox("Buscar Razão Social", options=lista_clientes, key="b_razao")
+if cliente_sel != "":
+    df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_sel]
         
 # =========================
 # FILTROS DE SELEÇÃO MÚLTIPLA
