@@ -1309,82 +1309,89 @@ if len(df_filtrado) > 1:
     st.divider()
 
 # ==========================================
-# 📂 EXPORTAÇÃO E LISTAGEM COM WHATSAPP
+# 📊 RESUMO FINANCEIRO, EXPORTAÇÃO E TABELA
 # ==========================================
 
-def gerar_excel(df):
+st.markdown("### 📂 Exportação e Dados")
+
+# 1. Função para gerar o arquivo Excel (Protegida contra colunas extras)
+def gerar_excel(df_para_exportar):
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Clientes_Filtrados")
+        # Lista de colunas técnicas que criamos e não precisam ir para o Excel
+        cols_extras = ["MES_REF", "CONTATO", "TEL_LIMPO", "CNPJ_LIMPO"]
+        df_limpo = df_para_exportar.drop(columns=[c for c in cols_extras if c in df_para_exportar.columns])
+        df_limpo.to_excel(writer, index=False, sheet_name="Dados_Papapa")
     return buffer.getvalue()
 
-st.markdown("### 📂 Exportação e Dados")
-col_down, col_spacer = st.columns([1, 3])
+# 2. Lógica de exibição (Só mostra se houver dados filtrados)
+if not df_filtrado.empty:
+    
+    # --- CÁLCULO DOS INDICADORES (KPIs) ---
+    # Tentamos encontrar a coluna de valor. Se "VALOR TOTAL" não existir, usamos "ÚLTIMA COMPRA" ou o que estiver disponível
+    col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_filtrado.columns else "Faturamento 9M"
+    
+    # Garantimos que o valor seja numérico para o cálculo
+    valor_total_calc = pd.to_numeric(df_filtrado[col_valor], errors='coerce').sum()
+    qtd_clientes = df_filtrado[COL_RAZAO].nunique()
+    ticket_medio = valor_total_calc / qtd_clientes if qtd_clientes > 0 else 0
 
-with col_down:
-    if not df_filtrado.empty:
-        # Geramos o Excel com a base filtrada
-        excel_data = gerar_excel(df_filtrado)
-        st.download_button(
-            label="📥 Baixar Base Filtrada (Excel)",
-            data=excel_data,
-            file_name=f"clientes_papapa_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
+    # Layout de 3 colunas para os cartões
+    kpi1, kpi2, kpi3 = st.columns(3)
+    with kpi1:
+        st.metric("Faturamento Total", f"R$ {valor_total_calc:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+    with kpi2:
+        st.metric("Qtd. de Clientes", f"{qtd_clientes} PDVs")
+    with kpi3:
+        st.metric("Ticket Médio", f"R$ {ticket_medio:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
-st.subheader("📋 Listagem Detalhada")
+    # --- BOTÃO DE DOWNLOAD ---
+    excel_data = gerar_excel(df_filtrado)
+    st.download_button(
+        label="📥 Baixar Base Filtrada (Excel)",
+        data=excel_data,
+        file_name=f"relatorio_vendas_{datetime.now().strftime('%d_%m_%Y')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
 
-# 1. Função para criar o link do WhatsApp
-def criar_link_whatsapp(tel):
-    if not tel or pd.isna(tel):
-        return None
-    # Remove caracteres especiais para o link funcionar
-    num = "".join(filter(str.isdigit, str(tel)))
-    # Garante o código do país (55)
-    if len(num) > 0 and not num.startswith("55"):
-        num = "55" + num
-    return f"https://wa.me/{num}"
+    st.markdown("---")
+    st.subheader("📋 Listagem Detalhada")
 
-# 2. Criamos a coluna de contato
-df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
+    # --- LÓGICA DO WHATSAPP E TABELA ---
+    def criar_link_whatsapp(tel):
+        if not tel or pd.isna(tel): return None
+        num = "".join(filter(str.isdigit, str(tel)))
+        if len(num) > 0 and not num.startswith("55"): num = "55" + num
+        return f"https://wa.me/{num}"
 
-# 3. REORDENAR: Movemos a coluna 'CONTATO' para ficar logo após 'TELEFONE'
-cols = list(df_filtrado.columns)
-if "TELEFONE" in cols and "CONTATO" in cols:
-    idx_tel = cols.index("TELEFONE")
-    # Remove de onde estiver e insere na posição seguinte ao telefone
-    cols.insert(idx_tel + 1, cols.pop(cols.index("CONTATO")))
-    df_filtrado = df_filtrado[cols]
+    # Criamos a coluna de contato
+    df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
 
-# 4. Definimos as colunas técnicas que não precisam aparecer
-colunas_para_esconder = ["CNPJ_LIMPO", "TEL_LIMPO", "FAIXA_FATURAMENTO"]
+    # Reordenamos para o WhatsApp ficar ao lado do telefone
+    cols = list(df_filtrado.columns)
+    if "TELEFONE" in cols and "CONTATO" in cols:
+        idx_tel = cols.index("TELEFONE")
+        cols.insert(idx_tel + 1, cols.pop(cols.index("CONTATO")))
+        df_filtrado = df_filtrado[cols]
 
-# 5. Exibição da Tabela com Configuração de Link
-st.dataframe(
-    df_filtrado,
-    column_config={
-        "CONTATO": st.column_config.LinkColumn(
-            "WhatsApp",
-            display_text="💬 Chamar no Whats",
-            help="Clique para abrir o chat direto no WhatsApp Web ou App"
-        ),
-        # Aplica 'None' para esconder as colunas técnicas
-        **{col: None for col in colunas_para_esconder if col in df_filtrado.columns}
-    },
-    use_container_width=True,
-    hide_index=True
-)
+    # Exibição final da Tabela
+    st.dataframe(
+        df_filtrado,
+        column_config={
+            "CONTATO": st.column_config.LinkColumn("WhatsApp", display_text="💬 Chamar"),
+            "ÚLTIMA COMPRA": st.column_config.DateColumn("Última Compra", format="DD/MM/YYYY"),
+            "MES_REF": None, "TEL_LIMPO": None, "CNPJ_LIMPO": None, "FAIXA_FATURAMENTO": None
+        },
+        use_container_width=True,
+        hide_index=True
+    )
 
-# Rodapé formatado
-st.markdown(
-    """
-    <div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>
-        Dashboard Inside Sales Papapá © 2026 - v1.0
-    </div>
-    """, 
-    unsafe_allow_html=True
-)
+else:
+    st.warning("Nenhum cliente encontrado com os filtros atuais. Tente limpar os filtros na lateral.")
+
+# Rodapé
+st.markdown("<div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>Dashboard Inside Sales Papapá © 2026 - v1.1</div>", unsafe_allow_html=True)
 
 
 
