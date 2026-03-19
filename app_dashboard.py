@@ -416,7 +416,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     return buffer
     
 # ==========================================
-# SIDEBAR - VERSÃO FINAL (ORDEM ORIGINAL + CASCATA)
+# SIDEBAR - VERSÃO FINAL (ORDEM ORIGINAL + CASCATA + RANKING FIX)
 # ==========================================
 
 # --- TRATAMENTO DE DADOS ---
@@ -434,7 +434,7 @@ else:
 
 st.sidebar.title("Filtros")
 
-# BOTÃO LIMPAR - Reseta as chaves sem deslogar
+# BOTÃO LIMPAR - Reseta as chaves específicas sem deslogar
 if st.sidebar.button("Limpar todos os filtros"):
     chaves_resets = ["b_cnpj", "b_razao", "b_email", "b_tel", "f_mes", "f_vend", "f_uf", "f_cid", "f_bair", "f_seg", "f_fat"]
     for chave in chaves_resets:
@@ -456,8 +456,7 @@ if busca_cnpj:
     if "CNPJ_LIMPO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["CNPJ_LIMPO"].str.contains(cnpj_l, na=False)]
 
-# RAZÃO SOCIAL (PLACEHOLDER PARA CASCATA)
-# Criamos o espaço aqui para ele aparecer no topo, mas a lista só carrega depois dos filtros de baixo
+# RAZÃO SOCIAL (COMPONENTE DINÂMICO NO TOPO)
 placeholder_razao = st.sidebar.empty()
 
 # E-MAIL
@@ -476,10 +475,12 @@ if tel_busca:
 # 2. FILTROS DE SEGMENTAÇÃO (PARTE INFERIOR)
 # ==========================================
 
-# MÊS DA ÚLTIMA COMPRA
-meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), 
-                     key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
+# MÊS DA ÚLTIMA COMPRA (ESSENCIAL PARA O RANKING)
+meses_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
 mes_sel = st.sidebar.multiselect("Mês da Última Compra", meses_lista, key="f_mes")
+
+# SINCRONIZAÇÃO COM O RANKING: 
+# Isso garante que a variável 'mes_sel' que o seu ranking usa continue funcionando
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
 
@@ -489,32 +490,29 @@ vendedor_sel = st.sidebar.multiselect("Vendedor", v_list, key="f_vend")
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
 
-# ESTADO (UF)
+# ESTADO / CIDADE / BAIRRO
 uf_list = sorted(df_filtrado[COL_UF].dropna().unique().tolist())
 uf_sel = st.sidebar.multiselect("Estado (UF)", uf_list, key="f_uf")
 if uf_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(uf_sel)]
 
-# CIDADE
 c_list = sorted(df_filtrado[COL_CIDADE].dropna().unique().tolist())
 cidade_sel = st.sidebar.multiselect("Cidade", c_list, key="f_cid")
 if cidade_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_CIDADE].isin(cidade_sel)]
 
-# BAIRRO
 b_list = sorted(df_filtrado[COL_BAIRRO].dropna().unique().tolist())
 bairro_sel = st.sidebar.multiselect("Bairro", b_list, key="f_bair")
 if bairro_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_BAIRRO].isin(bairro_sel)]
 
-# SEGMENTO
+# SEGMENTO / FATURAMENTO
 if COL_SEGMENTO in df_filtrado.columns:
     seg_list = sorted(df_filtrado[COL_SEGMENTO].dropna().unique().tolist())
     seg_sel = st.sidebar.multiselect("Segmento", seg_list, key="f_seg")
     if seg_sel:
         df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
-# FAIXA DE FATURAMENTO
 if "FAIXA_FATURAMENTO" in df_filtrado.columns:
     fat_list = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique().tolist())
     fat_sel = st.sidebar.multiselect("Faixa de Faturamento", fat_list, key="f_fat")
@@ -522,15 +520,12 @@ if "FAIXA_FATURAMENTO" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(fat_sel)]
 
 # ==========================================
-# 3. FINALIZAÇÃO DA RAZÃO SOCIAL (TOPO DINÂMICO)
+# 3. VOLTAMOS PARA FILTRAR A RAZÃO SOCIAL (DINÂMICA)
 # ==========================================
-# Agora a lista de clientes só mostra quem sobrou dos filtros acima
 lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
 cliente_sel = placeholder_razao.selectbox("Buscar Razão Social", options=lista_clientes, key="b_razao")
 if cliente_sel != "":
     df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_sel]
-
-# --- FIM DO BLOCO DA SIDEBAR ---
 
 # =========================
 # TÍTULO
