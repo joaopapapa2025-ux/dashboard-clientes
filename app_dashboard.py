@@ -1216,9 +1216,9 @@ if not df_vendas.empty:
         else:
             st.warning(f"O cliente ainda não realizou compras na linha '{linha_selecionada}'.")
             st.info(f"💡 Dica: Veja os produtos desta linha na tabela de **Cross-sell** acima para oferecer!")
-# =========================
-# GRÁFICOS E MAPA (SÓ APARECEM SE HOUVER MAIS DE 1 CLIENTE)
-# =========================
+# ==========================================
+# 📊 GRÁFICOS E MAPA (SÓ APARECEM SE HOUVER MAIS DE 1 CLIENTE)
+# ==========================================
 
 if len(df_filtrado) > 1:
     st.markdown("---")
@@ -1289,30 +1289,46 @@ if len(df_filtrado) > 1:
 
     st.divider()
 
-# Caso tenha apenas 1 cliente, o código ignora tudo acima e segue adiante
+# ==========================================
+# 🏆 PERFORMANCE POR LINHA (SÓ APARECE SE HOUVER 1 CLIENTE SELECIONADO)
+# ==========================================
+
+# Esta parte evita o NameError que você recebeu
+if len(df_filtrado) == 1:
+    # Verificamos se a variável de vendas foi criada lá em cima no bloco de inteligência
+    if 'vendas_cliente_atual' in locals() and not vendas_cliente_atual.empty:
+        st.markdown("---")
+        st.subheader("🏆 Performance por Linha de Produto")
+        
+        # Criamos as opções de linha baseadas no que esse cliente já comprou
+        linhas_disponiveis = sorted(vendas_cliente_atual["LINHA"].unique())
+        
+        linha_selecionada = st.selectbox("Selecione uma linha para detalhar:", options=linhas_disponiveis)
+
+        # Filtro seguro que não dará NameError
+        df_detalhe_linha = vendas_cliente_atual[vendas_cliente_atual["LINHA"] == linha_selecionada]
+        
+        # Exemplo de visualização simples da performance
+        st.dataframe(df_detalhe_linha[["DATA", "DESC PRODUTO", "QTD", "VALOR TOTAL"]], use_container_width=True, hide_index=True)
+    else:
+        st.info("ℹ️ Este cliente não possui histórico de vendas para análise de performance.")
 
 # =========================
-# DOWNLOAD DE DADOS (EXCEL)
+# DOWNLOAD E TABELA FINAL
 # =========================
 
 def gerar_excel(df):
-    """Gera um arquivo Excel em memória para download."""
     buffer = BytesIO()
-    # Usando xlsxwriter para garantir compatibilidade e formatação
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Clientes_Filtrados")
     return buffer.getvalue()
 
 st.markdown("### 📂 Exportação e Dados")
-
-# Criamos uma linha com colunas para o botão de download não ocupar a tela toda
 col_down, col_spacer = st.columns([1, 3])
 
 with col_down:
     if not df_filtrado.empty:
-        # Geramos o arquivo apenas se houver dados
         excel_data = gerar_excel(df_filtrado)
-        
         st.download_button(
             label="📥 Baixar Base Filtrada (Excel)",
             data=excel_data,
@@ -1321,32 +1337,11 @@ with col_down:
             use_container_width=True
         )
 
-# =========================
-# TABELA DE DADOS FINAL
-# =========================
-
 st.subheader("📋 Listagem Detalhada")
-st.write(f"Exibindo **{len(df_filtrado)}** registros com base nos filtros aplicados:")
-
-# Lista de colunas para exibir na tabela (ocultando colunas técnicas se desejar)
 colunas_exibicao = [c for c in df_filtrado.columns if c not in ["CNPJ_LIMPO", "TEL_LIMPO", "FAIXA_FATURAMENTO"]]
+st.dataframe(df_filtrado[colunas_exibicao], use_container_width=True, hide_index=True)
 
-st.dataframe(
-    df_filtrado[colunas_exibicao], 
-    use_container_width=True,
-    hide_index=True
-)
-
-# Mensagem de rodapé
-st.markdown(
-    """
-    <div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>
-        Dashboard Inside Sales Papapá © 2026 - v1.0
-    </div>
-    """, 
-    unsafe_allow_html=True
-)
-
+st.markdown("<div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>Dashboard Inside Sales Papapá © 2026 - v1.0</div>", unsafe_allow_html=True)
 
 
 
