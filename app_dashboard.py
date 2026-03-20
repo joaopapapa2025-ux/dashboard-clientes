@@ -1077,47 +1077,62 @@ if len(df_filtrado) == 1:
 st.subheader("📦 Análise Geral de Mix e Produtos")
 
 if not df_vendas.empty:
-    # 1. Filtro de Segurança: Analisar apenas vendas dos clientes que estão no filtro da sidebar
+    # 1. Filtro de Segurança: Analisar apenas vendas dos clientes visíveis na sidebar
     cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
     
-    # Limpeza de ruído (itens administrativos ou de conferência)
+    # Limpeza de ruído (Blacklist)
     blacklist_geral = ["CONFERIDO", "AJUSTE", "TESTE", "FRETE"]
     regex_geral = "|".join(blacklist_geral)
     vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.upper().str.contains(regex_geral, na=False)]
 
     if not vendas_geral.empty:
-        # 2. MAPEAMENTO INTELIGENTE (Categorização para o Catálogo PAPAPÁ)
-        def mapear_catalogo(nome):
+        # 2. MAPEAMENTO INTELIGENTE (Categorização PAPAPÁ)
+        
+        def mapear_catalogo_detalhado(nome):
             nome = str(nome).upper()
-            if any(x in nome for x in ["PAPINHA", "SOPINHA", "REFEIÇÃO", "COMIDINHA"]): return "Papinhas e Sopinhas"
-            if any(x in nome for x in ["PUFFS", "BISCOITO", "SNACK", "PALITINHO", "MILHO", "DENTIÇÃO", "BISCOTTI"]): return "Snacks"
-            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "Macarrões"
-            if any(x in nome for x in ["CEREAL", "AVEIA", "MUCILON"]): return "Cereais"
-            return "Outros"
+            # Dicionário baseado nas linhas oficiais que você passou
+            catalogo = {
+                "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO"],
+                "SOPINHAS": ["SOPINHA"],
+                "YOGUZINHO": ["IOGURTE", "YOGUZINHO"],
+                "PAPINHAS SALGADAS": ["CARNE", "ARROZ", "120G", "GRAO"],
+                "PAPINHAS DE FRUTAS": ["MACA", "AMEIXA", "BANANA", "MIRTILO", "MANGA", "PERA", "ESPINA", "DOCE", "CENOURA", "MORANGO"],
+                "BISCOTTI": ["LARANJ", "MAC", "CANEL", "CACAU", "GOIAB", "MARACUJ", "BISCOTTI"],
+                "PALITINHOS": ["PALIT"],
+                "DENTIÇÃO": ["DENTICAO"],
+                "MACARRÃO": ["ELBOW", "FUSILLI", "MASSA", "LETRE"],
+                "CEREAIS": ["CEREAL", "AVEIA"]
+            }
+            for linha, keywords in catalogo.items():
+                if any(key in nome for key in keywords):
+                    return linha
+            return "OUTROS"
 
         def mapear_sabor(nome):
             nome = str(nome).upper()
-            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA"]
+            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA", "IOGURTE", "YOGUZINHO"]
             return "Doce" if any(x in nome for x in doces) else "Salgado"
 
         def mapear_idade(nome):
             nome = str(nome).upper()
-            if "12" in nome or "CEREAL" in nome: return "12 meses+"
-            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE"]): return "8 meses+"
+            if "12" in nome or "CEREAL" in nome or "PALIT" in nome: return "12 meses+"
+            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE", "ELBOW", "FUSILLI"]): return "8 meses+"
             return "6 meses+"
 
-        vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo)
+        # Aplicando as novas classificações
+        vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo_detalhado)
         vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
         vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
 
-        # 3. LINHA 1 DE GRÁFICOS (Mix e Sabores)
+        # 3. LINHA 1 DE GRÁFICOS (Mix por Linha e Sabores)
         c1, c2 = st.columns(2)
         with c1:
             mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
             fig_mix_cat = px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", 
-                                title="Mix por Categoria de Catálogo", hole=0.4, 
+                                title="Mix por Linha de Produto", hole=0.4, 
                                 color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_mix_cat.update_layout(margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_mix_cat, use_container_width=True)
             
         with c2:
@@ -1125,26 +1140,33 @@ if not df_vendas.empty:
             fig_sabor = px.pie(mix_sabor, names="SABOR", values="VALOR", 
                                title="Divisão Doce vs Salgado", 
                                color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"})
+            fig_sabor.update_layout(margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_sabor, use_container_width=True)
 
         # 4. LINHA 2 DE GRÁFICOS (Idade e Top 10)
         c3, c4 = st.columns(2)
         with c3:
-            mix_idade = vendas_geral.groupby("IDADE")["VALOR"].sum().reset_index()
+            # Ordenação lógica das idades
+            vendas_geral["IDADE"] = pd.Categorical(vendas_geral["IDADE"], categories=["6 meses+", "8 meses+", "12 meses+"], ordered=True)
+            mix_idade = vendas_geral.groupby("IDADE", observed=True)["VALOR"].sum().reset_index()
+            
             fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", 
-                               title="Vendas por Faixa Etária Recomendada",
+                               title="Vendas por Faixa Etária",
                                color_discrete_sequence=px.colors.qualitative.Safe)
-            fig_idade.update_layout(showlegend=False)
+            fig_idade.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_idade, use_container_width=True)
             
         with c4:
             top_10_geral = (vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum()
                             .reset_index().sort_values("VALOR", ascending=True).tail(10))
             fig_top_geral = px.bar(top_10_geral, x="VALOR", y="DESC PRODUTO", orientation="h", 
-                                   title="Top 10 Produtos (Base Geral Filtrada)",
-                                   color_continuous_scale="Reds")
+                                   title="Top 10 Produtos Mais Vendidos",
+                                   color="VALOR", color_continuous_scale="Reds")
+            fig_top_geral.update_layout(margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_top_geral, use_container_width=True)
 
+else:
+    st.warning("Base de vendas não encontrada. Verifique o arquivo de dados.")
 # ==========================================
 # 🏆 PERFORMANCE POR LINHA (VISÃO DETALHADA)
 # ==========================================
