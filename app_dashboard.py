@@ -1104,11 +1104,10 @@ if not df_vendas.empty:
                 "MACARRÃO": ["ELBOW", "FUSILLI", "MASSA", "LETRE"],
                 "CEREAIS": ["CEREAL", "AVEIA"]
             }
-
-        for linha, keywords in catalogo.items():
+            for linha, keywords in catalogo.items():
                 if any(key in nome for key in keywords):
                     return linha
-            return "OUTROS"
+            
 
         def mapear_sabor(nome):
             nome = str(nome).upper()
@@ -1168,6 +1167,7 @@ if not df_vendas.empty:
 
 else:
     st.warning("Base de vendas não encontrada. Verifique o arquivo de dados.")
+    
 # ==========================================
 # 🏆 PERFORMANCE POR LINHA (VISÃO DETALHADA)
 # ==========================================
