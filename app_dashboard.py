@@ -1105,6 +1105,11 @@ if not df_vendas.empty:
                 "CEREAIS": ["CEREAL", "AVEIA"]
             }
 
+        for linha, keywords in catalogo.items():
+                if any(key in nome for key in keywords):
+                    return linha
+            return "OUTROS"
+
         def mapear_sabor(nome):
             nome = str(nome).upper()
             doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA", "IOGURTE", "YOGUZINHO"]
