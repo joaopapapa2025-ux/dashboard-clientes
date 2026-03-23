@@ -258,7 +258,7 @@ def salvar_comentarios(comentarios):
 comentarios = carregar_comentarios()
 
 # =========================
-# FUNÇÃO GERAR PDF (CORRIGIDA)
+# FUNÇÃO GERAR PDF (CORRIGIDA - FATURAMENTO REAL)
 # =========================
 
 def gerar_pdf_cliente(cliente, vendas_cliente):
@@ -275,9 +275,15 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
         return l 
 
+    # Aplicar a normalização no DataFrame de vendas
     if not vendas_cliente.empty:
         vendas_cliente = vendas_cliente.copy()
         vendas_cliente["LINHA"] = vendas_cliente["LINHA"].apply(normalizar_nome_linha)
+
+    # --- CÁLCULO DO FATURAMENTO REAL (Obrigatório estar aqui em cima) ---
+    faturamento_real = 0
+    if not vendas_cliente.empty:
+        faturamento_real = vendas_cliente["VALOR"].sum()
 
     style_tabela = styles["BodyText"]
     style_tabela.leading = 14
@@ -290,7 +296,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     elementos.append(data_geracao)
     elementos.append(Spacer(1,20))
 
-    # Tabela de dados cadastrais
+    # Tabela de dados cadastrais (AGORA COM faturamento_real DEFINIDO)
     dados_cliente = [
         ["Razão Social", str(cliente[COL_RAZAO])],
         ["CNPJ", str(cliente[COL_CNPJ])],
@@ -299,8 +305,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ["Cidade", f"{cliente[COL_CIDADE]} - {cliente[COL_UF]}"],
         ["Vendedor", str(cliente[COL_VENDEDOR])],
         ["Segmento", str(cliente[COL_SEGMENTO])],
-        # Alterado: agora usa o faturamento calculado das vendas e não o campo zerado do cadastro
-        ["Faturamento Total", f"R$ {faturamento_real:,.2f}"], 
+        ["Faturamento Total", f"R$ {faturamento_real:,.2f}"],
         ["Faixa", str(cliente["FAIXA_FATURAMENTO"]) if pd.notna(cliente["FAIXA_FATURAMENTO"]) else "Cliente Ativo"]
     ]
 
@@ -359,27 +364,20 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         elementos.append(tabela_resumo)
         elementos.append(Spacer(1,20))
 
-        # --- TABELA 2: RESUMO POR PEDIDO (AJUSTADA PARA EVITAR KEYERROR) ---
+        # TABELA 2: RESUMO POR PEDIDO
         elementos.append(Paragraph("Resumo por Pedido (NF)", styles["Heading3"]))
-        
-        # Criamos o agrupamento garantindo que as colunas DATA e NF voltem como colunas comuns
         resumo_nfs = (
             vendas_cliente
             .groupby([vendas_cliente["DATA PEDIDO"].dt.strftime('%d/%m/%Y'), "NUMERO NF"])["VALOR"]
             .sum()
             .reset_index()
         )
-        # Renomeia explicitamente para evitar o erro de busca
         resumo_nfs.columns = ["DATA_PED", "NF_PED", "VALOR_PED"]
         resumo_nfs = resumo_nfs.sort_values("NF_PED", ascending=False)
         
         dados_nfs = [["DATA", "NÚMERO DA NF", "VALOR DO PEDIDO"]]
         for _, row in resumo_nfs.iterrows():
-            dados_nfs.append([
-                str(row["DATA_PED"]),
-                str(row["NF_PED"]),
-                f"R$ {row['VALOR_PED']:,.2f}"
-            ])
+            dados_nfs.append([str(row["DATA_PED"]), str(row["NF_PED"]), f"R$ {row['VALOR_PED']:,.2f}"])
 
         tabela_nfs = Table(dados_nfs, colWidths=[5.3*cm, 5.3*cm, 5.4*cm])
         tabela_nfs.setStyle(TableStyle([
