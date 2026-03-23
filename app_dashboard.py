@@ -258,14 +258,14 @@ def salvar_comentarios(comentarios):
 comentarios = carregar_comentarios()
 
 # =========================
-# FUNÇÃO GERAR PDF
+# FUNÇÃO GERAR PDF (CORRIGIDA)
 # =========================
 
 def gerar_pdf_cliente(cliente, vendas_cliente):
     buffer = BytesIO()
     styles = getSampleStyleSheet()
     
-    # --- NOVO: FUNÇÃO INTERNA DE LIMPEZA DE LINHA ---
+    # --- FUNÇÃO INTERNA DE LIMPEZA DE LINHA ---
     def normalizar_nome_linha(linha_bruta):
         l = str(linha_bruta).upper().strip()
         if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
@@ -275,7 +275,6 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
         return l 
 
-    # Aplicar a normalização no DataFrame de vendas antes de gerar o PDF
     if not vendas_cliente.empty:
         vendas_cliente = vendas_cliente.copy()
         vendas_cliente["LINHA"] = vendas_cliente["LINHA"].apply(normalizar_nome_linha)
@@ -341,7 +340,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
             if pd.notna(data_max):
                 ultima_compra = pd.to_datetime(data_max).strftime("%d/%m/%Y")
 
-        # TABELA 1: RESUMO COMERCIAL GERAL
+        # TABELA 1: RESUMO COMERCIAL
         resumo_comercial = [
             ["Total de SKUs Comprados", total_skus],
             ["Total de Unidades (Volume)", int(total_qtd)],
@@ -359,23 +358,26 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         elementos.append(tabela_resumo)
         elementos.append(Spacer(1,20))
 
-        # TABELA 2: RESUMO POR PEDIDO (NOVIDADE)
+        # --- TABELA 2: RESUMO POR PEDIDO (AJUSTADA PARA EVITAR KEYERROR) ---
         elementos.append(Paragraph("Resumo por Pedido (NF)", styles["Heading3"]))
-        # Agrupamos por Data e NF para mostrar o valor total de cada compra
+        
+        # Criamos o agrupamento garantindo que as colunas DATA e NF voltem como colunas comuns
         resumo_nfs = (
             vendas_cliente
             .groupby([vendas_cliente["DATA PEDIDO"].dt.strftime('%d/%m/%Y'), "NUMERO NF"])["VALOR"]
             .sum()
             .reset_index()
-            .sort_values("NUMERO NF", ascending=False)
         )
+        # Renomeia explicitamente para evitar o erro de busca
+        resumo_nfs.columns = ["DATA_PED", "NF_PED", "VALOR_PED"]
+        resumo_nfs = resumo_nfs.sort_values("NF_PED", ascending=False)
         
         dados_nfs = [["DATA", "NÚMERO DA NF", "VALOR DO PEDIDO"]]
         for _, row in resumo_nfs.iterrows():
             dados_nfs.append([
-                row["DATA"],
-                str(row["NUMERO NF"]),
-                f"R$ {row['VALOR']:,.2f}"
+                str(row["DATA_PED"]),
+                str(row["NF_PED"]),
+                f"R$ {row['VALOR_PED']:,.2f}"
             ])
 
         tabela_nfs = Table(dados_nfs, colWidths=[5.3*cm, 5.3*cm, 5.4*cm])
@@ -392,7 +394,6 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         elementos.append(Paragraph("Top Produtos Comprados", styles["Heading3"]))
         top_produtos = resumo.head(5)
         dados_top = [["Produto", "Linha", "Qtd", "Valor"]]
-
         for _, row in top_produtos.iterrows():
             dados_top.append([
                 Paragraph(str(row["DESC PRODUTO"]), style_tabela),
@@ -416,7 +417,6 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         # HISTÓRICO DETALHADO
         elementos.append(Paragraph("Histórico Detalhado de Compras", styles["Heading3"]))
         dados_produtos = [["Data", "NF", "Produto", "Linha", "Qtd", "Valor"]]
-
         for _, row in vendas_cliente.iterrows():
             data_item = pd.to_datetime(row["DATA PEDIDO"]).strftime("%d/%m/%Y") if pd.notna(row["DATA PEDIDO"]) else ""
             dados_produtos.append([
