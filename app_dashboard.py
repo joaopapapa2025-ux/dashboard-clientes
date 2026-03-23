@@ -299,8 +299,9 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ["Cidade", f"{cliente[COL_CIDADE]} - {cliente[COL_UF]}"],
         ["Vendedor", str(cliente[COL_VENDEDOR])],
         ["Segmento", str(cliente[COL_SEGMENTO])],
-        ["Faturamento 9M", f"R$ {cliente[COL_T_U_9_M]:,.2f}"],
-        ["Faixa", str(cliente["FAIXA_FATURAMENTO"])]
+        # Alterado: agora usa o faturamento calculado das vendas e não o campo zerado do cadastro
+        ["Faturamento Total", f"R$ {faturamento_real:,.2f}"], 
+        ["Faixa", str(cliente["FAIXA_FATURAMENTO"]) if pd.notna(cliente["FAIXA_FATURAMENTO"]) else "Cliente Ativo"]
     ]
 
     tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
