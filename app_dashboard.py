@@ -656,19 +656,6 @@ if len(df_filtrado) == 1:
 # ... (Final do seu código de CRM aqui) ...
         
     # --- SAINDO DAS COLUNAS (Largura Total) ---
-
-    # 1. MOVER INDICADORES PARA CIMA
-    st.markdown("---")
-    col_met1, col_met2, col_met3, col_met4 = st.columns(4)
-    with col_met1:
-        st.metric("Total Clientes", len(df_filtrado))
-    with col_met2:
-        # Exemplo de lógica para ativos (ajuste conforme sua coluna de status)
-        st.metric("Clientes Ativos", "1") 
-    with col_met3:
-        st.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
-    with col_met4:
-        st.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
         
     # 2. GRÁFICO EM PÁGINA INTEIRA (Full Width)
     if not df_vendas.empty:
@@ -922,6 +909,18 @@ if not vendas_cliente.empty:
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
+# =========================
+# KPIs (Sempre visíveis no topo do Dashboard Geral)
+# =========================
+
+st.divider()
+k1, k2, k3, k4 = st.columns(4)
+
+# KPIs baseados no df_filtrado (resultado dos filtros da sidebar)
+k1.metric("Total Clientes", len(df_filtrado))
+k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
+k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
+k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 
 # =========================
 # ANÁLISE DE MIX COMPLETA (VISÃO GERAL)
