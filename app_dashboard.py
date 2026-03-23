@@ -922,18 +922,6 @@ if not vendas_cliente.empty:
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
-# =========================
-# KPIs (Sempre visíveis no topo do Dashboard Geral)
-# =========================
-
-st.divider()
-k1, k2, k3, k4 = st.columns(4)
-
-# KPIs baseados no df_filtrado (resultado dos filtros da sidebar)
-k1.metric("Total Clientes", len(df_filtrado))
-k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
-k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
-k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 
 # =========================
 # ANÁLISE DE MIX COMPLETA (VISÃO GERAL)
