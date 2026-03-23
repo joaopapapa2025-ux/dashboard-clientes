@@ -1217,14 +1217,17 @@ if len(df_filtrado) == 1:
             st.info(f"💡 Dica: Verifique os itens de {linha_selecionada} no **Cross-sell** acima!")
     else:
         st.info("ℹ️ Selecione um cliente com histórico de vendas para ver a performance por linha.")
+        
 # ==========================================
-# 📊 GRÁFICOS E MAPA (SÓ APARECEM SE HOUVER MAIS DE 1 CLIENTE)
+# 📊 DISTRIBUIÇÃO CADASTRAL (REVISADO)
 # ==========================================
 
 if len(df_filtrado) > 1:
     st.markdown("---")
     st.subheader("📊 Distribuição Cadastral")
-    col_graf_cad1, col_graf_cad2 = st.columns(2)
+    
+    # Criamos colunas com proporção 1.5 para 1 para dar mais espaço aos nomes dos segmentos
+    col_graf_cad1, col_graf_cad2 = st.columns([1.5, 1]) 
 
     with col_graf_cad1:
         resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
@@ -1239,24 +1242,38 @@ if len(df_filtrado) > 1:
             color="Quantidade",
             color_continuous_scale="Reds"
         )
-        fig_seg.update_layout(showlegend=False)
+        
+        # Ajuste de margem esquerda (l=200) para nomes longos não cortarem
+        fig_seg.update_layout(
+            showlegend=False, 
+            margin=dict(l=200, r=20, t=50, b=20),
+            yaxis={'categoryorder':'total ascending'}
+        )
         st.plotly_chart(fig_seg, use_container_width=True)
 
     with col_graf_cad2:
-        resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
-        resumo_faturamento.columns = ["Faixa", "Quantidade"]
+        # Verificamos se a coluna existe para o gráfico de pizza aparecer
+        if "FAIXA_FATURAMENTO" in df_filtrado.columns:
+            resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
+            resumo_faturamento.columns = ["Faixa", "Quantidade"]
 
-        fig_fat = px.pie(
-            resumo_faturamento,
-            names="Faixa",
-            values="Quantidade",
-            title="Distribuição por Faixa de Faturamento",
-            hole=0.4,
-            color_discrete_sequence=px.colors.sequential.Reds_r 
-        )
-        st.plotly_chart(fig_fat, use_container_width=True)
+            fig_fat = px.pie(
+                resumo_faturamento,
+                names="Faixa",
+                values="Quantidade",
+                title="Distribuição por Faixa de Faturamento",
+                hole=0.4,
+                color_discrete_sequence=px.colors.sequential.Reds_r 
+            )
+            # Margens internas para a pizza não ficar colada nas bordas
+            fig_fat.update_layout(margin=dict(l=20, r=20, t=50, b=20))
+            st.plotly_chart(fig_fat, use_container_width=True)
+        else:
+            st.info("Coluna 'FAIXA_FATURAMENTO' não encontrada.")
 
-    # MAPA DE CALOR (BRASIL)
+    # ==========================================
+    # 🗺️ PRESENÇA GEOGRÁFICA
+    # ==========================================
     st.subheader("🗺️ Presença Geográfica")
 
     resumo_estado = df_filtrado[COL_UF].value_counts().reset_index()
@@ -1265,6 +1282,7 @@ if len(df_filtrado) > 1:
     url_geojson = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
 
     try:
+        import urllib.request, json
         with urllib.request.urlopen(url_geojson) as response:
             geojson_br = json.load(response)
 
@@ -1285,7 +1303,7 @@ if len(df_filtrado) > 1:
 
         st.plotly_chart(fig_mapa, use_container_width=True)
     except:
-        st.warning("⚠️ Não foi possível carregar o mapa. Verifique a conexão.")
+        st.warning("⚠️ Não foi possível carregar o mapa. Verificando conexão...")
         st.bar_chart(resumo_estado.set_index("UF"))
 
     st.divider()
