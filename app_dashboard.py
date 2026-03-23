@@ -1219,52 +1219,55 @@ if len(df_filtrado) == 1:
         st.info("ℹ️ Selecione um cliente com histórico de vendas para ver a performance por linha.")
         
 # ==========================================
-# 📊 DISTRIBUIÇÃO CADASTRAL - VERSÃO FINAL CORRIGIDA
+# 📊 DISTRIBUIÇÃO CADASTRAL (CORREÇÃO COLUNA FATURAMENTO)
 # ==========================================
 
 if len(df_filtrado) > 1:
     st.markdown("---")
     st.subheader("📊 Distribuição Cadastral")
     
-    # Criamos as colunas
     col1, col2 = st.columns(2)
 
-    # --- COLUNA 1: SEGMENTOS ---
     with col1:
-        # Garante que os dados existam antes de plotar
         resumo_seg = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
         resumo_seg.columns = ["Segmento", "Quantidade"]
         
         fig_seg = px.bar(
-            resumo_seg, 
-            x="Quantidade", y="Segmento", 
-            orientation="h",
+            resumo_seg, x="Quantidade", y="Segmento", orientation="h",
             title="Distribuição por Segmento",
-            color="Quantidade",
-            color_continuous_scale="Reds"
+            color="Quantidade", color_continuous_scale="Reds"
         )
-        # Ajuste de margem para o texto não sobrepor
         fig_seg.update_layout(margin=dict(l=150, r=20, t=50, b=20), height=450, showlegend=False)
         st.plotly_chart(fig_seg, use_container_width=True)
 
-    # --- COLUNA 2: FATURAMENTO (AQUI ESTÁ O FIX) ---
     with col2:
-        # Tentamos encontrar a coluna de faturamento, ignorando maiúsculas/minúsculas
-        col_fat = [c for c in df_filtrado.columns if "FATURAMENTO" in c.upper()]
+        # 1. Identificamos a coluna correta que você mencionou
+        col_faturamento_real = "TOTAL ÚLTIMOS 9 MESES"
         
-        if col_fat:
-            nome_col_real = col_fat[0]
-            resumo_fat = df_filtrado[nome_col_real].value_counts().reset_index()
+        if col_faturamento_real in df_filtrado.columns:
+            # 2. Criamos as faixas de faturamento (ajuste os valores se precisar)
+            def categorizar_faturamento(valor):
+                try:
+                    v = float(valor)
+                    if v <= 5000: return "Até R$ 5k"
+                    elif v <= 20000: return "R$ 5k - 20k"
+                    elif v <= 50000: return "R$ 20k - 50k"
+                    else: return "Acima de R$ 50k"
+                except:
+                    return "Não Identificado"
+
+            # Criamos uma coluna temporária para o gráfico
+            temp_df = df_filtrado.copy()
+            temp_df["FAIXA_TEMP"] = temp_df[col_faturamento_real].apply(categorizar_faturamento)
+            
+            resumo_fat = temp_df["FAIXA_TEMP"].value_counts().reset_index()
             resumo_fat.columns = ["Faixa", "Quantidade"]
 
             fig_fat = px.pie(
-                resumo_fat, 
-                names="Faixa", values="Quantidade",
-                title="Distribuição por Faixa de Faturamento",
-                hole=0.4,
-                color_discrete_sequence=px.colors.sequential.Reds_r
+                resumo_fat, names="Faixa", values="Quantidade",
+                title="Distribuição por Faturamento (9 Meses)",
+                hole=0.4, color_discrete_sequence=px.colors.sequential.Reds_r
             )
-            # Forçamos a legenda para baixo para garantir que o círculo apareça
             fig_fat.update_layout(
                 margin=dict(l=20, r=20, t=50, b=20),
                 height=450,
@@ -1272,15 +1275,12 @@ if len(df_filtrado) > 1:
             )
             st.plotly_chart(fig_fat, use_container_width=True)
         else:
-            # Se não achar a coluna, ele vai te avisar exatamente o que está errado
-            st.error(f"⚠️ Erro: Coluna de Faturamento não encontrada. Colunas disponíveis: {list(df_filtrado.columns)}")
+            st.error(f"⚠️ Coluna '{col_faturamento_real}' não encontrada na planilha.")
 
-    # --- MAPA ---
+    # --- MAPA (PRESENÇA GEOGRÁFICA) ---
     st.subheader("🗺️ Presença Geográfica")
     resumo_uf = df_filtrado[COL_UF].value_counts().reset_index()
     resumo_uf.columns = ["UF", "Quantidade"]
-    
-    # Gráfico de barras simples como fallback caso o GeoJSON falhe
     st.bar_chart(resumo_uf.set_index("UF"))
     
     st.divider()
