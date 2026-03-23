@@ -270,10 +270,10 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         l = str(linha_bruta).upper().strip()
         if "CARNE" in l or "SALGADA" in l: return "PAPINHAS SALGADAS"
         if "FRUTA" in l or "ORG" in l: return "PAPINHAS DE FRUTAS"
-        if "CERAL" in l or "AVEIA" in l: return "CEREAIS" # Corrige 'CERAL' do sistema
+        if "CERAL" in l or "AVEIA" in l: return "CEREAIS" 
         if "DENTI" in l: return "DENTIÇÃO"
         if "YOGU" in l or "IOGURTE" in l: return "YOGUZINHO"
-        return l # Mantém as outras como estão (BISCOTTI, LA CHEF, etc)
+        return l 
 
     # Aplicar a normalização no DataFrame de vendas antes de gerar o PDF
     if not vendas_cliente.empty:
@@ -317,7 +317,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
     elementos.append(Paragraph("Histórico de Compras (Mix)", styles["Heading2"]))
 
     if not vendas_cliente.empty:
-        # Agrupamento com a LINHA já normalizada
+        # Agrupamento para cálculos gerais
         resumo = (
             vendas_cliente
             .groupby(["DESC PRODUTO","LINHA"])[["QTDE","VALOR"]]
@@ -341,6 +341,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
             if pd.notna(data_max):
                 ultima_compra = pd.to_datetime(data_max).strftime("%d/%m/%Y")
 
+        # TABELA 1: RESUMO COMERCIAL GERAL
         resumo_comercial = [
             ["Total de SKUs Comprados", total_skus],
             ["Total de Unidades (Volume)", int(total_qtd)],
@@ -356,7 +357,36 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ]))
         elementos.append(Spacer(1,10))
         elementos.append(tabela_resumo)
-        elementos.append(Spacer(1,25))
+        elementos.append(Spacer(1,20))
+
+        # TABELA 2: RESUMO POR PEDIDO (NOVIDADE)
+        elementos.append(Paragraph("Resumo por Pedido (NF)", styles["Heading3"]))
+        # Agrupamos por Data e NF para mostrar o valor total de cada compra
+        resumo_nfs = (
+            vendas_cliente
+            .groupby([vendas_cliente["DATA PEDIDO"].dt.strftime('%d/%m/%Y'), "NUMERO NF"])["VALOR"]
+            .sum()
+            .reset_index()
+            .sort_values("NUMERO NF", ascending=False)
+        )
+        
+        dados_nfs = [["DATA", "NÚMERO DA NF", "VALOR DO PEDIDO"]]
+        for _, row in resumo_nfs.iterrows():
+            dados_nfs.append([
+                row["DATA"],
+                str(row["NUMERO NF"]),
+                f"R$ {row['VALOR']:,.2f}"
+            ])
+
+        tabela_nfs = Table(dados_nfs, colWidths=[5.3*cm, 5.3*cm, 5.4*cm])
+        tabela_nfs.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+            ("ALIGN", (2, 1), (2, -1), "RIGHT"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ]))
+        elementos.append(tabela_nfs)
+        elementos.append(Spacer(1, 25))
 
         # TOP PRODUTOS
         elementos.append(Paragraph("Top Produtos Comprados", styles["Heading3"]))
