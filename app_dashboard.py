@@ -927,7 +927,7 @@ if not vendas_cliente.empty:
 # =========================
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL)
+# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - FINAL CORRIGIDO
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
@@ -937,43 +937,23 @@ if len(df_filtrado) == 1:
     vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente).strip()].copy()
 
     if not vendas_cliente_atual.empty:
-        # --- FUNÇÃO DE LIMPEZA ULTRA-PRIORITÁRIA ---
+        # --- PASSO 1: FUNÇÃO DE LIMPEZA (SUAS REGRAS ORIGINAIS) ---
         def categorizar_definitivo(row):
             p = str(row.get('DESC PRODUTO', '')).upper().strip()
             l_original = str(row.get('LINHA', '')).upper().strip()
             
-            # REGRA 1: SE TEM "180G" OU "LENTILHA" OU "CASEIRINHO" -> É LA CHEF (MATAMOS O ERRO AQUI)
-            if any(x in p for x in ["180G", "LENTILHA", "CASEIRINHO", "RISOTINHO"]):
-                return "LA CHEF"
-            
-            # REGRA 2: YOGUZINHO
-            if "IOGURTE" in p or "YOGU" in p:
-                return "YOGUZINHO"
-            
-            # REGRA 3: SOPINHAS (SÓ SE NÃO FOR 180G)
-            if "SOPINHA" in p or "SOPINHA" in l_original:
-                return "SOPINHAS"
-
-            # REGRA 4: PAPINHAS SALGADAS (120G)
-            if "120G" in p or any(x in l_original for x in ["CARNE", "SALGADA"]) or "FRANGO" in p:
-                return "PAPINHAS SALGADAS"
-            
-            # REGRA 5: FRUTAS E OUTROS
+            if any(x in p for x in ["180G", "LENTILHA", "CASEIRINHO", "RISOTINHO"]): return "LA CHEF"
+            if "IOGURTE" in p or "YOGU" in p: return "YOGUZINHO"
+            if "SOPINHA" in p or "SOPINHA" in l_original: return "SOPINHAS"
+            if "120G" in p or any(x in l_original for x in ["CARNE", "SALGADA"]) or "FRANGO" in p: return "PAPINHAS SALGADAS"
             if "FRUTA" in l_original or "ORG" in l_original: return "PAPINHAS DE FRUTAS"
             if "CERAL" in l_original or "AVEIA" in l_original: return "CEREAIS"
-
-            # REGRA DOS PALITINHOS: 
-            # Só classifica como PALITINHOS se a palavra estiver clara no produto ou na linha
-            if "PALITINHO" in p or "PALITINHO" in l_original:
-                return "PALITINHOS"
-            
+            if "PALITINHO" in p or "PALITINHO" in l_original: return "PALITINHOS"
             return l_original
 
-        # APLICAMOS A LIMPEZA NA COLUNA 'LINHA' (SOBRESCREVENDO A ANTIGA PARA NÃO TER ERRO)
         vendas_cliente_atual["LINHA"] = vendas_cliente_atual.apply(categorizar_definitivo, axis=1)
-        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual["LINHA"]
 
-        # --- PASSO 2: MAPEAMENTO DO CATÁLOGO (CORRIGIDO) ---
+        # --- PASSO 2: MAPEAMENTO DO CATÁLOGO (SEU DICIONÁRIO) ---
         catalogo_papapa = {
             "LA CHEF": {
                 "Lentilha Carne Legumes 180g": ["LENTILHA"],
@@ -1030,22 +1010,27 @@ if len(df_filtrado) == 1:
             }
         }
 
-        # --- PASSO 3: LÓGICA DE COMPARAÇÃO ---
+        # --- PASSO 3: NOVA LÓGICA DE COMPARAÇÃO ---
         import unicodedata
-        def remover_acentos(texto):
-            return "".join(c for c in unicodedata.normalize('NFD', str(texto)) if unicodedata.category(c) != 'Mn').upper()
+        def limpar_texto(t):
+            return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
 
-        vendas_nomes_massa = remover_acentos(" ".join(vendas_cliente_atual["DESC PRODUTO"].fillna("").unique()))
-        linhas_ativas = set(vendas_cliente_atual["LINHA"].unique())
+        # Criamos sets de comparação para velocidade e precisão
+        vendas_nomes_cliente = set(vendas_cliente_atual["DESC PRODUTO"].apply(limpar_texto).unique())
+        linhas_compradas_cliente = set(vendas_cliente_atual["LINHA"].apply(limpar_texto).unique())
         
         gap_mix = []
         cross_sell = []
 
         for linha_oficial, produtos in catalogo_papapa.items():
+            linha_upper = limpar_texto(linha_oficial)
+            
             for nome_bonito, keywords in produtos.items():
-                ja_comprou = all(remover_acentos(kw) in vendas_nomes_massa for kw in keywords)
+                # Verificamos se TODAS as keywords do produto estão na descrição de alguma venda
+                ja_comprou = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes_cliente)
+                
                 if not ja_comprou:
-                    if linha_oficial in linhas_ativas:
+                    if linha_upper in linhas_compradas_cliente:
                         gap_mix.append({"Linha": linha_oficial, "Produto": nome_bonito})
                     else:
                         cross_sell.append({"Linha": linha_oficial, "Produto": nome_bonito})
@@ -1054,10 +1039,18 @@ if len(df_filtrado) == 1:
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("#### 🚨 Gap de Mix")
-            st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+            if gap_mix:
+                st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ Mix completo nas linhas atuais!")
         with c2:
             st.markdown("#### 📦 Cross-sell")
-            st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
+            if cross_sell:
+                # Removemos duplicatas de linha para sugerir a linha nova uma vez só
+                df_cs = pd.DataFrame(cross_sell).drop_duplicates(subset=['Linha'])
+                st.dataframe(df_cs[['Linha']], use_container_width=True, hide_index=True)
+            else:
+                st.info("💡 Cliente já compra todas as linhas!")
                 
 # ==========================================
 
