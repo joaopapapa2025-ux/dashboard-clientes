@@ -306,7 +306,6 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
         ["Vendedor", str(cliente[COL_VENDEDOR])],
         ["Segmento", str(cliente[COL_SEGMENTO])],
         ["Faturamento Total", f"R$ {faturamento_real:,.2f}"],
-        ["Faixa", str(cliente["FAIXA_FATURAMENTO"]) if pd.notna(cliente["FAIXA_FATURAMENTO"]) else "Cliente Ativo"]
     ]
 
     tabela_cliente = Table(dados_cliente, colWidths=[6*cm,10*cm])
