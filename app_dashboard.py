@@ -657,6 +657,19 @@ if len(df_filtrado) == 1:
         
     # --- SAINDO DAS COLUNAS (Largura Total) ---
 
+    # 1. MOVER INDICADORES PARA CIMA
+    st.markdown("---")
+    col_met1, col_met2, col_met3, col_met4 = st.columns(4)
+    with col_met1:
+        st.metric("Total Clientes", len(df_filtrado))
+    with col_met2:
+        # Exemplo de lógica para ativos (ajuste conforme sua coluna de status)
+        st.metric("Clientes Ativos", "1") 
+    with col_met3:
+        st.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
+    with col_met4:
+        st.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
+        
     # 2. GRÁFICO EM PÁGINA INTEIRA (Full Width)
     if not df_vendas.empty:
         id_cliente_str = str(id_cliente).strip()
@@ -685,55 +698,6 @@ if len(df_filtrado) == 1:
             # Força o gráfico a usar toda a largura disponível
             st.plotly_chart(fig_hist_cli, use_container_width=True)
 
-# ==========================================
-# INDICADORES DINÂMICOS (KPIs)
-# ==========================================
-
-st.divider()
-k1, k2, k3, k4 = st.columns(4)
-
-# Lógica: Se o filtro de Razão Social (b_razao) estiver vazio, mostra o geral. 
-# Se tiver um cliente selecionado, mostra os dados dele.
-if st.session_state.get("b_razao") == "":
-    # VISÃO GERAL
-    k1.metric("Total Clientes", len(df_filtrado))
-    k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
-    k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
-    k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
-else:
-    # VISÃO CLIENTE ÚNICO (Quando filtra na Sidebar)
-    k1.metric("Cliente Selecionado", "1")
-    k2.metric("Estado", df_filtrado[COL_UF].iloc[0] if not df_filtrado.empty else "-")
-    k3.metric("Segmento", df_filtrado[COL_SEGMENTO].iloc[0] if not df_filtrado.empty else "-")
-    k4.metric("Vendedor Resp.", df_filtrado[COL_VENDEDOR].iloc[0] if not df_filtrado.empty else "-")
-
-# --- HISTÓRICO DE COMPRAS (SÓ APARECE SE TIVER UM CLIENTE FILTRADO) ---
-if st.session_state.get("b_razao") != "" and not df_vendas.empty:
-    # Pegamos o ID (CNPJ) do cliente selecionado para buscar no histórico
-    id_cliente_sel = str(df_filtrado["CNPJ_LIMPO"].iloc[0]).strip()
-    vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_sel].copy()
-
-    if not vendas_hist.empty:
-        st.markdown("---")
-        st.subheader(f"📈 Histórico de Compras - {st.session_state['b_razao']}")
-        
-        vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
-        vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
-        vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
-        
-        hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
-        hist_mensal = hist_mensal.sort_values("MES_ANO")
-
-        fig_hist_cli = px.bar(
-            hist_mensal,
-            x="MES_ANO",
-            y="VALOR",
-            text_auto='.2s',
-            title="Evolução de Pedidos (R$)",
-            color_discrete_sequence=["#E74C3C"]
-        )
-        st.plotly_chart(fig_hist_cli, use_container_width=True)
-                
     # --- COLUNA DIREITA: CRM ---
 # ==========================================
 # BLOCO CRM - SÓ APARECE COM 1 CLIENTE
@@ -957,6 +921,19 @@ if not vendas_cliente.empty:
     )
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
+
+# =========================
+# KPIs (Sempre visíveis no topo do Dashboard Geral)
+# =========================
+
+st.divider()
+k1, k2, k3, k4 = st.columns(4)
+
+# KPIs baseados no df_filtrado (resultado dos filtros da sidebar)
+k1.metric("Total Clientes", len(df_filtrado))
+k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
+k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
+k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 
 # =========================
 # ANÁLISE DE MIX COMPLETA (VISÃO GERAL)
