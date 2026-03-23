@@ -927,7 +927,7 @@ if not vendas_cliente.empty:
 # =========================
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - FINAL CORRIGIDO
+# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO FINAL RIGOROSA
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
@@ -937,7 +937,7 @@ if len(df_filtrado) == 1:
     vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente).strip()].copy()
 
     if not vendas_cliente_atual.empty:
-        # --- PASSO 1: FUNÇÃO DE LIMPEZA (SUAS REGRAS ORIGINAIS) ---
+        # --- PASSO 1: FUNÇÃO DE LIMPEZA (CATEGORIZAÇÃO POR LINHA) ---
         def categorizar_definitivo(row):
             p = str(row.get('DESC PRODUTO', '')).upper().strip()
             l_original = str(row.get('LINHA', '')).upper().strip()
@@ -946,14 +946,14 @@ if len(df_filtrado) == 1:
             if "IOGURTE" in p or "YOGU" in p: return "YOGUZINHO"
             if "SOPINHA" in p or "SOPINHA" in l_original: return "SOPINHAS"
             if "120G" in p or any(x in l_original for x in ["CARNE", "SALGADA"]) or "FRANGO" in p: return "PAPINHAS SALGADAS"
+            if "PALITINHO" in p or "PALITINHO" in l_original: return "PALITINHOS"
             if "FRUTA" in l_original or "ORG" in l_original: return "PAPINHAS DE FRUTAS"
             if "CERAL" in l_original or "AVEIA" in l_original: return "CEREAIS"
-            if "PALITINHO" in p or "PALITINHO" in l_original: return "PALITINHOS"
             return l_original
 
         vendas_cliente_atual["LINHA"] = vendas_cliente_atual.apply(categorizar_definitivo, axis=1)
 
-        # --- PASSO 2: MAPEAMENTO DO CATÁLOGO (SEU DICIONÁRIO) ---
+        # --- PASSO 2: MAPEAMENTO DO CATÁLOGO (ESTRUTURA DE DADOS) ---
         catalogo_papapa = {
             "LA CHEF": {
                 "Lentilha Carne Legumes 180g": ["LENTILHA"],
@@ -1010,13 +1010,13 @@ if len(df_filtrado) == 1:
             }
         }
 
-        # --- PASSO 3: NOVA LÓGICA DE COMPARAÇÃO ---
+        # --- PASSO 3: LÓGICA DE COMPARAÇÃO MELHORADA ---
         import unicodedata
         def limpar_texto(t):
             return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
 
-        # Criamos sets de comparação para velocidade e precisão
-        vendas_nomes_cliente = set(vendas_cliente_atual["DESC PRODUTO"].apply(limpar_texto).unique())
+        # Massa de dados do cliente para busca
+        vendas_nomes_cliente = [limpar_texto(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
         linhas_compradas_cliente = set(vendas_cliente_atual["LINHA"].apply(limpar_texto).unique())
         
         gap_mix = []
@@ -1026,7 +1026,8 @@ if len(df_filtrado) == 1:
             linha_upper = limpar_texto(linha_oficial)
             
             for nome_bonito, keywords in produtos.items():
-                # Verificamos se TODAS as keywords do produto estão na descrição de alguma venda
+                # Validação Rigorosa: Verifica se as keywords aparecem em ALGUM produto vendido
+                # Para Palitinhos, as keywords incluem 'PALIT', garantindo que não pegue Papinhas de Cenoura.
                 ja_comprou = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes_cliente)
                 
                 if not ja_comprou:
@@ -1035,22 +1036,21 @@ if len(df_filtrado) == 1:
                     else:
                         cross_sell.append({"Linha": linha_oficial, "Produto": nome_bonito})
 
-        # --- PASSO 4: EXIBIÇÃO ---
+        # --- PASSO 4: EXIBIÇÃO NO DASHBOARD ---
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("#### 🚨 Gap de Mix")
             if gap_mix:
                 st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Mix completo nas linhas atuais!")
+                st.success("✅ Mix completo nas categorias que o cliente já trabalha!")
         with c2:
             st.markdown("#### 📦 Cross-sell")
             if cross_sell:
-                # Removemos duplicatas de linha para sugerir a linha nova uma vez só
-                df_cs = pd.DataFrame(cross_sell).drop_duplicates(subset=['Linha'])
-                st.dataframe(df_cs[['Linha']], use_container_width=True, hide_index=True)
+                # Agora exibe TODOS os SKUs individualmente conforme solicitado
+                st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
             else:
-                st.info("💡 Cliente já compra todas as linhas!")
+                st.info("💡 Cliente já compra todas as linhas da Papapá!")
                 
 # ==========================================
 
