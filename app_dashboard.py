@@ -1276,12 +1276,6 @@ if len(df_filtrado) > 1:
             st.plotly_chart(fig_fat, use_container_width=True)
         else:
             st.error(f"⚠️ Coluna '{col_faturamento_real}' não encontrada na planilha.")
-
-    # --- MAPA (PRESENÇA GEOGRÁFICA) ---
-    st.subheader("🗺️ Presença Geográfica")
-    resumo_uf = df_filtrado[COL_UF].value_counts().reset_index()
-    resumo_uf.columns = ["UF", "Quantidade"]
-    st.bar_chart(resumo_uf.set_index("UF"))
     
     st.divider()
 
