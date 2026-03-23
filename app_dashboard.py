@@ -1219,15 +1219,15 @@ if len(df_filtrado) == 1:
         st.info("ℹ️ Selecione um cliente com histórico de vendas para ver a performance por linha.")
         
 # ==========================================
-# 📊 DISTRIBUIÇÃO CADASTRAL (RECUPERANDO FATURAMENTO)
+# 📊 DISTRIBUIÇÃO CADASTRAL (FIX FINAL)
 # ==========================================
 
 if len(df_filtrado) > 1:
     st.markdown("---")
     st.subheader("📊 Distribuição Cadastral")
     
-    # Criamos colunas onde a segunda (Faturamento) tem espaço garantido
-    col_graf_cad1, col_graf_cad2 = st.columns([1, 1]) 
+    # Criamos as colunas com proporção 1:1 para garantir que a direita tenha espaço
+    col_graf_cad1, col_graf_cad2 = st.columns(2) 
 
     with col_graf_cad1:
         resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
@@ -1243,14 +1243,13 @@ if len(df_filtrado) > 1:
             color_continuous_scale="Reds"
         )
         
-        # Reduzimos as margens do gráfico de barras para ele não invadir o vizinho
+        # Ajuste: nomes longos não empurram mais o gráfico vizinho
         fig_seg.update_layout(
             showlegend=False, 
-            margin=dict(l=150, r=10, t=50, b=20), # Margem esquerda moderada
+            margin=dict(l=160, r=10, t=50, b=20),
             yaxis={'categoryorder':'total ascending'},
             height=450
         )
-        # Forçamos o Streamlit a não deixar este gráfico expandir demais
         st.plotly_chart(fig_seg, use_container_width=True)
 
     with col_graf_cad2:
@@ -1267,23 +1266,24 @@ if len(df_filtrado) > 1:
                 color_discrete_sequence=px.colors.sequential.Reds_r 
             )
             
-            # Ajustes para garantir visibilidade máxima da pizza
+            # CRÍTICO: Legenda embaixo (horizontal) para a pizza aparecer no centro
             fig_fat.update_layout(
-                margin=dict(l=10, r=10, t=50, b=10),
+                margin=dict(l=10, r=10, t=50, b=80),
                 height=450,
                 legend=dict(
                     orientation="h", 
                     yanchor="bottom", 
-                    y=-0.3, 
+                    y=-0.4, 
                     xanchor="center", 
                     x=0.5
                 )
             )
             st.plotly_chart(fig_fat, use_container_width=True)
         else:
-            st.warning("Coluna 'FAIXA_FATURAMENTO' não encontrada no arquivo.")
+            # Caso a coluna não exista, mostramos um aviso visual
+            st.info("ℹ️ Coluna 'FAIXA_FATURAMENTO' não encontrada no banco de dados.")
 
-    # --- MAPA DE CALOR ---
+    # --- MAPA DE PRESENÇA ---
     st.subheader("🗺️ Presença Geográfica")
     resumo_estado = df_filtrado[COL_UF].value_counts().reset_index()
     resumo_estado.columns = ["UF", "Quantidade"]
@@ -1295,13 +1295,9 @@ if len(df_filtrado) > 1:
             geojson_br = json.load(response)
 
         fig_mapa = px.choropleth(
-            resumo_estado,
-            geojson=geojson_br,
-            locations="UF",
-            featureidkey="properties.sigla",
-            color="Quantidade",
-            color_continuous_scale="Reds",
-            title="Concentração de Clientes por Estado",
+            resumo_estado, geojson=geojson_br, locations="UF",
+            featureidkey="properties.sigla", color="Quantidade",
+            color_continuous_scale="Reds", title="Concentração de Clientes por Estado",
             scope="south america"
         )
         fig_mapa.update_geos(fitbounds="locations", visible=False)
