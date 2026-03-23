@@ -1219,93 +1219,70 @@ if len(df_filtrado) == 1:
         st.info("ℹ️ Selecione um cliente com histórico de vendas para ver a performance por linha.")
         
 # ==========================================
-# 📊 DISTRIBUIÇÃO CADASTRAL (FIX FINAL)
+# 📊 DISTRIBUIÇÃO CADASTRAL - VERSÃO FINAL CORRIGIDA
 # ==========================================
 
 if len(df_filtrado) > 1:
     st.markdown("---")
     st.subheader("📊 Distribuição Cadastral")
     
-    # Criamos as colunas com proporção 1:1 para garantir que a direita tenha espaço
-    col_graf_cad1, col_graf_cad2 = st.columns(2) 
+    # Criamos as colunas
+    col1, col2 = st.columns(2)
 
-    with col_graf_cad1:
-        resumo_segmento = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
-        resumo_segmento.columns = ["Segmento", "Quantidade"]
-
+    # --- COLUNA 1: SEGMENTOS ---
+    with col1:
+        # Garante que os dados existam antes de plotar
+        resumo_seg = df_filtrado[COL_SEGMENTO].value_counts().reset_index()
+        resumo_seg.columns = ["Segmento", "Quantidade"]
+        
         fig_seg = px.bar(
-            resumo_segmento,
-            x="Quantidade",
-            y="Segmento",
+            resumo_seg, 
+            x="Quantidade", y="Segmento", 
             orientation="h",
             title="Distribuição por Segmento",
             color="Quantidade",
             color_continuous_scale="Reds"
         )
-        
-        # Ajuste: nomes longos não empurram mais o gráfico vizinho
-        fig_seg.update_layout(
-            showlegend=False, 
-            margin=dict(l=160, r=10, t=50, b=20),
-            yaxis={'categoryorder':'total ascending'},
-            height=450
-        )
+        # Ajuste de margem para o texto não sobrepor
+        fig_seg.update_layout(margin=dict(l=150, r=20, t=50, b=20), height=450, showlegend=False)
         st.plotly_chart(fig_seg, use_container_width=True)
 
-    with col_graf_cad2:
-        if "FAIXA_FATURAMENTO" in df_filtrado.columns:
-            resumo_faturamento = df_filtrado["FAIXA_FATURAMENTO"].value_counts().reset_index()
-            resumo_faturamento.columns = ["Faixa", "Quantidade"]
+    # --- COLUNA 2: FATURAMENTO (AQUI ESTÁ O FIX) ---
+    with col2:
+        # Tentamos encontrar a coluna de faturamento, ignorando maiúsculas/minúsculas
+        col_fat = [c for c in df_filtrado.columns if "FATURAMENTO" in c.upper()]
+        
+        if col_fat:
+            nome_col_real = col_fat[0]
+            resumo_fat = df_filtrado[nome_col_real].value_counts().reset_index()
+            resumo_fat.columns = ["Faixa", "Quantidade"]
 
             fig_fat = px.pie(
-                resumo_faturamento,
-                names="Faixa",
-                values="Quantidade",
+                resumo_fat, 
+                names="Faixa", values="Quantidade",
                 title="Distribuição por Faixa de Faturamento",
                 hole=0.4,
-                color_discrete_sequence=px.colors.sequential.Reds_r 
+                color_discrete_sequence=px.colors.sequential.Reds_r
             )
-            
-            # CRÍTICO: Legenda embaixo (horizontal) para a pizza aparecer no centro
+            # Forçamos a legenda para baixo para garantir que o círculo apareça
             fig_fat.update_layout(
-                margin=dict(l=10, r=10, t=50, b=80),
+                margin=dict(l=20, r=20, t=50, b=20),
                 height=450,
-                legend=dict(
-                    orientation="h", 
-                    yanchor="bottom", 
-                    y=-0.4, 
-                    xanchor="center", 
-                    x=0.5
-                )
+                legend=dict(orientation="h", y=-0.2)
             )
             st.plotly_chart(fig_fat, use_container_width=True)
         else:
-            # Caso a coluna não exista, mostramos um aviso visual
-            st.info("ℹ️ Coluna 'FAIXA_FATURAMENTO' não encontrada no banco de dados.")
+            # Se não achar a coluna, ele vai te avisar exatamente o que está errado
+            st.error(f"⚠️ Erro: Coluna de Faturamento não encontrada. Colunas disponíveis: {list(df_filtrado.columns)}")
 
-    # --- MAPA DE PRESENÇA ---
+    # --- MAPA ---
     st.subheader("🗺️ Presença Geográfica")
-    resumo_estado = df_filtrado[COL_UF].value_counts().reset_index()
-    resumo_estado.columns = ["UF", "Quantidade"]
-
-    url_geojson = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
-    try:
-        import urllib.request, json
-        with urllib.request.urlopen(url_geojson) as response:
-            geojson_br = json.load(response)
-
-        fig_mapa = px.choropleth(
-            resumo_estado, geojson=geojson_br, locations="UF",
-            featureidkey="properties.sigla", color="Quantidade",
-            color_continuous_scale="Reds", title="Concentração de Clientes por Estado",
-            scope="south america"
-        )
-        fig_mapa.update_geos(fitbounds="locations", visible=False)
-        fig_mapa.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, height=500)
-        st.plotly_chart(fig_mapa, use_container_width=True)
-    except:
-        st.bar_chart(resumo_estado.set_index("UF"))
-
+    resumo_uf = df_filtrado[COL_UF].value_counts().reset_index()
+    resumo_uf.columns = ["UF", "Quantidade"]
+    
+    # Gráfico de barras simples como fallback caso o GeoJSON falhe
+    st.bar_chart(resumo_uf.set_index("UF"))
+    
     st.divider()
 
     # ==========================================
