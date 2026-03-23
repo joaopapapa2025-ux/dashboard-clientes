@@ -528,6 +528,19 @@ if cliente_sel != "":
 st.title("Dashboard Inside Sales - PAPAPÁ")
 
 # =========================
+# KPIs (Sempre visíveis no topo do Dashboard Geral)
+# =========================
+
+st.divider()
+k1, k2, k3, k4 = st.columns(4)
+
+# KPIs baseados no df_filtrado (resultado dos filtros da sidebar)
+k1.metric("Total Clientes", len(df_filtrado))
+k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
+k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
+k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
+
+# =========================
 # CARD CLIENTE + CRM (COMENTÁRIOS)
 # =========================
 
@@ -834,19 +847,6 @@ if 'id_cliente' in locals() and id_cliente:
     except Exception as e:
         # Silencioso para não poluir o Dashboard se o ID não estiver pronto
         pass
-
-# =========================
-# KPIs (Sempre visíveis no topo do Dashboard Geral)
-# =========================
-
-st.divider()
-k1, k2, k3, k4 = st.columns(4)
-
-# KPIs baseados no df_filtrado (resultado dos filtros da sidebar)
-k1.metric("Total Clientes", len(df_filtrado))
-k2.metric("Estados Ativos", df_filtrado[COL_UF].nunique())
-k3.metric("Segmentos", df_filtrado[COL_SEGMENTO].nunique())
-k4.metric("Vendedores", df_filtrado[COL_VENDEDOR].nunique())
 
 # ==========================================
 # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
