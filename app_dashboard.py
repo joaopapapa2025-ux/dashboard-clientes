@@ -1062,7 +1062,7 @@ if len(df_filtrado) == 1:
             "PALITINHOS": {
                 "Palitinho Org. Beterraba 20g": ["PALITINHO"],
                 "Palitinho Org. Cenoura 20g": ["PALITINHO"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO"]]
+                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO"]
             },
             "DENTIÇÃO": {
                 "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
