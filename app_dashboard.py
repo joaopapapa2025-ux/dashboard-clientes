@@ -1060,9 +1060,9 @@ if len(df_filtrado) == 1:
                 "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] 
             },
             "PALITINHOS": {
-                "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
-                "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
+                "Palitinho Org. Beterraba 20g": ["PALIT", "BETERRABA"],
+                "Palitinho Org. Cenoura 20g": ["PALIT", "CENOURA"],
+                "Palitinho Org. Tomate/Manjericão 20g": ["PALIT", "TOMATE"]
             },
             "DENTIÇÃO": {
                 "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
