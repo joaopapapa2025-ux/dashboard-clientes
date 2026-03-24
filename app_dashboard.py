@@ -997,130 +997,72 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO FINAL RIGOROSA
+# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO CORRIGIDA (BASEADA NA COLUNA LINHA)
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
-    id_cliente = cliente["CNPJ_LIMPO"]
+    id_cnpj = cliente["CNPJ_LIMPO"]
     
-    # 1. Filtramos as vendas do cliente
-    vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente).strip()].copy()
+    vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cnpj).strip()].copy()
 
     if not vendas_cliente_atual.empty:
-        # --- PASSO 1: FUNÇÃO DE LIMPEZA (CATEGORIZAÇÃO POR LINHA) ---
-        def categorizar_definitivo(row):
-            p = str(row.get('DESC PRODUTO', '')).upper().strip()
-            l_original = str(row.get('LINHA', '')).upper().strip()
-            
-            if any(x in p for x in ["180G", "LENTILHA", "CASEIRINHO", "RISOTINHO"]): return "LA CHEF"
-            if "IOGURTE" in p or "YOGU" in p: return "YOGUZINHO"
-            if "SOPINHA" in p or "SOPINHA" in l_original: return "SOPINHAS"
-            if "120G" in p or any(x in l_original for x in ["CARNE", "SALGADA"]) or "FRANGO" in p: return "PAPINHAS SALGADAS"
-            if "PALITINHO" in p or "PALITINHO" in l_original: return "PALITINHOS"
-            if "FRUTA" in l_original or "ORG" in l_original: return "PAPINHAS DE FRUTAS"
-            if "CERAL" in l_original or "AVEIA" in l_original: return "CEREAIS"
-            return l_original
+        # 1. Identificamos as linhas que o cliente REALMENTE já comprou (usando a coluna oficial)
+        linhas_no_historico = set(vendas_cliente_atual[COL_LINHA].dropna().unique())
 
-        vendas_cliente_atual["LINHA"] = vendas_cliente_atual.apply(categorizar_definitivo, axis=1)
-
-        # --- PASSO 2: MAPEAMENTO DO CATÁLOGO (ESTRUTURA DE DADOS) ---
-        catalogo_papapa = {
-            "LA CHEF": {
-                "Lentilha Carne Legumes 180g": ["LENTILHA"],
-                "Risotinho Arroz Quinoa Frango 180g": ["RISOTINHO"],
-                "Caseirinho Arroz Feijão Carne Leg. 180g": ["CASEIRINHO"]
-            },
-            "SOPINHAS": {
-                "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO"],
-                "Sopinha Carne Macarrao Legumes 240g": ["SOPINHA", "MACARRAO"],
-                "Sopinha Carne Mandioquinha Leg 240g": ["SOPINHA", "MANDIOQ"],
-                "Sopinha Feijão Carne Leg 240g": ["SOPINHA", "FEIJAO"]
-            },
-            "YOGUZINHO": {
-                "Iogurte Frutas Amarelas e Banana 100g": ["IOGURTE", "AMARELAS"],
-                "Iogurte Frutas Vermelhas e Banana 100g": ["IOGURTE", "VERMELHAS"]
-            },
-            "PAPINHAS SALGADAS": {
-                "Papinha Carne Arroz Legumes 120g": ["CARNE", "ARROZ", "120G"],
-                "Papinha Frango Grão Vegetais 120g": ["FRANGO", "GRAO", "120G"]
-            },
-            "PAPINHAS DE FRUTAS": {
-                "Papinha Org Maçã Ameixa 100g": ["MACA", "AMEIXA"],
-                "Papinha Org Banana Mirtilo Quinoa 100g": ["BANANA", "MIRTILO"],
-                "Papinha Org Manga 100g": ["MANGA"],
-                "Papinha Org Pera Espinafre Abobrinha 100g": ["PERA", "ESPINA"],
-                "Papinha Org Maçã B. Doce Cenoura 100g": ["DOCE", "CENOURA"],
-                "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
-            },
-            "BISCOTTI": {
-                "Biscotti Laranja e Cenoura 60g": ["LARANJ"],
-                "Biscotti Maçã e Canela 60g": ["MAC", "CANEL"],
-                "Biscotti Banana e Cacau 60g": ["CACAU"],
-                "Biscotti Goiaba 60g": ["GOIAB"],
-                "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] 
-            },
-            "PALITINHOS": {
-                "Palitinho Org. Beterraba 20g": ["PALIT", "BETERRABA"],
-                "Palitinho Org. Cenoura 20g": ["PALIT", "CENOURA"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["PALIT", "TOMATE"]
-            },
-            "DENTIÇÃO": {
-                "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
-                "Biscoito de Dentição Vegetais": ["DENTICAO", "VEGETAIS"]
-            },
-            "MACARRÃO": {
-                "Macarrão Inf. Elbow Quinoa 200g": ["ELBOW", "QUINOA"],
-                "Macarrão Inf. Fusilli Vegetais 200g": ["FUSILLI", "VEGETAIS"]
-            },
-            "CEREAIS": {
-                "Cereal Aveia Morango e Beterraba 170g": ["CEREAL", "MORANGO"],
-                "Cereal Aveia Banana e Ameixa 170g": ["CEREAL", "BANANA"],
-                "Cereal Multicereais 170g": ["CEREAL", "MULTI", "170G"],
-                "Cereal Multicereais 500g": ["CEREAL", "MULTI", "500G"]
-            }
+        # 2. Catálogo Simplificado para Batimento
+        catalogo = {
+            "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO"],
+            "CEREAIS": ["CEREAL", "AVEIA", "MULTI"],
+            "PALITINHOS": ["PALITINHO"],
+            "SOPINHAS": ["SOPINHA"],
+            "YOGUZINHO": ["YOGU", "IOGURTE"],
+            "BISCOTTI": ["BISCOTTI"],
+            "PAPINHAS SALGADAS": ["PAPINHA", "120G"],
+            "PAPINHAS DE FRUTAS": ["ORG", "FRUTA"]
         }
 
-        # --- PASSO 3: LÓGICA DE COMPARAÇÃO MELHORADA ---
-        import unicodedata
-        def limpar_texto(t):
-            return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
+        # Itens específicos do catálogo para exibição bonita
+        itens_catalogo = {
+            "LA CHEF": ["Lentilha Carne Legumes 180g", "Risotinho Arroz Quinoa Frango 180g", "Caseirinho Arroz Feijão Carne Leg. 180g"],
+            "CEREAIS": ["Cereal Multicereais 170g", "Cereal Multicereais 500g", "Cereal Aveia Morango e Beterraba 170g", "Cereal Aveia Banana e Ameixa 170g"],
+            "PALITINHOS": ["Palitinho Org. Beterraba 20g", "Palitinho Org. Cenoura 20g", "Palitinho Org. Tomate/Manjericão 20g"],
+            "SOPINHAS": ["Sopinha Frango Arroz Legumes 240g", "Sopinha Carne Macarrao Legumes 240g", "Sopinha Carne Mandioquinha Leg 240g", "Sopinha Feijão Carne Leg 240g"],
+            "YOGUZINHO": ["Iogurte Frutas Amarelas e Banana 100g", "Iogurte Frutas Vermelhas e Banana 100g"]
+        }
 
-        # Massa de dados do cliente para busca
-        vendas_nomes_cliente = [limpar_texto(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
-        linhas_compradas_cliente = set(vendas_cliente_atual["LINHA"].apply(limpar_texto).unique())
+        import unicodedata
+        def limpar(t): return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
+
+        vendas_nomes = [limpar(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
         
         gap_mix = []
         cross_sell = []
 
-        for linha_oficial, produtos in catalogo_papapa.items():
-            linha_upper = limpar_texto(linha_oficial)
-            
-            for nome_bonito, keywords in produtos.items():
-                # Validação Rigorosa: Verifica se as keywords aparecem em ALGUM produto vendido
-                # Para Palitinhos, as keywords incluem 'PALIT', garantindo que não pegue Papinhas de Cenoura.
-                ja_comprou = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes_cliente)
-                
-                if not ja_comprou:
-                    if linha_upper in linhas_compradas_cliente:
-                        gap_mix.append({"Linha": linha_oficial, "Produto": nome_bonito})
-                    else:
-                        cross_sell.append({"Linha": linha_oficial, "Produto": nome_bonito})
+        for linha_ref, produtos_lista in itens_catalogo.items():
+            # A linha está no histórico de compras do cliente?
+            cliente_ja_compra_essa_linha = any(limpar(linha_ref) in limpar(l) for l in linhas_no_historico)
 
-        # --- PASSO 4: EXIBIÇÃO NO DASHBOARD ---
+            for p_nome in produtos_lista:
+                # O SKU específico já foi comprado? (Busca por palavras-chave do nome)
+                termos_busca = limpar(p_nome).split()
+                ja_comprou_sku = any(all(t in nome_venda for t in termos_busca if len(t) > 3) for nome_venda in vendas_nomes)
+
+                if not ja_comprou_sku:
+                    if cliente_ja_compra_essa_linha:
+                        gap_mix.append({"Linha": linha_ref, "Produto": p_nome})
+                    else:
+                        cross_sell.append({"Linha": linha_ref, "Produto": p_nome})
+
+        # --- EXIBIÇÃO ---
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("#### 🚨 Gap de Mix")
-            if gap_mix:
-                st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
-            else:
-                st.success("✅ Mix completo nas categorias que o cliente já trabalha!")
+            if gap_mix: st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+            else: st.success("✅ Mix completo nas linhas atuais!")
         with c2:
             st.markdown("#### 📦 Cross-sell")
-            if cross_sell:
-                # Agora exibe TODOS os SKUs individualmente conforme solicitado
-                st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
-            else:
-                st.info("💡 Cliente já compra todas as linhas da Papapá!")
+            if cross_sell: st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
+            else: st.info("💡 Já compra todas as linhas!")
                 
 # ==========================================
 
