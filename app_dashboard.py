@@ -538,7 +538,6 @@ if COL_SEGMENTO in df_filtrado.columns:
 if COL_T_U_9_M in df_filtrado.columns:
     # 1. Criamos uma nova coluna temporária de 'FAIXA' baseada nos valores numéricos
     def definir_faixa(valor):
-        if pd.isna(valor) or valor <= 0: return "Sem Faturamento"
         elif valor <= 5000: return "0 a 5k"
         elif valor <= 20000: return "5k a 20k"
         elif valor <= 50000: return "20k a 50k"
