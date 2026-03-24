@@ -536,41 +536,45 @@ if COL_SEGMENTO in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
 if COL_T_U_9_M in df_filtrado.columns:
-    # 1. Função para limpar e converter para número (remove R$, pontos e trata vírgulas)
-    def limpar_valor(v):
-        if pd.isna(v): return 0
-        if isinstance(v, (int, float)): return v
-        s = str(v).replace('R$', '').replace('.', '').replace(',', '.').strip()
+    # 1. Função ultra-robusta para converter qualquer formato em número
+    def converter_para_numero(valor):
+        if pd.isna(valor): return 0.0
+        if isinstance(valor, (int, float)): return float(valor)
+        
+        # Remove R$, espaços, pontos de milhar e troca vírgula por ponto
+        texto = str(valor).replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.').strip()
         try:
-            return float(s)
+            return float(texto)
         except:
-            return 0
+            return 0.0
 
-    # 2. Criamos a coluna numérica temporária para o cálculo
-    df_filtrado["VALOR_NUM"] = df_filtrado[COL_T_U_9_M].apply(limpar_valor)
+    # 2. Criamos uma coluna numérica real no dataframe de trabalho
+    # Usamos .loc para evitar avisos de cópia do Pandas
+    df_filtrado["VALOR_NUM_LIMPO"] = df_filtrado[COL_T_U_9_M].apply(converter_para_numero)
 
-    # 3. Função de definição de faixa
-    def definir_faixa(valor):
-        if valor <= 0: return "Sem Faturamento"
-        elif valor <= 5000: return "0 a 5k"
-        elif valor <= 20000: return "5k a 20k"
-        elif valor <= 50000: return "20k a 50k"
-        elif valor <= 100000: return "50k a 100k"
+    # 3. Lógica das faixas
+    def atribuir_faixa(n):
+        if n <= 0: return "Sem Faturamento"
+        elif n <= 5000: return "0 a 5k"
+        elif n <= 20000: return "5k a 20k"
+        elif n <= 50000: return "20k a 50k"
+        elif n <= 100000: return "50k a 100k"
         else: return "Acima de 100k"
 
-    # 4. Aplicamos a faixa
-    df_filtrado["FAIXA_AUX"] = df_filtrado["VALOR_NUM"].apply(definir_faixa)
+    df_filtrado["FAIXA_AUX"] = df_filtrado["VALOR_NUM_LIMPO"].apply(atribuir_faixa)
 
-    # 5. Lista de opções fixa para garantir a ordem correta no menu
-    fat_lista = ["Sem Faturamento", "0 a 5k", "5k a 20k", "20k a 50k", "50k a 100k", "Acima de 100k"]
-    
-    # Filtramos a lista para mostrar apenas faixas que realmente existem nos dados atuais
-    opcoes_reais = [f for f in fat_lista if f in df_filtrado["FAIXA_AUX"].unique()]
+    # 4. Lista de opções (Só mostra o que existir de facto nos dados após a limpeza)
+    ordem_desejada = ["Sem Faturamento", "0 a 5k", "5k a 20k", "20k a 50k", "50k a 100k", "Acima de 100k"]
+    opcoes_disponiveis = [f for f in ordem_desejada if f in df_filtrado["FAIXA_AUX"].unique()]
 
-    # 6. Widget de Seleção
-    fat_sel = st.sidebar.multiselect("Faixa de Faturamento (9 Meses)", opcoes_reais, key="f_fat_final_v4")
+    # 5. Widget de Seleção (Mudei a key para resetar o componente no seu browser)
+    fat_sel = st.sidebar.multiselect(
+        "Faixa de Faturamento (9 Meses)", 
+        options=opcoes_disponiveis, 
+        key="f_fat_final_v5"
+    )
 
-    # 7. Aplicamos o filtro final
+    # 6. Aplicar o filtro
     if fat_sel:
         df_filtrado = df_filtrado[df_filtrado["FAIXA_AUX"].isin(fat_sel)]
 
