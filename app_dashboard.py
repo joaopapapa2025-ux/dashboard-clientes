@@ -535,25 +535,21 @@ if COL_SEGMENTO in df_filtrado.columns:
     if seg_sel:
         df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
-# 1. Definimos o nome exato da coluna conforme sua base
-COL_FAT_9M = "TOTAL ÚLTIMOS 9 MESES"
-
 if COL_T_U_9_M in df.columns:
-    # 2. Criamos as opções usando o DataFrame original (df) para o filtro não travar
-    # Convertemos para string e removemos o que for nulo ou 'nan'
+    # Criamos a lista de opções a partir do dataframe original para não travar
     opcoes_f = df[COL_T_U_9_M].astype(str).unique().tolist()
     fat_lista = sorted([opt for opt in opcoes_f if opt.lower() not in ['nan', 'none', '', 'nat']])
 
-    # 3. Criamos o multiselect com uma chave (key) nova para destravar o cache do navegador
+    # Widget de seleção
     fat_sel = st.sidebar.multiselect(
         "Filtrar por Faturamento (9 Meses)", 
         options=fat_lista, 
-        key="f_fat_9meses_nova"
+        key="f_fat_9meses_v3"
     )
 
-    # 4. Aplicamos o filtro no DataFrame que alimenta os gráficos
+    # Aplicação do filtro (Sintaxe corrigida abaixo)
     if fat_sel:
-        df_filtrado = df_filtrado[df_filtrado[COL_T_U_9_M].astype(str).isin(fat_sel)])]
+        df_filtrado = df_filtrado[df_filtrado[COL_T_U_9_M].astype(str).isin(fat_sel)]
 
 # ==========================================
 # 3. RAZÃO SOCIAL (CASCATA ATIVA)
