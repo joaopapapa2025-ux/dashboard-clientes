@@ -536,10 +536,29 @@ if COL_SEGMENTO in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
 if COL_T_U_9_M in df_filtrado.columns:
-    fat_lista = sorted(df_filtrado[COL_T_U_9_M].dropna().unique().tolist())
-    fat_sel = st.sidebar.multiselect("Faixa de Faturamento", fat_lista, key="f_fat")
+    # 1. Criamos uma nova coluna temporária de 'FAIXA' baseada nos valores numéricos
+    def definir_faixa(valor):
+        if pd.isna(valor) or valor <= 0: return "Sem Faturamento"
+        elif valor <= 5000: return "0 a 5k"
+        elif valor <= 20000: return "5k a 20k"
+        elif valor <= 50000: return "20k a 50k"
+        elif valor <= 100000: return "50k a 100k"
+        else: return "Acima de 100k"
+
+    # Aplicamos a lógica no dataframe original e no filtrado
+    df["FAIXA_AUX"] = df[COL_T_U_9_M].apply(definir_faixa)
+    df_filtrado["FAIXA_AUX"] = df_filtrado[COL_T_U_9_M].apply(definir_faixa)
+
+    # 2. Geramos a lista de opções (ordenada)
+    ordem_faixas = ["Sem Faturamento", "0 a 5k", "5k a 20k", "20k a 50k", "50k a 100k", "Acima de 100k"]
+    fat_lista = [f for f in ordem_faixas if f in df["FAIXA_AUX"].unique()]
+
+    # 3. Widget de Seleção
+    fat_sel = st.sidebar.multiselect("Faixa de Faturamento (9 Meses)", fat_lista, key="f_fat_final")
+
+    # 4. Aplicamos o filtro
     if fat_sel:
-        df_filtrado = df_filtrado[df_filtrado[COL_T_U_9_M].isin(fat_sel)]
+        df_filtrado = df_filtrado[df_filtrado["FAIXA_AUX"].isin(fat_sel)]
 
 # ==========================================
 # 3. RAZÃO SOCIAL (CASCATA ATIVA)
