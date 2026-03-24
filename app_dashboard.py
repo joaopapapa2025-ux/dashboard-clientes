@@ -535,21 +535,11 @@ if COL_SEGMENTO in df_filtrado.columns:
     if seg_sel:
         df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
-if COL_T_U_9_M in df.columns:
-    # Criamos a lista de opções a partir do dataframe original para não travar
-    opcoes_f = df[COL_T_U_9_M].astype(str).unique().tolist()
-    fat_lista = sorted([opt for opt in opcoes_f if opt.lower() not in ['nan', 'none', '', 'nat']])
-
-    # Widget de seleção
-    fat_sel = st.sidebar.multiselect(
-        "Filtrar por Faturamento (9 Meses)", 
-        options=fat_lista, 
-        key="f_fat_9meses_v3"
-    )
-
-    # Aplicação do filtro (Sintaxe corrigida abaixo)
+if COL_T_U_9_M in df_filtrado.columns:
+    fat_lista = sorted(df_filtrado[COL_T_U_9_M].dropna().unique().tolist())
+    fat_sel = st.sidebar.multiselect("Faixa de Faturamento", fat_lista, key="f_fat")
     if fat_sel:
-        df_filtrado = df_filtrado[df_filtrado[COL_T_U_9_M].astype(str).isin(fat_sel)]
+        df_filtrado = df_filtrado[df_filtrado[COL_T_U_9_M].isin(fat_sel)]
 
 # ==========================================
 # 3. RAZÃO SOCIAL (CASCATA ATIVA)
