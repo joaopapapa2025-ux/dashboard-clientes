@@ -538,10 +538,10 @@ if COL_SEGMENTO in df_filtrado.columns:
 # 1. Definimos o nome exato da coluna conforme sua base
 COL_FAT_9M = "TOTAL ÚLTIMOS 9 MESES"
 
-if COL_FAT_9M in df.columns:
+if COL_T_U_9_M in df.columns:
     # 2. Criamos as opções usando o DataFrame original (df) para o filtro não travar
     # Convertemos para string e removemos o que for nulo ou 'nan'
-    opcoes_f = df[COL_FAT_9M].astype(str).unique().tolist()
+    opcoes_f = df[COL_T_U_9_M].astype(str).unique().tolist()
     fat_lista = sorted([opt for opt in opcoes_f if opt.lower() not in ['nan', 'none', '', 'nat']])
 
     # 3. Criamos o multiselect com uma chave (key) nova para destravar o cache do navegador
@@ -553,7 +553,7 @@ if COL_FAT_9M in df.columns:
 
     # 4. Aplicamos o filtro no DataFrame que alimenta os gráficos
     if fat_sel:
-        df_filtrado = df_filtrado[df_filtrado[COL_FAT_9M].astype(str).isin(fat_sel)])]
+        df_filtrado = df_filtrado[df_filtrado[COL_T_U_9_M].astype(str).isin(fat_sel)])]
 
 # ==========================================
 # 3. RAZÃO SOCIAL (CASCATA ATIVA)
