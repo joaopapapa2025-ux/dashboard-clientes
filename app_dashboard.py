@@ -996,106 +996,131 @@ if not vendas_cliente.empty:
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
-# =========================
-# ANÁLISE DE MIX COMPLETA (VISÃO GERAL)
-# =========================
-
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO EQUILIBRADA V3
+# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO FINAL RIGOROSA
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
-    id_cnpj = cliente["CNPJ_LIMPO"]
+    id_cliente = cliente["CNPJ_LIMPO"]
     
-    vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cnpj).strip()].copy()
+    # 1. Filtramos as vendas do cliente
+    vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cliente).strip()].copy()
 
     if not vendas_cliente_atual.empty:
-        # --- PASSO 1: MAPEAMENTO DO CATÁLOGO COM IDENTIFICADORES DE LINHA ---
+        # --- PASSO 1: FUNÇÃO DE LIMPEZA (CATEGORIZAÇÃO POR LINHA) ---
+        def categorizar_definitivo(row):
+            p = str(row.get('DESC PRODUTO', '')).upper().strip()
+            l_original = str(row.get('LINHA', '')).upper().strip()
+            
+            if any(x in p for x in ["180G", "LENTILHA", "CASEIRINHO", "RISOTINHO"]): return "LA CHEF"
+            if "IOGURTE" in p or "YOGU" in p: return "YOGUZINHO"
+            if "SOPINHA" in p or "SOPINHA" in l_original: return "SOPINHAS"
+            if "120G" in p or any(x in l_original for x in ["CARNE", "SALGADA"]) or "FRANGO" in p: return "PAPINHAS SALGADAS"
+            if "PALITINHO" in p or "PALITINHO" in l_original: return "PALITINHOS"
+            if "FRUTA" in l_original or "ORG" in l_original: return "PAPINHAS DE FRUTAS"
+            if "CERAL" in l_original or "AVEIA" in l_original: return "CEREAIS"
+            return l_original
+
+        vendas_cliente_atual["LINHA"] = vendas_cliente_atual.apply(categorizar_definitivo, axis=1)
+
+        # --- PASSO 2: MAPEAMENTO DO CATÁLOGO (ESTRUTURA DE DADOS) ---
         catalogo_papapa = {
             "LA CHEF": {
-                "identificadores": ["LENTILHA", "RISOTINHO", "CASEIRINHO", "180G"],
-                "skus": {
-                    "Lentilha Carne Legumes 180g": ["LENTILHA", "180G"],
-                    "Risotinho Arroz Quinoa Frango 180g": ["RISOTINHO", "180G"],
-                    "Caseirinho Arroz Feijão Carne Leg. 180g": ["CASEIRINHO", "180G"]
-                }
-            },
-            "CEREAIS": {
-                "identificadores": ["CEREAL", "AVEIA", "MULTICEREAIS"],
-                "skus": {
-                    "Cereal Multicereais 170g": ["CEREAL", "170G"],
-                    "Cereal Multicereais 500g": ["CEREAL", "500G"],
-                    "Cereal Aveia Morango e Beterraba 170g": ["AVEIA", "MORANGO"],
-                    "Cereal Aveia Banana e Ameixa 170g": ["AVEIA", "BANANA"]
-                }
-            },
-            "PALITINHOS": {
-                "identificadores": ["PALITINHO"],
-                "skus": {
-                    "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
-                    "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
-                    "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
-                }
-            },
-            "BISCOTTI": {
-                "identificadores": ["BISCOTTI"],
-                "skus": {
-                    "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJA"],
-                    "Biscotti Goiaba 60g": ["BISCOTTI", "GOIABA"],
-                    "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJA"]
-                }
+                "Lentilha Carne Legumes 180g": ["LENTILHA"],
+                "Risotinho Arroz Quinoa Frango 180g": ["RISOTINHO"],
+                "Caseirinho Arroz Feijão Carne Leg. 180g": ["CASEIRINHO"]
             },
             "SOPINHAS": {
-                "identificadores": ["SOPINHA", "240G"],
-                "skus": {
-                    "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO"],
-                    "Sopinha Carne Macarrao Legumes 240g": ["SOPINHA", "MACARRAO"]
-                }
+                "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO"],
+                "Sopinha Carne Macarrao Legumes 240g": ["SOPINHA", "MACARRAO"],
+                "Sopinha Carne Mandioquinha Leg 240g": ["SOPINHA", "MANDIOQ"],
+                "Sopinha Feijão Carne Leg 240g": ["SOPINHA", "FEIJAO"]
+            },
+            "YOGUZINHO": {
+                "Iogurte Frutas Amarelas e Banana 100g": ["IOGURTE", "AMARELAS"],
+                "Iogurte Frutas Vermelhas e Banana 100g": ["IOGURTE", "VERMELHAS"]
+            },
+            "PAPINHAS SALGADAS": {
+                "Papinha Carne Arroz Legumes 120g": ["CARNE", "ARROZ", "120G"],
+                "Papinha Frango Grão Vegetais 120g": ["FRANGO", "GRAO", "120G"]
+            },
+            "PAPINHAS DE FRUTAS": {
+                "Papinha Org Maçã Ameixa 100g": ["MACA", "AMEIXA"],
+                "Papinha Org Banana Mirtilo Quinoa 100g": ["BANANA", "MIRTILO"],
+                "Papinha Org Manga 100g": ["MANGA"],
+                "Papinha Org Pera Espinafre Abobrinha 100g": ["PERA", "ESPINA"],
+                "Papinha Org Maçã B. Doce Cenoura 100g": ["DOCE", "CENOURA"],
+                "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
+            },
+            "BISCOTTI": {
+                "Biscotti Laranja e Cenoura 60g": ["LARANJ"],
+                "Biscotti Maçã e Canela 60g": ["MAC", "CANEL"],
+                "Biscotti Banana e Cacau 60g": ["CACAU"],
+                "Biscotti Goiaba 60g": ["GOIAB"],
+                "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] 
+            },
+            "PALITINHOS": {
+                "Palitinho Org. Beterraba 20g": ["PALIT", "BETERRABA"],
+                "Palitinho Org. Cenoura 20g": ["PALIT", "CENOURA"],
+                "Palitinho Org. Tomate/Manjericão 20g": ["PALIT", "TOMATE"]
+            },
+            "DENTIÇÃO": {
+                "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
+                "Biscoito de Dentição Vegetais": ["DENTICAO", "VEGETAIS"]
+            },
+            "MACARRÃO": {
+                "Macarrão Inf. Elbow Quinoa 200g": ["ELBOW", "QUINOA"],
+                "Macarrão Inf. Fusilli Vegetais 200g": ["FUSILLI", "VEGETAIS"]
+            },
+            "CEREAIS": {
+                "Cereal Aveia Morango e Beterraba 170g": ["CEREAL", "MORANGO"],
+                "Cereal Aveia Banana e Ameixa 170g": ["CEREAL", "BANANA"],
+                "Cereal Multicereais 170g": ["CEREAL", "MULTI", "170G"],
+                "Cereal Multicereais 500g": ["CEREAL", "MULTI", "500G"]
             }
         }
 
-        # --- PASSO 2: LIMPEZA DE TEXTO ---
+        # --- PASSO 3: LÓGICA DE COMPARAÇÃO MELHORADA ---
         import unicodedata
         def limpar_texto(t):
             return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
 
-        vendas_nomes = [limpar_texto(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
+        # Massa de dados do cliente para busca
+        vendas_nomes_cliente = [limpar_texto(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
+        linhas_compradas_cliente = set(vendas_cliente_atual["LINHA"].apply(limpar_texto).unique())
         
         gap_mix = []
         cross_sell = []
 
-        # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
-        for linha, dados in catalogo_papapa.items():
-            ids_linha = [limpar_texto(i) for i in dados["identificadores"]]
+        for linha_oficial, produtos in catalogo_papapa.items():
+            linha_upper = limpar_texto(linha_oficial)
             
-            # 1. O cliente trabalha essa linha? 
-            # Verifica se QUALQUER identificador da linha aparece em alguma venda
-            trabalha_a_linha = any(any(ids in nome_venda for ids in ids_linha) for nome_venda in vendas_nomes)
-            
-            for nome_bonito, keywords in dados["skus"].items():
-                # 2. O cliente comprou esse SKU específico?
-                comprou_sku = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes)
+            for nome_bonito, keywords in produtos.items():
+                # Validação Rigorosa: Verifica se as keywords aparecem em ALGUM produto vendido
+                # Para Palitinhos, as keywords incluem 'PALIT', garantindo que não pegue Papinhas de Cenoura.
+                ja_comprou = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes_cliente)
                 
-                if not comprou_sku:
-                    if trabalha_a_linha:
-                        gap_mix.append({"Linha": linha, "Produto": nome_bonito})
+                if not ja_comprou:
+                    if linha_upper in linhas_compradas_cliente:
+                        gap_mix.append({"Linha": linha_oficial, "Produto": nome_bonito})
                     else:
-                        cross_sell.append({"Linha": linha, "Produto": nome_bonito})
+                        cross_sell.append({"Linha": linha_oficial, "Produto": nome_bonito})
 
-        # --- PASSO 4: EXIBIÇÃO ---
+        # --- PASSO 4: EXIBIÇÃO NO DASHBOARD ---
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("#### 🚨 Gap de Mix")
             if gap_mix:
                 st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Mix completo nas categorias atuais!")
+                st.success("✅ Mix completo nas categorias que o cliente já trabalha!")
         with c2:
             st.markdown("#### 📦 Cross-sell")
             if cross_sell:
+                # Agora exibe TODOS os SKUs individualmente conforme solicitado
                 st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
             else:
-                st.info("💡 Cliente já compra todas as linhas!")
+                st.info("💡 Cliente já compra todas as linhas da Papapá!")
                 
 # ==========================================
 
