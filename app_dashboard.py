@@ -1001,7 +1001,7 @@ if not vendas_cliente.empty:
 # =========================
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO ULTRA RIGOROSA
+# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO EQUILIBRADA V3
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
@@ -1010,42 +1010,47 @@ if len(df_filtrado) == 1:
     vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cnpj).strip()].copy()
 
     if not vendas_cliente_atual.empty:
-        # --- PASSO 1: MAPEAMENTO DO CATÁLOGO ---
+        # --- PASSO 1: MAPEAMENTO DO CATÁLOGO COM IDENTIFICADORES DE LINHA ---
         catalogo_papapa = {
             "LA CHEF": {
-                "Lentilha Carne Legumes 180g": ["LENTILHA", "180G"],
-                "Risotinho Arroz Quinoa Frango 180g": ["RISOTINHO", "180G"],
-                "Caseirinho Arroz Feijão Carne Leg. 180g": ["CASEIRINHO", "180G"]
-            },
-            "SOPINHAS": {
-                "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "240G"],
-                "Sopinha Carne Macarrao Legumes 240g": ["SOPINHA", "240G"],
-                "Sopinha Carne Mandioquinha Leg 240g": ["SOPINHA", "240G"],
-                "Sopinha Feijão Carne Leg 240g": ["SOPINHA", "240G"]
-            },
-            "YOGUZINHO": {
-                "Iogurte Frutas Amarelas e Banana 100g": ["YOGU", "AMARELAS"],
-                "Iogurte Frutas Vermelhas e Banana 100g": ["YOGU", "VERMELHAS"]
-            },
-            "PAPINHAS SALGADAS": {
-                "Papinha Carne Arroz Legumes 120g": ["PAPINHA", "CARNE", "120G"],
-                "Papinha Frango Grão Vegetais 120g": ["PAPINHA", "FRANGO", "120G"]
-            },
-            "PALITINHOS": {
-                "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
-                "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
-            },
-            "BISCOTTI": {
-                "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJA"],
-                "Biscotti Maçã e Canela 60g": ["BISCOTTI", "MACA"],
-                "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
-                "Biscotti Goiaba 60g": ["BISCOTTI", "GOIABA"],
-                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJA"]
+                "identificadores": ["LENTILHA", "RISOTINHO", "CASEIRINHO", "180G"],
+                "skus": {
+                    "Lentilha Carne Legumes 180g": ["LENTILHA", "180G"],
+                    "Risotinho Arroz Quinoa Frango 180g": ["RISOTINHO", "180G"],
+                    "Caseirinho Arroz Feijão Carne Leg. 180g": ["CASEIRINHO", "180G"]
+                }
             },
             "CEREAIS": {
-                "Cereal Multicereais 170g": ["CEREAL", "170G"],
-                "Cereal Multicereais 500g": ["CEREAL", "500G"]
+                "identificadores": ["CEREAL", "AVEIA", "MULTICEREAIS"],
+                "skus": {
+                    "Cereal Multicereais 170g": ["CEREAL", "170G"],
+                    "Cereal Multicereais 500g": ["CEREAL", "500G"],
+                    "Cereal Aveia Morango e Beterraba 170g": ["AVEIA", "MORANGO"],
+                    "Cereal Aveia Banana e Ameixa 170g": ["AVEIA", "BANANA"]
+                }
+            },
+            "PALITINHOS": {
+                "identificadores": ["PALITINHO"],
+                "skus": {
+                    "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
+                    "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
+                    "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
+                }
+            },
+            "BISCOTTI": {
+                "identificadores": ["BISCOTTI"],
+                "skus": {
+                    "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJA"],
+                    "Biscotti Goiaba 60g": ["BISCOTTI", "GOIABA"],
+                    "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJA"]
+                }
+            },
+            "SOPINHAS": {
+                "identificadores": ["SOPINHA", "240G"],
+                "skus": {
+                    "Sopinha Frango Arroz Legumes 240g": ["SOPINHA", "FRANGO"],
+                    "Sopinha Carne Macarrao Legumes 240g": ["SOPINHA", "MACARRAO"]
+                }
             }
         }
 
@@ -1059,15 +1064,15 @@ if len(df_filtrado) == 1:
         gap_mix = []
         cross_sell = []
 
-        # --- PASSO 3: LÓGICA DE SEPARAÇÃO (RIGOROSA) ---
-        for linha, produtos in catalogo_papapa.items():
-            linha_limpa = limpar_texto(linha)
+        # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
+        for linha, dados in catalogo_papapa.items():
+            ids_linha = [limpar_texto(i) for i in dados["identificadores"]]
             
             # 1. O cliente trabalha essa linha? 
-            # Verificamos se em ALGUM produto vendido consta o nome da linha (ex: "PALITINHO")
-            trabalha_a_linha = any(linha_limpa in nome_venda for nome_venda in vendas_nomes)
+            # Verifica se QUALQUER identificador da linha aparece em alguma venda
+            trabalha_a_linha = any(any(ids in nome_venda for ids in ids_linha) for nome_venda in vendas_nomes)
             
-            for nome_bonito, keywords in produtos.items():
+            for nome_bonito, keywords in dados["skus"].items():
                 # 2. O cliente comprou esse SKU específico?
                 comprou_sku = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes)
                 
@@ -1084,7 +1089,7 @@ if len(df_filtrado) == 1:
             if gap_mix:
                 st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
             else:
-                st.success("✅ Mix completo nas linhas que já compra!")
+                st.success("✅ Mix completo nas categorias atuais!")
         with c2:
             st.markdown("#### 📦 Cross-sell")
             if cross_sell:
