@@ -535,11 +535,19 @@ if COL_SEGMENTO in df_filtrado.columns:
     if seg_sel:
         df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
-if "FAIXA_FATURAMENTO" in df_filtrado.columns:
-    fat_lista = sorted(df_filtrado["FAIXA_FATURAMENTO"].dropna().unique().tolist())
-    fat_sel = st.sidebar.multiselect("Faixa de Faturamento", fat_lista, key="f_fat")
+if "FAIXA_FATURAMENTO" in df.columns:
+    # 1. Buscamos as opções do dataframe original (df) para garantir que o filtro nunca fique vazio
+    # Removemos nulos e convertemos para string para evitar erros de ordenação
+    opcoes_f = df["FAIXA_FATURAMENTO"].dropna().unique().tolist()
+    fat_lista = sorted([str(x) for x in opcoes_f if str(x).lower() != 'nan'])
+    
+    # 2. Criamos o widget usando a lista completa de opções
+    fat_sel = st.sidebar.multiselect("Faixa de Faturamento", options=fat_lista, key="f_fat")
+    
+    # 3. Aplicamos o filtro no df_filtrado apenas se houver seleção
     if fat_sel:
-        df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].isin(fat_sel)]
+        # O astype(str) garante que a comparação funcione mesmo se houver nulos no dataframe filtrado
+        df_filtrado = df_filtrado[df_filtrado["FAIXA_FATURAMENTO"].astype(str).isin(fat_sel)]
 
 # ==========================================
 # 3. RAZÃO SOCIAL (CASCATA ATIVA)
