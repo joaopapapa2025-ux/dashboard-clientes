@@ -1001,7 +1001,7 @@ if not vendas_cliente.empty:
 # =========================
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO FINAL RIGOROSA
+# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO DEFINITIVA
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
@@ -1016,16 +1016,21 @@ if len(df_filtrado) == 1:
             p = str(row.get('DESC PRODUTO', '')).upper().strip()
             l_original = str(row.get('LINHA', '')).upper().strip()
             
-            if any(x in p for x in ["180G", "LENTILHA", "CASEIRINHO", "RISOTINHO"]): return "LA CHEF"
+            # Ordem de verificação rigorosa para evitar confusão entre linhas
+            if "PALITINHO" in p: return "PALITINHOS"
+            if "BISCOTTI" in p: return "BISCOTTI"
             if "IOGURTE" in p or "YOGU" in p: return "YOGUZINHO"
-            if "SOPINHA" in p or "SOPINHA" in l_original: return "SOPINHAS"
-            if "120G" in p or any(x in l_original for x in ["CARNE", "SALGADA"]) or "FRANGO" in p: return "PAPINHAS SALGADAS"
-            if "PALITINHO" in p or "PALITINHO" in l_original: return "PALITINHOS"
-            if "FRUTA" in l_original or "ORG" in l_original: return "PAPINHAS DE FRUTAS"
-            if "CERAL" in l_original or "AVEIA" in l_original: return "CEREAIS"
+            if "180G" in p or any(x in p for x in ["LENTILHA", "RISOTINHO", "CASEIRINHO"]): return "LA CHEF"
+            if "SOPINHA" in p: return "SOPINHAS"
+            if "120G" in p and any(x in p for x in ["CARNE", "FRANGO"]): return "PAPINHAS SALGADAS"
+            if "ORG" in p and any(x in p for x in ["MACA", "BANANA", "MANGA", "PERA", "MORANGO"]): return "PAPINHAS DE FRUTAS"
+            if any(x in p for x in ["CEREAL", "AVEIA", "MULTICEREAIS"]): return "CEREAIS"
+            if "DENTICAO" in p: return "DENTIÇÃO"
+            if "ELBOW" in p or "FUSILLI" in p: return "MACARRÃO"
+            
             return l_original
 
-        vendas_cliente_atual["LINHA"] = vendas_cliente_atual.apply(categorizar_definitivo, axis=1)
+        vendas_cliente_atual["LINHA_LIMPA"] = vendas_cliente_atual.apply(categorizar_definitivo, axis=1)
 
         # --- PASSO 2: MAPEAMENTO DO CATÁLOGO (ESTRUTURA DE DADOS) ---
         catalogo_papapa = {
@@ -1057,16 +1062,16 @@ if len(df_filtrado) == 1:
                 "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
             },
             "BISCOTTI": {
-                "Biscotti Laranja e Cenoura 60g": ["LARANJ"],
-                "Biscotti Maçã e Canela 60g": ["MAC", "CANEL"],
-                "Biscotti Banana e Cacau 60g": ["CACAU"],
-                "Biscotti Goiaba 60g": ["GOIAB"],
-                "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] 
+                "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJ"],
+                "Biscotti Maçã e Canela 60g": ["BISCOTTI", "MAC", "CANEL"],
+                "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
+                "Biscotti Goiaba 60g": ["BISCOTTI", "GOIAB"],
+                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJ"] 
             },
             "PALITINHOS": {
-                "Palitinho Org. Beterraba 20g": ["PALIT", "BETERRABA"],
-                "Palitinho Org. Cenoura 20g": ["PALIT", "CENOURA"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["PALIT", "TOMATE"]
+                "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
+                "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
+                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
             },
             "DENTIÇÃO": {
                 "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
@@ -1091,7 +1096,8 @@ if len(df_filtrado) == 1:
 
         # Massa de dados do cliente para busca
         vendas_nomes_cliente = [limpar_texto(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
-        linhas_compradas_cliente = set(vendas_cliente_atual["LINHA"].apply(limpar_texto).unique())
+        # Pegamos as linhas que o cliente REALMENTE comprou conforme nossa limpeza
+        linhas_compradas_cliente = set(vendas_cliente_atual["LINHA_LIMPA"].apply(limpar_texto).unique())
         
         gap_mix = []
         cross_sell = []
@@ -1099,15 +1105,19 @@ if len(df_filtrado) == 1:
         for linha_oficial, produtos in catalogo_papapa.items():
             linha_upper = limpar_texto(linha_oficial)
             
+            # Verificamos se o cliente comprou QUALQUER item desta linha
+            cliente_ja_trabalha_esta_linha = linha_upper in linhas_compradas_cliente
+            
             for nome_bonito, keywords in produtos.items():
-                # Validação Rigorosa: Verifica se as keywords aparecem em ALGUM produto vendido
-                # Para Palitinhos, as keywords incluem 'PALIT', garantindo que não pegue Papinhas de Cenoura.
-                ja_comprou = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes_cliente)
+                # Verifica se o SKU específico foi comprado
+                ja_comprou_sku = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes_cliente)
                 
-                if not ja_comprou:
-                    if linha_upper in linhas_compradas_cliente:
+                if not ja_comprou_sku:
+                    if cliente_ja_trabalha_esta_linha:
+                        # Se ele já compra a linha (ex: Biscotti Goiaba), o que falta é GAP
                         gap_mix.append({"Linha": linha_oficial, "Produto": nome_bonito})
                     else:
+                        # Se ele nunca comprou NADA da linha (ex: Palitinhos), tudo é CROSS-SELL
                         cross_sell.append({"Linha": linha_oficial, "Produto": nome_bonito})
 
         # --- PASSO 4: EXIBIÇÃO NO DASHBOARD ---
@@ -1121,7 +1131,6 @@ if len(df_filtrado) == 1:
         with c2:
             st.markdown("#### 📦 Cross-sell")
             if cross_sell:
-                # Agora exibe TODOS os SKUs individualmente conforme solicitado
                 st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
             else:
                 st.info("💡 Cliente já compra todas as linhas da Papapá!")
