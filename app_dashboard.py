@@ -997,7 +997,7 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO INTEGRAL E CORRIGIDA (SEM ERRO DE INDENTAÇÃO)
+# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO FINAL (SEM ERROS DE NOME OU INDENTAÇÃO)
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
@@ -1007,12 +1007,13 @@ if len(df_filtrado) == 1:
 
     if not vendas_cliente_atual.empty:
         import unicodedata
-        def limpar(t): return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
+        def limpar(t): 
+            return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
 
         vendas_nomes = [limpar(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
 
         # --- PASSO 1: IDENTIFICADORES DE LINHA (DNA) ---
-        # Separamos as papinhas por exclusão: Salgada não pode ter nome de fruta
+        # Definimos quem o cliente REALMENTE já compra para separar Salgada de Fruta
         ja_compra_salgada = any(("120G" in n or "SALGADA" in n) and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"]) for n in vendas_nomes)
         ja_compra_palitinho = any("PALITINHO" in n for n in vendas_nomes)
         ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
@@ -1027,7 +1028,7 @@ if len(df_filtrado) == 1:
             "MACARRÃO": ["MACARRAO", "ELBOW", "FUSILLI"]
         }
 
-        # --- PASSO 2: SEU CATÁLOGO COMPLETO (MANTIDO 100%) ---
+        # --- PASSO 2: CATÁLOGO COMPLETO (MANTIDO 100%) ---
         catalogo_papapa = {
             "LA CHEF": {
                 "Lentilha Carne Legumes 180g": ["LENTILHA"],
@@ -1087,15 +1088,45 @@ if len(df_filtrado) == 1:
         gap_mix = []
         cross_sell = []
 
-        # --- PASSO 3: LÓGICA DE SEPARAÇÃO (CORRIGIDA) ---
+        # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
         for linha, skus_dict in catalogo_papapa.items():
-            # Seleção de quem o cliente trabalha
-            if linha == "PAPINHAS SALGADAS": trabalha = ja_compra_salgada
-            elif linha == "PALITINHOS": trabalha = ja_compra_palitinho
-            elif linha == "PAPINHAS DE FRUTAS": trabalha = ja_compra_fruta
+            # Define se o cliente já trabalha a linha
+            if linha == "PAPINHAS SALGADAS":
+                trabalha_a_linha = ja_compra_salgada
+            elif linha == "PALITINHOS":
+                trabalha_a_linha = ja_compra_palitinho
+            elif linha == "PAPINHAS DE FRUTAS":
+                trabalha_a_linha = ja_compra_fruta
             else:
                 ids_dna = catalogo_dna.get(linha, [])
-                trabal
+                trabalha_a_linha = any(any(id_dna in n for id_dna in ids_dna) for n in vendas_nomes)
+
+            # Valida cada SKU dentro da linha
+            for nome_exibicao, keywords in skus_dict.items():
+                ja_tem_sku = any(all(limpar(k) in n for k in keywords) for n in vendas_nomes)
+
+                if not ja_tem_sku:
+                    item = {"Linha": linha, "Produto": nome_exibicao}
+                    if trabalha_a_linha:
+                        gap_mix.append(item)
+                    else:
+                        cross_sell.append(item)
+
+        # --- PASSO 4: EXIBIÇÃO NO DASHBOARD ---
+        st.subheader("📦 Análise Geral de Mix e Produtos")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("#### 🚨 Gap de Mix")
+            if gap_mix:
+                st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ Mix completo nas categorias atuais!")
+        with c2:
+            st.markdown("#### 📦 Cross-sell")
+            if cross_sell:
+                st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
+            else:
+                st.info("💡 Já compra todas as linhas!")
                 
 # ==========================================
 
