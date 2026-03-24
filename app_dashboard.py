@@ -512,28 +512,23 @@ if b_tel:
         df_filtrado = df_filtrado[df_filtrado["TEL_LIMPO"].str.contains(t_l, na=False)]
 
 # ==========================================
-# 2. FILTROS DE SEGMENTAÇÃO (RANKING FIX)
+# 2. FILTROS DE SEGMENTAÇÃO (COMPLETO + FATURAMENTO REAL)
 # ==========================================
 
 # --- PASSO 0: LIMPEZA E CÁLCULO DE FATURAMENTO REAL ---
 
-# 1. Função para deixar o CNPJ apenas com números (remove pontos, barras e traços)
 def limpar_cnpj(cnpj):
     return "".join(filter(str.isdigit, str(cnpj)))
 
-# 2. Limpamos os CNPJs nas DUAS bases para o cruzamento funcionar 100%
+# Garantimos que a base de vendas e a de filtros usem CNPJs apenas numéricos para o cruzamento
 df_vendas_limpo = df_vendas.copy()
 df_vendas_limpo[COL_CNPJ] = df_vendas_limpo[COL_CNPJ].apply(limpar_cnpj)
-
 df_filtrado[COL_CNPJ + "_LIMPO"] = df_filtrado[COL_CNPJ].apply(limpar_cnpj)
 
-# 3. Agora sim, somamos as vendas pelo CNPJ limpo
+# Soma das vendas reais
 faturamento_total_base = df_vendas_limpo.groupby(COL_CNPJ)["VALOR"].sum()
-
-# 4. Mapeamos para o dataframe de clientes usando a coluna limpa
 df_filtrado["FAT_REAL"] = df_filtrado[COL_CNPJ + "_LIMPO"].map(faturamento_total_base).fillna(0)
 
-# 5. Classificação em faixas
 def definir_faixa_real(v):
     if v <= 0: return "Sem Faturamento"
     elif v <= 5000: return "Até R$ 5k"
@@ -543,29 +538,48 @@ def definir_faixa_real(v):
 
 df_filtrado["FAIXA_REAL"] = df_filtrado["FAT_REAL"].apply(definir_faixa_real)
 
-# --- AGORA OS FILTROS DA SIDEBAR (ORDEM IMPORTANTE) ---
+# --- AGORA OS FILTROS DA SIDEBAR (ORDEM COMPLETA) ---
 
-# Filtro de Mês
+# 1. Filtro de Mês
 m_lista = sorted(df_filtrado["MES_REF"].dropna().unique().tolist(), key=lambda x: pd.to_datetime(x, format='%m/%Y'), reverse=True)
 mes_sel = st.sidebar.multiselect("Mês da Última Compra", m_lista, key="f_mes")
 st.session_state["filtro_mes"] = mes_sel 
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
 
-# Filtros de Vendedor e Localização
+# 2. Filtro de Vendedor
 v_lista = sorted(df_filtrado[COL_VENDEDOR].dropna().unique().tolist())
 vendedor_sel = st.sidebar.multiselect("Vendedor", v_lista, key="f_vend")
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
 
+# 3. Filtro de Estado (UF)
 u_lista = sorted(df_filtrado[COL_UF].dropna().unique().tolist())
 uf_sel = st.sidebar.multiselect("Estado (UF)", u_lista, key="f_uf")
 if uf_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(uf_sel)]
 
-# FILTRO DE FATURAMENTO (A OPÇÃO "REAL" AGORA DEVE APARECER)
+# 4. Filtro de Cidade
+c_lista = sorted(df_filtrado[COL_CIDADE].dropna().unique().tolist())
+cidade_sel = st.sidebar.multiselect("Cidade", c_lista, key="f_cid")
+if cidade_sel:
+    df_filtrado = df_filtrado[df_filtrado[COL_CIDADE].isin(cidade_sel)]
+
+# 5. Filtro de Bairro
+b_lista = sorted(df_filtrado[COL_BAIRRO].dropna().unique().tolist())
+bairro_sel = st.sidebar.multiselect("Bairro", b_lista, key="f_bair")
+if bairro_sel:
+    df_filtrado = df_filtrado[df_filtrado[COL_BAIRRO].isin(bairro_sel)]
+
+# 6. Filtro de Segmento
+if COL_SEGMENTO in df_filtrado.columns:
+    s_lista = sorted(df_filtrado[COL_SEGMENTO].dropna().unique().tolist())
+    seg_sel = st.sidebar.multiselect("Segmento", s_lista, key="f_seg")
+    if seg_sel:
+        df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
+
+# 7. Filtro de Faixa de Faturamento
 ordem_f = ["Sem Faturamento", "Até R$ 5k", "R$ 5k - 20k", "R$ 20k - 50k", "Acima de R$ 50k"]
-# Buscamos as opções baseadas no que sobrou no df_filtrado
 opcoes_f = [f for f in ordem_f if f in df_filtrado["FAIXA_REAL"].unique()]
 
 fat_sel = st.sidebar.multiselect("Faixa de Faturamento (Real)", options=opcoes_f, key="f_fat_v_final")
