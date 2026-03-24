@@ -997,7 +997,7 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - CATÁLOGO COMPLETO + FIX PALITINHOS
+# 🚀 INTELIGÊNCIA DE MERCADO (GAP & CROSS-SELL) - VERSÃO FINAL RIGOROSA
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
@@ -1012,19 +1012,18 @@ if len(df_filtrado) == 1:
             p = str(row.get('DESC PRODUTO', '')).upper().strip()
             l_original = str(row.get('LINHA', '')).upper().strip()
             
-            # CORREÇÃO PALITINHOS: Só entra na linha se a palavra estiver no nome
-            if "PALITINHO" in p: return "PALITINHOS"
             if any(x in p for x in ["180G", "LENTILHA", "CASEIRINHO", "RISOTINHO"]): return "LA CHEF"
             if "IOGURTE" in p or "YOGU" in p: return "YOGUZINHO"
             if "SOPINHA" in p or "SOPINHA" in l_original: return "SOPINHAS"
             if "120G" in p or any(x in l_original for x in ["CARNE", "SALGADA"]) or "FRANGO" in p: return "PAPINHAS SALGADAS"
+            if "PALITINHO" in p or "PALITINHO" in l_original: return "PALITINHOS"
             if "FRUTA" in l_original or "ORG" in l_original: return "PAPINHAS DE FRUTAS"
-            if "CEREAL" in p or "AVEIA" in p or "MULTI" in p: return "CEREAIS"
+            if "CERAL" in l_original or "AVEIA" in l_original: return "CEREAIS"
             return l_original
 
         vendas_cliente_atual["LINHA"] = vendas_cliente_atual.apply(categorizar_definitivo, axis=1)
 
-        # --- PASSO 2: MAPEAMENTO DO CATÁLOGO COMPLETO ---
+        # --- PASSO 2: MAPEAMENTO DO CATÁLOGO (ESTRUTURA DE DADOS) ---
         catalogo_papapa = {
             "LA CHEF": {
                 "Lentilha Carne Legumes 180g": ["LENTILHA"],
@@ -1054,16 +1053,16 @@ if len(df_filtrado) == 1:
                 "Papinha Org Morango Maçã 100g": ["MORANGO", "MACA"]
             },
             "BISCOTTI": {
-                "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJ"],
-                "Biscotti Maçã e Canela 60g": ["BISCOTTI", "MAC", "CANEL"],
-                "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
-                "Biscotti Goiaba 60g": ["BISCOTTI", "GOIAB"],
-                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJ"] 
+                "Biscotti Laranja e Cenoura 60g": ["LARANJ"],
+                "Biscotti Maçã e Canela 60g": ["MAC", "CANEL"],
+                "Biscotti Banana e Cacau 60g": ["CACAU"],
+                "Biscotti Goiaba 60g": ["GOIAB"],
+                "Biscotti Maracujá e Camomila 60g": ["MARACUJ"] 
             },
             "PALITINHOS": {
-                "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
-                "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
+                "Palitinho Org. Beterraba 20g": ["PALIT", "BETERRABA"],
+                "Palitinho Org. Cenoura 20g": ["PALIT", "CENOURA"],
+                "Palitinho Org. Tomate/Manjericão 20g": ["PALIT", "TOMATE"]
             },
             "DENTIÇÃO": {
                 "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
@@ -1081,11 +1080,12 @@ if len(df_filtrado) == 1:
             }
         }
 
-        # --- PASSO 3: LÓGICA DE COMPARAÇÃO ---
+        # --- PASSO 3: LÓGICA DE COMPARAÇÃO MELHORADA ---
         import unicodedata
         def limpar_texto(t):
             return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
 
+        # Massa de dados do cliente para busca
         vendas_nomes_cliente = [limpar_texto(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
         linhas_compradas_cliente = set(vendas_cliente_atual["LINHA"].apply(limpar_texto).unique())
         
@@ -1096,7 +1096,8 @@ if len(df_filtrado) == 1:
             linha_upper = limpar_texto(linha_oficial)
             
             for nome_bonito, keywords in produtos.items():
-                # Validação Rigorosa: keywords agora usam 'PALITINHO' completo
+                # Validação Rigorosa: Verifica se as keywords aparecem em ALGUM produto vendido
+                # Para Palitinhos, as keywords incluem 'PALIT', garantindo que não pegue Papinhas de Cenoura.
                 ja_comprou = any(all(limpar_texto(kw) in nome_venda for kw in keywords) for nome_venda in vendas_nomes_cliente)
                 
                 if not ja_comprou:
@@ -1105,15 +1106,21 @@ if len(df_filtrado) == 1:
                     else:
                         cross_sell.append({"Linha": linha_oficial, "Produto": nome_bonito})
 
-        # --- PASSO 4: EXIBIÇÃO ---
+        # --- PASSO 4: EXIBIÇÃO NO DASHBOARD ---
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("#### 🚨 Gap de Mix")
-            if gap_mix: st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
-            else: st.success("✅ Mix completo nas categorias atuais!")
+            if gap_mix:
+                st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ Mix completo nas categorias que o cliente já trabalha!")
         with c2:
             st.markdown("#### 📦 Cross-sell")
-            if cross_sell: st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
+            if cross_sell:
+                # Agora exibe TODOS os SKUs individualmente conforme solicitado
+                st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
+            else:
+                st.info("💡 Cliente já compra todas as linhas da Papapá!")
                 
 # ==========================================
 
