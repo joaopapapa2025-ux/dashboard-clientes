@@ -997,7 +997,7 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - AJUSTE FINO (PALITINHOS OK | PAPINHAS SALGADAS FIX)
+# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO INTEGRAL (CATÁLOGO COMPLETO)
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
@@ -1012,21 +1012,22 @@ if len(df_filtrado) == 1:
         vendas_nomes = [limpar(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
 
         # --- PASSO 1: IDENTIFICADORES DE LINHA (DNA) ---
-        # Refinado para não confundir Salgada com Fruta ou Palitinho
+        # Definimos aqui quem o cliente REALMENTE já compra
+        ja_compra_salgada = any(("120G" in n or "SALGADA" in n) and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"]) for n in vendas_nomes)
+        ja_compra_palitinho = any("PALITINHO" in n for n in vendas_nomes)
+        ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
+        
         catalogo_dna = {
             "LA CHEF": ["180G", "LENTILHA", "RISOTINHO", "CASEIRINHO"],
             "CEREAIS": ["CEREAL", "AVEIA", "MULTICEREAIS"],
-            "PALITINHOS": ["PALITINHO"], 
             "SOPINHAS": ["SOPINHA", "240G"],
             "YOGUZINHO": ["YOGU", "IOGURTE"],
             "BISCOTTI": ["BISCOTTI"],
-            "PAPINHAS SALGADAS": ["120G", "SALGADA", "CARNE", "FRANGO"], # Precisa de contexto salgado
-            "PAPINHAS DE FRUTAS": ["FRUTA", "ORG", "100G"],
             "DENTIÇÃO": ["DENTICAO"],
             "MACARRÃO": ["MACARRAO", "ELBOW", "FUSILLI"]
         }
 
-        # --- PASSO 2: CATÁLOGO COMPLETO (EXIBIÇÃO) ---
+        # --- PASSO 2: SEU CATÁLOGO COMPLETO (MANTIDO 100%) ---
         catalogo_papapa = {
             "LA CHEF": {
                 "Lentilha Carne Legumes 180g": ["LENTILHA"],
@@ -1059,7 +1060,8 @@ if len(df_filtrado) == 1:
                 "Biscotti Laranja e Cenoura 60g": ["BISCOTTI", "LARANJ"],
                 "Biscotti Maçã e Canela 60g": ["BISCOTTI", "MAC", "CANEL"],
                 "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
-                "Biscotti Goiaba 60g": ["BISCOTTI", "GOIAB"]
+                "Biscotti Goiaba 60g": ["BISCOTTI", "GOIAB"],
+                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJ"] 
             },
             "PALITINHOS": {
                 "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
@@ -1077,7 +1079,8 @@ if len(df_filtrado) == 1:
             "CEREAIS": {
                 "Cereal Multicereais 170g": ["CEREAL", "MULTI", "170G"],
                 "Cereal Multicereais 500g": ["CEREAL", "MULTI", "500G"],
-                "Cereal Aveia Morango e Beterraba 170g": ["AVEIA", "MORANGO"]
+                "Cereal Aveia Morango e Beterraba 170g": ["AVEIA", "MORANGO"],
+                "Cereal Aveia Banana e Ameixa 170g": ["AVEIA", "BANANA"]
             }
         }
 
@@ -1086,31 +1089,15 @@ if len(df_filtrado) == 1:
 
         # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
         for linha, skus_dict in catalogo_papapa.items():
-            ids_dna = catalogo_dna.get(linha, [])
-            
-            # Validação de Linha: O cliente trabalha a CATEGORIA?
-            # Se for Papinha Salgada, exige que tenha o DNA específico dela
-            ja_trabalha_a_linha = any(any(id_dna in nome_v for id_dna in ids_dna) for nome_v in vendas_nomes)
+            # Seleção de quem o cliente trabalha
+            if linha == "PAPINHAS SALGADAS": trabalha = ja_compra_salgada
+            elif linha == "PALITINHOS": trabalha = ja_compra_palitinho
+            elif linha == "PAPINHAS DE FRUTAS": trabalha = ja_compra_fruta
+            else:
+                ids_dna = catalogo_dna.get(linha, [])
+                trabalha = any(any(id_dna in n for id_dna in ids_dna) for n in vendas_nomes)
 
             for nome_exibicao, keywords in skus_dict.items():
-                # Validação de SKU: Ele já comprou este produto EXATO?
-                ja_tem_sku = any(all(limpar(k) in n for k in keywords) for n in vendas_nomes)
-
-                if not ja_tem_sku:
-                    if ja_trabalha_a_linha:
-                        gap_mix.append({"Linha": linha, "Produto": nome_exibicao})
-                    else:
-                        cross_sell.append({"Linha": linha, "Produto": nome_exibicao})
-
-        # --- PASSO 4: EXIBIÇÃO ---
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("#### 🚨 Gap de Mix")
-            if gap_mix: st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
-            else: st.success("✅ Mix completo nas categorias atuais!")
-        with c2:
-            st.markdown("#### 📦 Cross-sell")
-            if cross_sell: st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
                 
 # ==========================================
 
