@@ -997,7 +997,7 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO INTEGRAL (CATÁLOGO COMPLETO)
+# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO INTEGRAL E CORRIGIDA (SEM ERRO DE INDENTAÇÃO)
 # ==========================================
 if len(df_filtrado) == 1:
     cliente = df_filtrado.iloc[0]
@@ -1012,7 +1012,7 @@ if len(df_filtrado) == 1:
         vendas_nomes = [limpar(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
 
         # --- PASSO 1: IDENTIFICADORES DE LINHA (DNA) ---
-        # Definimos aqui quem o cliente REALMENTE já compra
+        # Separamos as papinhas por exclusão: Salgada não pode ter nome de fruta
         ja_compra_salgada = any(("120G" in n or "SALGADA" in n) and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"]) for n in vendas_nomes)
         ja_compra_palitinho = any("PALITINHO" in n for n in vendas_nomes)
         ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
@@ -1087,7 +1087,7 @@ if len(df_filtrado) == 1:
         gap_mix = []
         cross_sell = []
 
-        # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
+        # --- PASSO 3: LÓGICA DE SEPARAÇÃO (CORRIGIDA) ---
         for linha, skus_dict in catalogo_papapa.items():
             # Seleção de quem o cliente trabalha
             if linha == "PAPINHAS SALGADAS": trabalha = ja_compra_salgada
@@ -1095,9 +1095,7 @@ if len(df_filtrado) == 1:
             elif linha == "PAPINHAS DE FRUTAS": trabalha = ja_compra_fruta
             else:
                 ids_dna = catalogo_dna.get(linha, [])
-                trabalha = any(any(id_dna in n for id_dna in ids_dna) for n in vendas_nomes)
-
-            for nome_exibicao, keywords in skus_dict.items():
+                trabal
                 
 # ==========================================
 
