@@ -535,36 +535,28 @@ if COL_SEGMENTO in df_filtrado.columns:
     if seg_sel:
         df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
-# 1. Calculamos o faturamento real somando o histórico de vendas (df_vendas)
-# Isso ignora o "R$ 0.00" da planilha e pega o valor real das NFs
-faturamento_real = df_vendas.groupby(COL_CNPJ)["VALOR"].sum()
+# 1. Calculamos o faturamento real somando o histórico (df_vendas)
+faturamento_real_base = df_vendas.groupby(COL_CNPJ)["VALOR"].sum()
 
-# 2. Mapeamos esse faturamento para o nosso dataframe de clientes (df_filtrado)
-df_filtrado["FAT_REAL_CALCULADO"] = df_filtrado[COL_CNPJ].map(faturamento_real).fillna(0)
+# 2. Mapeamos para o dataframe de clientes
+df_filtrado["FAT_REAL_CALCULADO"] = df_filtrado[COL_CNPJ].map(faturamento_real_base).fillna(0)
 
-# 3. Lógica das faixas baseada no faturamento real encontrado
+# 3. Função de faixas
 def atribuir_faixa_real(n):
     if n <= 0: return "Sem Faturamento"
-    elif n <= 5000: return "0 a 5k"
-    elif n <= 20000: return "5k a 20k"
-    elif n <= 50000: return "20k a 50k"
-    elif n <= 100000: return "50k a 100k"
-    else: return "Acima de 100k"
+    elif n <= 5000: return "Até R$ 5k"
+    elif n <= 20000: return "R$ 5k - 20k"
+    elif n <= 50000: return "R$ 20k - 50k"
+    else: return "Acima de R$ 50k"
 
 df_filtrado["FAIXA_AUX"] = df_filtrado["FAT_REAL_CALCULADO"].apply(atribuir_faixa_real)
 
-# 4. Lista de opções (Agora as faixas de 20k, 50k, 100k vão aparecer!)
-ordem_desejada = ["Sem Faturamento", "0 a 5k", "5k a 20k", "20k a 50k", "50k a 100k", "Acima de 100k"]
-opcoes_disponiveis = [f for f in ordem_desejada if f in df_filtrado["FAIXA_AUX"].unique()]
+# 4. Widget de Seleção
+ordem_f = ["Sem Faturamento", "Até R$ 5k", "R$ 5k - 20k", "R$ 20k - 50k", "Acima de R$ 50k"]
+opcoes_f = [f for f in ordem_f if f in df_filtrado["FAIXA_AUX"].unique()]
 
-# 5. Widget de Seleção
-fat_sel = st.sidebar.multiselect(
-    "Faixa de Faturamento (Real)", 
-    options=opcoes_disponiveis, 
-    key="f_fat_real_v_final"
-)
+fat_sel = st.sidebar.multiselect("Faixa de Faturamento (Real)", options=opcoes_f, key="f_fat_v_final")
 
-# 6. Aplicar o filtro no dataframe que alimenta o dashboard
 if fat_sel:
     df_filtrado = df_filtrado[df_filtrado["FAIXA_AUX"].isin(fat_sel)]
 
