@@ -536,29 +536,30 @@ if COL_SEGMENTO in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado[COL_SEGMENTO].isin(seg_sel)]
 
 # 1. Calculamos o faturamento real somando o histórico (df_vendas)
-faturamento_real_base = df_vendas.groupby(COL_CNPJ)["VALOR"].sum()
+# Certifique-se que o nome da coluna de CNPJ em df_vendas é o mesmo de df_filtrado
+faturamento_calculado = df_vendas.groupby(COL_CNPJ)["VALOR"].sum()
 
-# 2. Mapeamos para o dataframe de clientes
-df_filtrado["FAT_REAL_CALCULADO"] = df_filtrado[COL_CNPJ].map(faturamento_real_base).fillna(0)
+# 2. Criamos a coluna de faturamento real no dataframe de visualização
+df_filtrado["FAT_REAL"] = df_filtrado[COL_CNPJ].map(faturamento_calculado).fillna(0)
 
-# 3. Função de faixas
-def atribuir_faixa_real(n):
-    if n <= 0: return "Sem Faturamento"
-    elif n <= 5000: return "Até R$ 5k"
-    elif n <= 20000: return "R$ 5k - 20k"
-    elif n <= 50000: return "R$ 20k - 50k"
+# 3. Definimos as faixas baseadas no valor que calculamos agora
+def definir_faixa_real(v):
+    if v <= 0: return "Sem Faturamento"
+    elif v <= 5000: return "Até R$ 5k"
+    elif v <= 20000: return "R$ 5k - 20k"
+    elif v <= 50000: return "R$ 20k - 50k"
     else: return "Acima de R$ 50k"
 
-df_filtrado["FAIXA_AUX"] = df_filtrado["FAT_REAL_CALCULADO"].apply(atribuir_faixa_real)
+df_filtrado["FAIXA_REAL"] = df_filtrado["FAT_REAL"].apply(definir_faixa_real)
 
-# 4. Widget de Seleção
+# 4. Criamos o filtro com as faixas que realmente têm clientes
 ordem_f = ["Sem Faturamento", "Até R$ 5k", "R$ 5k - 20k", "R$ 20k - 50k", "Acima de R$ 50k"]
-opcoes_f = [f for f in ordem_f if f in df_filtrado["FAIXA_AUX"].unique()]
+opcoes_f = [f for f in ordem_f if f in df_filtrado["FAIXA_REAL"].unique()]
 
 fat_sel = st.sidebar.multiselect("Faixa de Faturamento (Real)", options=opcoes_f, key="f_fat_v_final")
 
 if fat_sel:
-    df_filtrado = df_filtrado[df_filtrado["FAIXA_AUX"].isin(fat_sel)]
+    df_filtrado = df_filtrado[df_filtrado["FAIXA_REAL"].isin(fat_sel)]
 
 # ==========================================
 # 3. RAZÃO SOCIAL (CASCATA ATIVA)
