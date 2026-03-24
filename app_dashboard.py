@@ -215,15 +215,29 @@ def calcular_status_farol(row):
         return "🔴 REATIVAÇÃO", "#E74C3C"
 
 # =========================
-# TRATAR FATURAMENTO
+# TRATAR FATURAMENTO (CORRIGIDO)
 # =========================
 
-# Converte para numérico garantindo que a nova coluna de 9 meses seja lida corretamente
-df[COL_T_U_9_M] = pd.to_numeric(df[COL_T_U_9_M], errors="coerce").fillna(0)
+# 1. Função para limpar o formato de moeda brasileiro (R$ 1.234,56 -> 1234.56)
+def limpar_moeda_br(valor):
+    if pd.isna(valor) or valor == "": return 0
+    if isinstance(valor, (int, float)): return valor
+    # Remove R$, espaços e pontos de milhar, e troca a vírgula decimal por ponto
+    limpo = str(valor).replace("R$", "").replace(" ", "").replace(".", "").replace(",", ".")
+    try:
+        return float(limpo)
+    except:
+        return 0
 
-bins = [0, 5000, 20000, 50000, 100000, float("inf")]
+# 2. Aplica a limpeza antes da conversão
+df[COL_T_U_9_M] = df[COL_T_U_9_M].apply(limpar_moeda_br)
+
+# 3. Define os bins (começando de -1 para incluir o 0 na primeira faixa se desejar, 
+# ou tratando o 0 separadamente)
+bins = [-float("inf"), 0, 5000, 20000, 50000, 100000, float("inf")]
 
 labels = [
+    "Sem Faturamento",
     "Até 5 mil",
     "5 mil – 20 mil",
     "20 mil – 50 mil",
@@ -231,9 +245,8 @@ labels = [
     "Acima de 100 mil"
 ]
 
-# Cria a faixa baseada no faturamento acumulado da nova planilha
+# 4. Cria a faixa corrigida
 df["FAIXA_FATURAMENTO"] = pd.cut(df[COL_T_U_9_M], bins=bins, labels=labels)
-
 # =========================
 # COMENTÁRIOS POR CLIENTE
 # =========================
