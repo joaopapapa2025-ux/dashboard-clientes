@@ -215,26 +215,29 @@ def calcular_status_farol(row):
         return "🔴 REATIVAÇÃO", "#E74C3C"
 
 # =========================
-# TRATAR FATURAMENTO (CORRIGIDO)
+# TRATAR FATURAMENTO (RESOLVIDO)
 # =========================
 
-# 1. Função para limpar o formato de moeda brasileiro (R$ 1.234,56 -> 1234.56)
-def limpar_moeda_br(valor):
-    if pd.isna(valor) or valor == "": return 0
-    if isinstance(valor, (int, float)): return valor
-    # Remove R$, espaços e pontos de milhar, e troca a vírgula decimal por ponto
-    limpo = str(valor).replace("R$", "").replace(" ", "").replace(".", "").replace(",", ".")
+# 1. Função para limpar R$, pontos de milhar e converter vírgula em ponto
+def limpar_valor_comercial(valor):
+    if pd.isna(valor) or valor == "": 
+        return 0.0
+    if isinstance(valor, (int, float)): 
+        return float(valor)
+    
+    # Remove R$, espaços, pontos de milhar e troca a vírgula decimal por ponto
+    texto_limpo = str(valor).replace("R$", "").replace(" ", "").replace(".", "").replace(",", ".").strip()
     try:
-        return float(limpo)
+        return float(texto_limpo)
     except:
-        return 0
+        return 0.0
 
-# 2. Aplica a limpeza antes da conversão
-df[COL_T_U_9_M] = df[COL_T_U_9_M].apply(limpar_moeda_br)
+# 2. Aplicamos a limpeza pesada na coluna original
+df[COL_T_U_9_M] = df[COL_T_U_9_M].apply(limpar_valor_comercial)
 
-# 3. Define os bins (começando de -1 para incluir o 0 na primeira faixa se desejar, 
-# ou tratando o 0 separadamente)
-bins = [-float("inf"), 0, 5000, 20000, 50000, 100000, float("inf")]
+# 3. Definimos os limites (bins) garantindo que o zero seja uma categoria separada
+# O primeiro bin começa abaixo de zero para capturar o 0 exato
+bins = [-float("inf"), 0.01, 5000, 20000, 50000, 100000, float("inf")]
 
 labels = [
     "Sem Faturamento",
@@ -245,8 +248,9 @@ labels = [
     "Acima de 100 mil"
 ]
 
-# 4. Cria a faixa corrigida
-df["FAIXA_FATURAMENTO"] = pd.cut(df[COL_T_U_9_M], bins=bins, labels=labels)
+# 4. Criamos a coluna de faixas oficial
+df["FAIXA_FATURAMENTO"] = pd.cut(df[COL_T_U_9_M], bins=bins, labels=labels, include_lowest=True)
+
 # =========================
 # COMENTÁRIOS POR CLIENTE
 # =========================
