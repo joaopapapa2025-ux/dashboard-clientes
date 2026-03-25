@@ -14,25 +14,10 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
-st.set_page_config(
-    page_title="Dashboard Papapá", 
-    layout="wide", 
-    initial_sidebar_state="expanded"
-)
-
 with st.sidebar:
-    # Tenta carregar a logo azul que você subiu
     try:
         st.image("Papapa-azul.png", width=180)
-    except:
-        st.write("💙 **Papapá Inside Sales**")
-        
-    st.markdown("---")
-    st.info("💡 Use o menu para navegar:")
 
-    # 🔗 LINKS DE NAVEGAÇÃO (Forma infalível)
-    st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
-    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
 
 import json
 import os
