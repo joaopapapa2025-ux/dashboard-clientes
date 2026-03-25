@@ -20,10 +20,30 @@ st.set_page_config(
     initial_sidebar_state="expanded" # Isso força a barra lateral a aparecer aberta
 )
 with st.sidebar:
-    st.image("https://papapa.com.br/wp-content/uploads/2021/04/logo-papapa.png", width=150) # Logo opcional
-    if st.button("📖 Abrir Playbook de Vendas"):
-        st.switch_page("pages/Playbook_de_Vendas.py")
-        st.sidebar.markdown(f'<a href="/Playbook_de_Vendas" target="_blank">📖 Abrir Playbook em nova aba</a>', unsafe_allow_html=True)
+    st.image("https://papapa.com.br/wp-content/uploads/2021/04/logo-papapa.png", width=150)
+    st.markdown("---")
+    
+    # Criando um link que parece um botão para abrir em NOVA ABA
+    st.markdown(
+        """
+        <a href="/Playbook_de_Vendas" target="_blank" style="text-decoration: none;">
+            <div style="
+                background-color: #ff4b4b;
+                color: white;
+                padding: 10px;
+                text-align: center;
+                border-radius: 5px;
+                font-weight: bold;
+                border: none;
+                display: block;
+                width: 100%;
+            ">
+                📖 Abrir Playbook de Vendas
+            </div>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
 
 import json
 import os
