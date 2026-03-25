@@ -31,16 +31,17 @@ with st.sidebar:
     st.markdown("---")
     st.info("💡 **Acesse as ferramentas:**")
 
-    # Botão para a Home (esta página)
-    if st.button("🏠 Dashboard Principal", use_container_width=True):
-        st.switch_page("app_dashboard.py")
-
-    # Botão para o Playbook (a página que você criou)
-    if st.button("📖 Playbook de Vendas", use_container_width=True):
+    # Botão para o Playbook (Tentando sem o prefixo da pasta)
+    if st.button("📖 Abrir Playbook de Vendas", use_container_width=True):
         try:
+            # O Streamlit costuma preferir apenas o nome do arquivo
             st.switch_page("pages/Playbook_de_Vendas.py")
         except:
-            st.error("Página não encontrada. Verifique o nome do arquivo na pasta pages.")
+            try:
+                # Segunda tentativa caso o de cima falhe
+                st.switch_page("Playbook_de_Vendas.py")
+            except:
+                st.error("Página não encontrada. Vá no GitHub e confirme se o arquivo está DENTRO da pasta 'pages' e se o nome é 'Playbook_de_Vendas.py'")
 
 import json
 import os
