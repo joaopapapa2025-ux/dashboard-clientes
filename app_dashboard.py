@@ -130,7 +130,7 @@ if not st.session_state.acesso_liberado:
 
 # --- AJUSTE MANUAL DIÁRIO (MARÇO 2026) ---
 meta_marco = 872507.00
-faturado_marco = 900000.00
+faturado_marco = 577852.00
 digitado_marco = 61020.00
 
 # --- CÁLCULOS AUTOMÁTICOS ---
@@ -182,13 +182,6 @@ with col6:
     # Mostra os dias úteis e o valor diário necessário no delta
     st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú.", 
               delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
-
-# --- Alerta de Urgência ---
-if ritmo_final > 60000 and falta_r_cifra > 0:
-    st.error(f"⚠️ **ALERTA DE RITMO:** Precisamos de R$ {ritmo_final:,.0f} por dia útil para bater a meta!".replace(",", "."))
-elif falta_r_cifra <= 0:
-    st.balloons()
-    st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
 st.markdown("---")
 
