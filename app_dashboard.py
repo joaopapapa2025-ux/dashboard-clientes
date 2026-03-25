@@ -19,6 +19,11 @@ st.set_page_config(
     layout="wide", 
     initial_sidebar_state="expanded" # Isso força a barra lateral a aparecer aberta
 )
+with st.sidebar:
+    st.image("https://papapa.com.br/wp-content/uploads/2021/04/logo-papapa.png", width=150) # Logo opcional
+    st.markdown("### 📖 Menu de Apoio")
+    if st.button("Abrir Playbook de Vendas"):
+        st.switch_page("pages/Playbook_de_Vendas.py")
 
 import json
 import os
