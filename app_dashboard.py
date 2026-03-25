@@ -14,25 +14,33 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
-# 1. ESSA CONFIGURAÇÃO PRECISA SER A PRIMEIRA COISA DE STREAMLIT
+# 1. Configuração inicial
 st.set_page_config(
     page_title="Dashboard Papapá", 
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-# 2. BARRA LATERAL (LOGO E AVISO)
+# 2. Barra Lateral e Botões Manuais
 with st.sidebar:
-    # Tenta carregar a logo que você subiu
     try:
         st.image("Papapa-azul.png", width=180)
     except:
-        st.write("💙 **Papapá Inside Sales**")
-        
+        st.subheader("💙 Papapá")
+    
     st.markdown("---")
-    st.info("💡 Navegue pelas páginas abaixo:")
-    # NÃO COLOQUE NENHUM st.page_link AQUI POR ENQUANTO. 
-    # O Streamlit vai criar os botões sozinho se a pasta "pages" estiver certa.
+    st.info("💡 **Acesse as ferramentas:**")
+
+    # Botão para a Home (esta página)
+    if st.button("🏠 Dashboard Principal", use_container_width=True):
+        st.switch_page("app_dashboard.py")
+
+    # Botão para o Playbook (a página que você criou)
+    if st.button("📖 Playbook de Vendas", use_container_width=True):
+        try:
+            st.switch_page("pages/Playbook_de_Vendas.py")
+        except:
+            st.error("Página não encontrada. Verifique o nome do arquivo na pasta pages.")
 
 import json
 import os
