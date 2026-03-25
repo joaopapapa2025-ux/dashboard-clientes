@@ -183,6 +183,13 @@ with col6:
     st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú.", 
               delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
 
+# --- Alerta de Urgência ---
+if ritmo_final > 60000 and falta_r_cifra > 0:
+    st.error(f"⚠️ **ALERTA DE RITMO:** Precisamos de R$ {ritmo_final:,.0f} por dia útil para bater a meta!".replace(",", "."))
+elif falta_r_cifra <= 0:
+    st.balloons()
+    st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
+
 st.markdown("---")
 
 # =========================
