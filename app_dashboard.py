@@ -19,7 +19,12 @@ with st.sidebar:
         st.image("Papapa-azul.png", width=180)
     except:
         st.subheader("💙 Papapá")
-
+    
+    st.markdown("---")
+    
+    # BOTÃO QUE FUNCIONA
+    if st.button("📖 Abrir Playbook de Vendas", use_container_width=True):
+        st.switch_page("pages/Playbook_de_Vendas.py")
 
 import json
 import os
