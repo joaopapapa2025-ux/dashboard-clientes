@@ -15,9 +15,7 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 with st.sidebar:
-    try:
         st.image("Papapa-azul.png", width=180)
-
 
 import json
 import os
