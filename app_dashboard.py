@@ -30,7 +30,7 @@ with st.sidebar:
     st.markdown("---")
     st.info("💡 Use o menu para navegar:")
 
-    # 🔗 LINKS DE NAVEGAÇÃO (Caminhos exatos para evitar KeyError)
+    # 🔗 LINKS DE NAVEGAÇÃO (Forma infalível)
     st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
     st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
 
