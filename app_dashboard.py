@@ -21,10 +21,29 @@ with st.sidebar:
         st.subheader("💙 Papapá")
     
     st.markdown("---")
-    
-    # BOTÃO QUE FUNCIONA
-    if st.button("📖 Abrir Playbook de Vendas", use_container_width=True):
-        st.switch_page("pages/Playbook_de_Vendas.py")
+    st.info("💡 Ferramentas de Apoio:")
+
+    # --- BOTÃO PARA NOVA ABA (HTML) ---
+    # O href="/Playbook_de_Vendas" funciona porque o Streamlit usa o nome do arquivo na URL
+    st.markdown(
+        """
+        <a href="/Playbook_de_Vendas" target="_blank" style="text-decoration: none;">
+            <div style="
+                background-color: #ff4b4b;
+                color: white;
+                padding: 10px;
+                text-align: center;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;
+                border: none;
+            ">
+                📖 Abrir Playbook de Vendas
+            </div>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
 
 import json
 import os
