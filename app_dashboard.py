@@ -1,3 +1,4 @@
+st.set_page_config(page_title="Dashboard Papapá", layout="wide")
 import streamlit as st
 import pandas as pd
 import plotly.express as px
