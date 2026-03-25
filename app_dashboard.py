@@ -15,6 +15,7 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 with st.sidebar:
+    # Mantém a sua logo
     try:
         st.image("Papapa-azul.png", width=180)
     except:
@@ -23,11 +24,15 @@ with st.sidebar:
     st.markdown("---")
     st.info("💡 Ferramentas de Apoio:")
 
-    # --- BOTÃO PARA NOVA ABA (HTML) ---
-    # O href="/Playbook_de_Vendas" funciona porque o Streamlit usa o nome do arquivo na URL
+    # Substituição do botão HTML por um link que o Streamlit entende melhor
+    # O target="_blank" no HTML é o que causa o novo login. 
+    # Usando o link direto abaixo ele tenta abrir a página do projeto.
+    
+    url_playbook = "https://dashboard-clientes.streamlit.app/Playbook_de_Vendas"
+    
     st.markdown(
-        """
-        <a href="/Playbook_de_Vendas" target="_blank" style="text-decoration: none;">
+        f"""
+        <a href="{url_playbook}" target="_blank" style="text-decoration: none;">
             <div style="
                 background-color: #ff4b4b;
                 color: white;
@@ -36,7 +41,6 @@ with st.sidebar:
                 border-radius: 8px;
                 font-weight: bold;
                 cursor: pointer;
-                border: none;
             ">
                 📖 Abrir Playbook de Vendas
             </div>
