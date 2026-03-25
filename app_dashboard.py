@@ -14,10 +14,14 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
+st.set_page_config(
+    page_title="Dashboard Papapá", 
+    layout="wide", 
+    initial_sidebar_state="expanded" # Isso força a barra lateral a aparecer aberta
+)
+
 import json
 import os
-
-st.set_page_config(page_title="Dashboard Papapá", layout="wide")
 
 def categorizar_produto_papapa(row):
     # 1. Pega os dados brutos e limpa
