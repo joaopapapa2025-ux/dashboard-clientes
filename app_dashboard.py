@@ -21,9 +21,9 @@ st.set_page_config(
 )
 with st.sidebar:
     st.image("https://papapa.com.br/wp-content/uploads/2021/04/logo-papapa.png", width=150) # Logo opcional
-    st.markdown("### 📖 Menu de Apoio")
-    if st.button("Abrir Playbook de Vendas"):
+    if st.button("📖 Abrir Playbook de Vendas"):
         st.switch_page("pages/Playbook_de_Vendas.py")
+        st.sidebar.markdown(f'<a href="/Playbook_de_Vendas" target="_blank">📖 Abrir Playbook em nova aba</a>', unsafe_allow_html=True)
 
 import json
 import os
