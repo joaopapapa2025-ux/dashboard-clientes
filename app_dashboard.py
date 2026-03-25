@@ -24,49 +24,6 @@ with st.sidebar:
 import json
 import os
 
-# --- AJUSTE MANUAL DIÁRIO ---
-meta_marco = 872507.00
-faturado_marco = 577852.00
-digitado_marco = 61020.00
-total_atual = faturado_marco + digitado_marco
-
-# --- CÁLCULO DE DIAS ÚTEIS ---
-def get_working_days(start_date, end_date):
-    # Considera de segunda a sexta
-    days = pd.date_range(start_date, end_date, freq='B')
-    return len(days)
-
-hoje = datetime.now()
-# Ajuste para o último dia de março/2026 conforme seu contexto
-ultimo_dia_mes = datetime(2026, 3, 31)
-
-dias_uteis_restantes = get_working_days(hoje, ultimo_dia_mes)
-progresso_meta = (total_atual / meta_marco) * 100
-
-# --- EXIBIÇÃO NO TOPO DO DASHBOARD ---
-st.subheader("📊 Resumo de Performance - Março")
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric("Meta do Mês", f"R$ {meta_marco:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-
-with col2:
-    # Mostra o faturado + digitado como o real atual
-    st.metric("Total Realizado (Fat + Dig)", f"R$ {total_atual:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."), 
-              delta=f"{progresso_meta:.1f}% da Meta")
-
-with col3:
-    st.metric("Dias Úteis Restantes", f"{dias_uteis_restantes} dias")
-
-with col4:
-    falta_faturar = meta_marco - total_atual
-    # Valor médio que o time precisa faturar por dia útil restante
-    ritmo_necessario = falta_faturar / dias_uteis_restantes if dias_uteis_restantes > 0 else 0
-    st.metric("Ritmo Diário Necessário", f"R$ {ritmo_necessario:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-
-st.markdown("---")
-
 def categorizar_produto_papapa(row):
     # 1. Pega os dados brutos e limpa
     l = str(row.get('LINHA', '')).upper().strip()
@@ -166,6 +123,50 @@ if not st.session_state.acesso_liberado:
             st.error("Código incorreto")
 
     st.stop()
+
+# --- AJUSTE MANUAL DIÁRIO (MARÇO 2026) ---
+meta_marco = 872507.00
+faturado_marco = 577852.00
+digitado_marco = 61020.00
+total_geral = faturado_marco + digitado_marco
+
+# --- CÁLCULO DE DIAS ÚTEIS ---
+hoje = datetime.now()
+ultimo_dia_mes = datetime(2026, 3, 31)
+# Calcula dias úteis de hoje até o fim do mês (freq='B' é Business Days)
+dias_uteis_restantes = len(pd.date_range(hoje, ultimo_dia_mes, freq='B'))
+
+# --- EXIBIÇÃO NO TOPO ---
+st.subheader("📊 Performance Diária - Inside Sales")
+
+# Criamos 5 colunas para separar bem as informações
+col1, col2, col3, col4, col5 = st.columns(5)
+
+with col1:
+    st.metric("🎯 Meta Março", f"R$ {meta_marco:,.0f}".replace(",", "."))
+
+with col2:
+    st.metric("✅ Faturado", f"R$ {faturado_marco:,.0f}".replace(",", "."), 
+              help="Valor que já foi faturado oficialmente")
+
+with col3:
+    st.metric("📝 Digitado", f"R$ {digitado_marco:,.0f}".replace(",", "."),
+              help="Pedidos que entraram no sistema mas aguardam faturamento")
+
+with col4:
+    # Mostra a soma total e a porcentagem da meta
+    percentual = (total_geral / meta_marco) * 100
+    st.metric("🔥 Total (Fat+Dig)", f"R$ {total_geral:,.0f}".replace(",", "."), 
+              delta=f"{percentual:.1f}% da Meta")
+
+with col5:
+    # Ritmo necessário considerando apenas dias úteis
+    falta = meta_marco - total_geral
+    ritmo = falta / dias_uteis_restantes if dias_uteis_restantes > 0 else 0
+    st.metric("📅 Dias Úteis / Ritmo", f"{dias_uteis_restantes} dias", 
+              delta=f"R$ {ritmo:,.0f}/dia", delta_color="inverse")
+
+st.markdown("---")
 
 # =========================
 # ARQUIVO BASE
