@@ -129,42 +129,47 @@ meta_marco = 872507.00
 faturado_marco = 577852.00
 digitado_marco = 61020.00
 total_geral = faturado_marco + digitado_marco
+falta_r_cifra = meta_marco - total_geral
 
 # --- CÁLCULO DE DIAS ÚTEIS ---
 hoje = datetime.now()
 ultimo_dia_mes = datetime(2026, 3, 31)
-# Calcula dias úteis de hoje até o fim do mês (freq='B' é Business Days)
+# B = Business Days (Segunda a Sexta)
 dias_uteis_restantes = len(pd.date_range(hoje, ultimo_dia_mes, freq='B'))
 
 # --- EXIBIÇÃO NO TOPO ---
 st.subheader("📊 Performance Diária - Inside Sales")
 
-# Criamos 5 colunas para separar bem as informações
-col1, col2, col3, col4, col5 = st.columns(5)
+# Criamos 6 colunas para caber tudo bem organizado
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
-    st.metric("🎯 Meta Março", f"R$ {meta_marco:,.0f}".replace(",", "."))
+    st.metric("🎯 Meta", f"R$ {meta_marco:,.0f}".replace(",", "."))
 
 with col2:
-    st.metric("✅ Faturado", f"R$ {faturado_marco:,.0f}".replace(",", "."), 
-              help="Valor que já foi faturado oficialmente")
+    st.metric("✅ Faturado", f"R$ {faturado_marco:,.0f}".replace(",", "."))
 
 with col3:
-    st.metric("📝 Digitado", f"R$ {digitado_marco:,.0f}".replace(",", "."),
-              help="Pedidos que entraram no sistema mas aguardam faturamento")
+    st.metric("📝 Digitado", f"R$ {digitado_marco:,.0f}".replace(",", "."))
 
 with col4:
-    # Mostra a soma total e a porcentagem da meta
-    percentual = (total_geral / meta_marco) * 100
-    st.metric("🔥 Total (Fat+Dig)", f"R$ {total_geral:,.0f}".replace(",", "."), 
-              delta=f"{percentual:.1f}% da Meta")
+    # Valor absoluto que falta para chegar no 100%
+    # Se for negativo, significa que a meta foi batida
+    label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
+    st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), 
+              delta_color="inverse")
 
 with col5:
-    # Ritmo necessário considerando apenas dias úteis
-    falta = meta_marco - total_geral
-    ritmo = falta / dias_uteis_restantes if dias_uteis_restantes > 0 else 0
-    st.metric("📅 Dias Úteis / Ritmo", f"{dias_uteis_restantes} dias", 
-              delta=f"R$ {ritmo:,.0f}/dia", delta_color="inverse")
+    percentual = (total_geral / meta_marco) * 100
+    st.metric("🔥 Total (Fat+Dig)", f"R$ {total_geral:,.0f}".replace(",", "."), 
+              delta=f"{percentual:.1f}%")
+
+with col6:
+    ritmo = falta_r_cifra / dias_uteis_restantes if dias_uteis_restantes > 0 else 0
+    # Se a meta já foi batida, o ritmo fica zerado
+    ritmo_final = max(ritmo, 0)
+    st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú.", 
+              delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
 
 st.markdown("---")
 
