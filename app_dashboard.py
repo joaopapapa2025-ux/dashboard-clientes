@@ -124,23 +124,38 @@ if not st.session_state.acesso_liberado:
 
     st.stop()
 
+# ==========================================
+# 📝 AJUSTE MANUAL DIÁRIO (MARÇO 2026)
+# ==========================================
+
 # --- AJUSTE MANUAL DIÁRIO (MARÇO 2026) ---
 meta_marco = 872507.00
 faturado_marco = 577852.00
 digitado_marco = 61020.00
+
+# --- CÁLCULOS AUTOMÁTICOS ---
 total_geral = faturado_marco + digitado_marco
 falta_r_cifra = meta_marco - total_geral
 
-# --- CÁLCULO DE DIAS ÚTEIS ---
+# Cálculo de Dias Úteis (Segunda a Sexta)
 hoje = datetime.now()
 ultimo_dia_mes = datetime(2026, 3, 31)
-# B = Business Days (Segunda a Sexta)
 dias_uteis_restantes = len(pd.date_range(hoje, ultimo_dia_mes, freq='B'))
+
+# Ritmo Diário necessário
+ritmo = falta_r_cifra / dias_uteis_restantes if dias_uteis_restantes > 0 else 0
+ritmo_final = max(ritmo, 0)
+
+# --- EXIBIÇÃO DE ALERTAS ---
+if falta_r_cifra <= 0:
+    st.balloons()
+    st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
+elif ritmo_final > 60000:
+    st.error(f"⚠️ **ALERTA DE RITMO:** Precisamos de R$ {ritmo_final:,.0f} por dia útil!".replace(",", "."))
 
 # --- EXIBIÇÃO NO TOPO ---
 st.subheader("📊 Performance Diária - Inside Sales")
 
-# Criamos 6 colunas para caber tudo bem organizado
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
@@ -153,8 +168,7 @@ with col3:
     st.metric("📝 Digitado", f"R$ {digitado_marco:,.0f}".replace(",", "."))
 
 with col4:
-    # Valor absoluto que falta para chegar no 100%
-    # Se for negativo, significa que a meta foi batida
+    # Mostra quanto falta ou quanto sobrou
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
     st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), 
               delta_color="inverse")
@@ -165,9 +179,7 @@ with col5:
               delta=f"{percentual:.1f}%")
 
 with col6:
-    ritmo = falta_r_cifra / dias_uteis_restantes if dias_uteis_restantes > 0 else 0
-    # Se a meta já foi batida, o ritmo fica zerado
-    ritmo_final = max(ritmo, 0)
+    # Mostra os dias úteis e o valor diário necessário no delta
     st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú.", 
               delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
 
