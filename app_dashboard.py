@@ -17,6 +17,8 @@ from reportlab.lib import colors
 import json
 import os
 
+st.set_page_config(page_title="Dashboard Papapá", layout="wide")
+
 def categorizar_produto_papapa(row):
     # 1. Pega os dados brutos e limpa
     l = str(row.get('LINHA', '')).upper().strip()
