@@ -154,7 +154,7 @@ elif ritmo_final > 60000:
     st.error(f"⚠️ **ALERTA DE RITMO:** Precisamos de R$ {ritmo_final:,.0f} por dia útil!".replace(",", "."))
 
 # --- EXIBIÇÃO NO TOPO ---
-st.subheader("📊 Performance Diária - Inside Sales")
+st.subheader("📊 Performance Diária - Inside Sales (D -1)")
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
