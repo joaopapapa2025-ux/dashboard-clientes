@@ -20,18 +20,6 @@ with st.sidebar:
         st.image("Papapa-azul.png", width=180)
     except:
         st.subheader("💙 Papapá")
-    
-    st.markdown("---")
-    st.info("💡 **Menu de Navegação**")
-
-    # BOTÕES NATIVOS (Não dão erro de acesso/permissão)
-    st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
-    
-    # O segredo: use exatamente o nome que está na pasta pages, sem o .py
-    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
-
-    st.markdown("---")
-    st.caption("Unidade: Inside Sales Papapá")
 
 import json
 import os
