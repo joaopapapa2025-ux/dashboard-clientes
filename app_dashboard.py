@@ -20,16 +20,13 @@ st.set_page_config(
     initial_sidebar_state="expanded" # Isso força a barra lateral a aparecer aberta
 )
 with st.sidebar:
-    # 1. Carrega a logo que você subiu
-    try:
-        st.image("Papapa-azul.png", width=180)
-    except:
-        st.write("💙 **Papapá Inside Sales**")
-    
+    st.image("Papapa-azul.png", width=180)
     st.markdown("---")
-    
-    # 2. Instrução para o time (Opcional)
-    st.info("💡 Use o menu abaixo para navegar entre o Dashboard e o Playbook.")
+    st.info("💡 Use o menu abaixo para navegar:")
+
+    # 🚀 ESTE COMANDO FORÇA O MENU A APARECER
+    st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
+    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
 
 import json
 import os
