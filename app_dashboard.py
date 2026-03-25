@@ -14,34 +14,12 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
-# 1. Configuração inicial
-st.set_page_config(
-    page_title="Dashboard Papapá", 
-    layout="wide", 
-    initial_sidebar_state="expanded"
-)
-
-# 2. Barra Lateral e Botões Manuais
 with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
     except:
         st.subheader("💙 Papapá")
-    
-    st.markdown("---")
-    st.info("💡 **Acesse as ferramentas:**")
 
-    # Botão para o Playbook (Tentando sem o prefixo da pasta)
-    if st.button("📖 Abrir Playbook de Vendas", use_container_width=True):
-        try:
-            # O Streamlit costuma preferir apenas o nome do arquivo
-            st.switch_page("pages/Playbook_de_Vendas.py")
-        except:
-            try:
-                # Segunda tentativa caso o de cima falhe
-                st.switch_page("Playbook_de_Vendas.py")
-            except:
-                st.error("Página não encontrada. Vá no GitHub e confirme se o arquivo está DENTRO da pasta 'pages' e se o nome é 'Playbook_de_Vendas.py'")
 
 import json
 import os
