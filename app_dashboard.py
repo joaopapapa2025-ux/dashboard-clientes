@@ -15,39 +15,23 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 with st.sidebar:
-    # Mantém a sua logo
+    # Mantém a sua logo azul
     try:
         st.image("Papapa-azul.png", width=180)
     except:
         st.subheader("💙 Papapá")
     
     st.markdown("---")
-    st.info("💡 Ferramentas de Apoio:")
+    st.info("💡 **Menu de Navegação**")
 
-    # Substituição do botão HTML por um link que o Streamlit entende melhor
-    # O target="_blank" no HTML é o que causa o novo login. 
-    # Usando o link direto abaixo ele tenta abrir a página do projeto.
+    # BOTÕES NATIVOS (Não dão erro de acesso/permissão)
+    st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
     
-    url_playbook = "https://dashboard-clientes.streamlit.app/Playbook_de_Vendas"
-    
-    st.markdown(
-        f"""
-        <a href="{url_playbook}" target="_blank" style="text-decoration: none;">
-            <div style="
-                background-color: #ff4b4b;
-                color: white;
-                padding: 10px;
-                text-align: center;
-                border-radius: 8px;
-                font-weight: bold;
-                cursor: pointer;
-            ">
-                📖 Abrir Playbook de Vendas
-            </div>
-        </a>
-        """,
-        unsafe_allow_html=True
-    )
+    # O segredo: use exatamente o nome que está na pasta pages, sem o .py
+    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
+
+    st.markdown("---")
+    st.caption("Unidade: Inside Sales Papapá")
 
 import json
 import os
