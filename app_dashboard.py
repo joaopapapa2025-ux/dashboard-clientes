@@ -25,7 +25,7 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    st.page_link("app_dashboard.py", label="📊 Dashboard Principal")
+    st.markdown("### 📊 Dashboard Principal")
     st.page_link("pages/playbook.py", label="📘 Playbook de Vendas")
     
 import json
