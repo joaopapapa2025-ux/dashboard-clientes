@@ -25,10 +25,10 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Página atual
+    # Botão do Dashboard (página atual)
     st.button("📊 Dashboard Principal", disabled=True, use_container_width=True)
 
-    # 🔥 BOTÃO QUE FUNCIONA (vai pra outra página)
+    # 🔥 Botão que leva para o Playbook (nova página)
     st.markdown(
         """
         <a href="/playbook" target="_self">
