@@ -31,7 +31,7 @@ with st.sidebar:
     # 🔥 Link real para outra página
     st.link_button(
         "📘 Playbook de Vendas",
-        url="/Playbook_de_Vendas"
+        url="/playbook"
     )
     
 import json
