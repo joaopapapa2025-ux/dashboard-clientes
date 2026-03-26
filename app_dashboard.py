@@ -48,22 +48,15 @@ with st.sidebar:
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
-    # BOTÃO PLAYBOOK (HTML/Markdown)
-    # O link "./Playbook_de_Vendas" funciona se o arquivo for "Playbook_de_Vendas.py"
+    # BOTÃO PLAYBOOK COM TOKEN DE ACESSO
+    # Passamos o parâmetro 'auth=ok' na URL para o Playbook saber que o login foi feito
     st.markdown("""
-        <a href="./Playbook_de_Vendas" target="_self" style="text-decoration: none;">
+        <a href="./Playbook_de_Vendas?auth=ok" target="_self" style="text-decoration: none;">
             <div style="
-                background-color: #ffffff;
-                color: #31333F;
-                padding: 10px;
-                text-align: center;
-                border-radius: 8px;
-                border: 1px solid #d3d3d3;
-                margin-top: 5px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: 0.3s;
-            " onmouseover="this.style.backgroundColor='#f0f2f6'" onmouseout="this.style.backgroundColor='#ffffff'">
+                background-color: #ffffff; color: #31333F; padding: 10px;
+                text-align: center; border-radius: 8px; border: 1px solid #d3d3d3;
+                margin-top: 5px; font-weight: 500; cursor: pointer;
+            ">
                 📖 Playbook de Vendas
             </div>
         </a>
