@@ -21,6 +21,8 @@ with st.sidebar:
     except:
         st.subheader("💙 Papapá")
 
+    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Abrir Playbook de Vendas", icon="📚")
+
 import json
 import os
 
