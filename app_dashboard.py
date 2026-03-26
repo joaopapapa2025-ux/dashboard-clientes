@@ -21,22 +21,6 @@ with st.sidebar:
     except:
         st.subheader("💙 Papapá")
 
-    st.markdown("---")
-    st.info("📍 **Menu de Navegação**")
-
-    # 2. NAVEGAÇÃO SEM ERRO DE CHAVE (KEYERROR)
-    # Tentaremos referenciar a página principal pelo nome do arquivo limpo
-    try:
-        st.page_link("app_dashboard.py", label="Dashboard Principal", icon="🏠")
-    except:
-        # Se o Streamlit reclamar, ele assume que você já está na Home
-        st.write("🏠 **Dashboard Principal** (Página Atual)")
-    
-    st.page_link("pages/Playbook_de_Vendas.py", label="Playbook de Vendas", icon="📚")
-
-    st.markdown("---")
-    st.caption("Coordenação: João - Inside Sales")
-
 import json
 import os
 
