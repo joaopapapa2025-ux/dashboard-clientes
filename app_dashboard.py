@@ -1310,55 +1310,64 @@ if len(df_filtrado) == 1:
         st.markdown("---")
         st.markdown("#### 🏆 Performance por Linha de Produto")
         
-        # --- A SOLUÇÃO DEFINITIVA ---
-        # Pegamos as categorias que REALMENTE existem no histórico desse cliente
-        # Isso evita erro de digitação ou nomes diferentes (ex: SOPAS vs SOPINHAS)
-        linhas_disponiveis = sorted(vendas_cliente_atual["LINHA"].unique().tolist())
+        # 1. LISTA COMPLETA E OFICIAL (Recolocando todas que você pediu)
+        linhas_papapa = [
+            "PAPINHAS DE FRUTAS", 
+            "PAPINHAS SALGADAS", 
+            "DENTIÇÃO", 
+            "BISCOTTI", 
+            "LA CHEF", 
+            "CEREAIS", 
+            "SOPINHAS", 
+            "YOGUZINHO", 
+            "MACARRÃO",
+            "PALITINHOS"
+        ]
         
-        if linhas_disponiveis:
-            linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=linhas_disponiveis)
+        linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=linhas_papapa)
 
-            # Filtro direto pelo que foi selecionado no banco
-            df_detalhe_linha = vendas_cliente_atual[
-                vendas_cliente_atual["LINHA"] == linha_selecionada
-            ].copy()
+        # 2. FILTRO BLINDADO
+        # Ele limpa os espaços do banco e da sua seleção para garantir que se encontrem
+        df_detalhe_linha = vendas_cliente_atual[
+            vendas_cliente_atual["LINHA"].astype(str).str.strip().str.upper() == linha_selecionada.strip().upper()
+        ].copy()
+        
+        if not df_detalhe_linha.empty:
+            col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_detalhe_linha.columns else "VALOR"
+            col_qtd = "QTD" if "QTD" in df_detalhe_linha.columns else "QTDE"
+
+            performance_sku = df_detalhe_linha.groupby("DESC PRODUTO")[col_valor].sum().sort_values(ascending=False).reset_index()
             
-            if not df_detalhe_linha.empty:
-                col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_detalhe_linha.columns else "VALOR"
-                col_qtd = "QTD" if "QTD" in df_detalhe_linha.columns else "QTDE"
-
-                performance_sku = df_detalhe_linha.groupby("DESC PRODUTO")[col_valor].sum().sort_values(ascending=False).reset_index()
+            c_top, c_vol = st.columns(2)
+            
+            with c_top:
+                st.success(f"⭐ **Mais Comprados: {linha_selecionada}**")
+                df_top_sku = performance_sku.head(5).copy()
+                df_top_sku[col_valor] = df_top_sku[col_valor].apply(lambda x: f"R$ {x:,.2f}")
+                st.table(df_top_sku.rename(columns={"DESC PRODUTO": "Produto", col_valor: "Total Gasto"}))
                 
-                c_top, c_vol = st.columns(2)
+            with c_vol:
+                total_linha = df_detalhe_linha[col_valor].sum()
+                qtd_total = df_detalhe_linha[col_qtd].sum()
                 
-                with c_top:
-                    st.success(f"⭐ **Mais Comprados: {linha_selecionada}**")
-                    df_top_sku = performance_sku.head(5).copy()
-                    df_top_sku[col_valor] = df_top_sku[col_valor].apply(lambda x: f"R$ {x:,.2f}")
-                    st.table(df_top_sku.rename(columns={"DESC PRODUTO": "Produto", col_valor: "Total Gasto"}))
-                    
-                with c_vol:
-                    total_linha = df_detalhe_linha[col_valor].sum()
-                    qtd_total = df_detalhe_linha[col_qtd].sum()
-                    
-                    st.metric(label=f"Investimento Total em {linha_selecionada}", value=f"R$ {total_linha:,.2f}")
-                    st.metric(label="Volume Total (Unidades)", value=int(qtd_total))
-                    
-                    fig_bar_linha = px.bar(
-                        performance_sku.head(5), 
-                        x=col_valor, 
-                        y="DESC PRODUTO", 
-                        orientation='h',
-                        title="Top 5 SKUs por Valor",
-                        labels={col_valor: "Valor (R$)", "DESC PRODUTO": "Produto"},
-                        color_discrete_sequence=["#00CC96"]
-                    )
-                    fig_bar_linha.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
-                    st.plotly_chart(fig_bar_linha, use_container_width=True)
-            else:
-                st.warning(f"Sem dados para a linha selecionada.")
+                st.metric(label=f"Investimento Total em {linha_selecionada}", value=f"R$ {total_linha:,.2f}")
+                st.metric(label="Volume Total (Unidades)", value=int(qtd_total))
+                
+                fig_bar_linha = px.bar(
+                    performance_sku.head(5), 
+                    x=col_valor, 
+                    y="DESC PRODUTO", 
+                    orientation='h',
+                    title=f"Top 5 SKUs: {linha_selecionada}",
+                    labels={col_valor: "Valor (R$)", "DESC PRODUTO": "Produto"},
+                    color_discrete_sequence=["#00CC96"]
+                )
+                fig_bar_linha.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig_bar_linha, use_container_width=True)
         else:
-            st.error("⚠️ Nenhuma linha de produto encontrada no histórico deste cliente.")
+            # Se não houver venda dessa linha específica para o cliente
+            st.warning(f"O cliente ainda não realizou compras na linha '{linha_selecionada}'.")
+            st.info(f"💡 Dica: Verifique os itens de {linha_selecionada} no **Cross-sell** acima!")
     else:
         st.info("ℹ️ Selecione um cliente com histórico de vendas para ver a performance por linha.")
         
