@@ -156,8 +156,8 @@ if not st.session_state.acesso_liberado:
 
 # --- AJUSTE MANUAL DIÁRIO (MARÇO 2026) ---
 meta_marco = 872507.00
-faturado_marco = 577852.00
-digitado_marco = 61020.00
+faturado_marco = 612560.00
+digitado_marco = 82839.00
 
 # --- CÁLCULOS AUTOMÁTICOS ---
 total_geral = faturado_marco + digitado_marco
