@@ -124,31 +124,24 @@ st.set_page_config(
 # =========================
 # PROTEÇÃO DE ACESSO
 # =========================
-
 CODIGO_ACESSO = "amamosnossosclientes"
 
+# Inicializa o estado de acesso se não existir
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
+# Se não estiver liberado, mostra a tela de login
 if not st.session_state.acesso_liberado:
-
-    st.title("Acesso restrito")
-
-    codigo_digitado = st.text_input(
-        "Digite o código de acesso",
-        type="password"
-    )
-
+    st.title("🔒 Acesso Restrito - Papapá")
+    codigo_digitado = st.text_input("Digite o código de acesso", type="password")
+    
     if st.button("Entrar"):
-
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
             st.rerun()
-
         else:
             st.error("Código incorreto")
-
-    st.stop()
+    st.stop() # Trava o resto da página
 
 # ==========================================
 # 📝 AJUSTE MANUAL DIÁRIO (MARÇO 2026)
