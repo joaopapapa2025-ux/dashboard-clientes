@@ -26,10 +26,10 @@ with st.sidebar:
     st.info("📍 **Menu de Navegação**")
 
     if st.button("📊 Dashboard Principal", use_container_width=True):
-    st.switch_page("app_dashboard.py")
+        st.switch_page("app_dashboard.py")
 
     if st.button("📘 Playbook de Vendas", use_container_width=True):
-    st.switch_page("pages/Playbook_de_Vendas.py")
+        st.switch_page("pages/Playbook_de_Vendas.py")
     
 import json
 import os
