@@ -29,7 +29,7 @@ with st.sidebar:
         st.switch_page("app_dashboard.py")
 
     if st.button("📘 Playbook de Vendas", use_container_width=True):
-        st.switch_page("Playbook_de_Vendas.py")
+        st.switch_page("playbook.py")
     
 import json
 import os
