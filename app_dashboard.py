@@ -22,10 +22,13 @@ CODIGO_ACESSO = "amamosnossosclientes"
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
+# Criamos uma variável para saber qual "página" mostrar
+if "pagina_atual" not in st.session_state:
+    st.session_state.pagina_atual = "dashboard"
+
 if not st.session_state.acesso_liberado:
-    st.title("🔒 Acesso restrito")
+    st.title("🔒 Acesso restrito - Papapá")
     codigo_digitado = st.text_input("Digite o código de acesso", type="password")
-    
     if st.button("Entrar"):
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
@@ -34,7 +37,7 @@ if not st.session_state.acesso_liberado:
             st.error("Código incorreto")
     st.stop()
 
-# 2. SIDEBAR (MENU À PROVA DE ERROS)
+# 2. SIDEBAR (A mágica acontece aqui)
 with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
@@ -44,24 +47,33 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Botão Home - Recarrega a página atual
+    # Em vez de mudar de arquivo, mudamos o estado da variável
     if st.button("📊 Dashboard Principal", use_container_width=True):
+        st.session_state.pagina_atual = "dashboard"
         st.rerun()
 
-    # BOTÃO PLAYBOOK (Simples e direto)
-    st.markdown("""
-        <a href="./Playbook_de_Vendas" target="_self" style="text-decoration: none;">
-            <div style="
-                background-color: #ffffff; color: #31333F; padding: 10px;
-                text-align: center; border-radius: 8px; border: 1px solid #d3d3d3;
-                margin-top: 5px; font-weight: 500; cursor: pointer;
-            ">
-                📖 Playbook de Vendas
-            </div>
-        </a>
-    """, unsafe_allow_html=True)
+    if st.button("📖 Playbook de Vendas", use_container_width=True):
+        st.session_state.pagina_atual = "playbook"
+        st.rerun()
 
     st.markdown("---")
+
+# 3. LÓGICA DE EXIBIÇÃO
+if st.session_state.pagina_atual == "dashboard":
+    st.title("📊 Performance de Vendas")
+    # AQUI VOCÊ MANTÉM O RESTO DO SEU CÓDIGO DO DASHBOARD (Gráficos, tabelas, etc.)
+    st.write("Seu dashboard de clientes aqui...")
+
+elif st.session_state.pagina_atual == "playbook":
+    st.title("📖 Playbook de Vendas")
+    
+    # Exemplo da tabela de comissão que você planejou (90% a 110%)
+    st.subheader("🎯 Metas e Premiações - Março/2026")
+    st.table({
+        "Atingimento": ["< 90%", "90% a 99%", "100% a 109%", ">= 110%"],
+        "Bônus": ["R$ 0,00", "R$ 500,00", "R$ 1.200,00", "R$ 2.000,00 + Aceleração"]
+    })
+    st.info("💡 Lembre-se: Campanhas de aceleração são cumulativas!")
     
 import json
 import os
