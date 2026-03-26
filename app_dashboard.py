@@ -15,6 +15,8 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 import streamlit as st
+import os
+st.write("PAGES:", os.listdir("pages"))
 
 with st.sidebar:
     try:
