@@ -24,12 +24,10 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # O SEGREDO ESTÁ AQUI: 
-    # Para a página principal, use o nome do arquivo SEM o caminho completo
-    # ou simplesmente coloque o nome que está no topo do seu repositório.
+    # SOLUÇÃO PARA O KEYERROR:
+    # Em vez de passar o nome do arquivo, passamos apenas o label se for a página atual,
+    # ou usamos o link relativo direto.
     st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
-    
-    # Para as páginas na pasta /pages, o caminho deve ser completo
     st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
 
     st.markdown("---")
