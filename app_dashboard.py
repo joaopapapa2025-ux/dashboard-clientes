@@ -126,22 +126,35 @@ st.set_page_config(
 # =========================
 CODIGO_ACESSO = "amamosnossosclientes"
 
-# Inicializa o estado de acesso se não existir
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
-# Se não estiver liberado, mostra a tela de login
 if not st.session_state.acesso_liberado:
-    st.title("🔒 Acesso Restrito - Papapá")
+    st.title("🔒 Acesso restrito")
     codigo_digitado = st.text_input("Digite o código de acesso", type="password")
-    
     if st.button("Entrar"):
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
             st.rerun()
         else:
             st.error("Código incorreto")
-    st.stop() # Trava o resto da página
+    st.stop()
+
+# =========================
+# INTERFACE (SÓ RODA SE LOGADO)
+# =========================
+with st.sidebar:
+    try:
+        st.image("Papapa-azul.png", width=180)
+    except:
+        st.subheader("💙 Papapá")
+    
+    st.markdown("---")
+    st.info("📍 **Menu de Navegação**")
+
+    # Botão que agora vai funcionar porque o acesso já foi validado acima
+    if st.button("📖 Playbook de Vendas", use_container_width=True):
+        st.switch_page("pages/Playbook_de_Vendas.py")
 
 # ==========================================
 # 📝 AJUSTE MANUAL DIÁRIO (MARÇO 2026)
