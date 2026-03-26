@@ -22,9 +22,6 @@ with st.sidebar:
     except:
         st.subheader("💙 Papapá")
 
-    st.markdown("---")
-    st.info("📍 **Menu de Navegação**")
-
     # BOTÃO HUB INSIDE SALES (ABRE EM NOVA ABA)
     st.markdown("""
         <a href="https://playbook-mmnvwibahw4xwru2endcx2.streamlit.app/" target="_blank" style="text-decoration: none;">
