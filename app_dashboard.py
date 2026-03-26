@@ -29,7 +29,7 @@ with st.sidebar:
         
     # Botão Playbook - Tente este caminho exato
     if st.button("📖 Playbook de Vendas", use_container_width=True):
-    st.switch_page("pages/Playbook_de_Vendas.py")
+        st.switch_page("pages/Playbook_de_Vendas.py")
 
     st.markdown("---")
     
