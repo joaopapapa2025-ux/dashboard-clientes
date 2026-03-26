@@ -47,33 +47,34 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Em vez de mudar de arquivo, mudamos o estado da variável
+    # Botão do Dashboard: Continua igual, pois você quer que ele atualize na mesma aba
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.session_state.pagina_atual = "dashboard"
         st.rerun()
 
-    if st.button("📖 Playbook de Vendas", use_container_width=True):
-        st.session_state.pagina_atual = "playbook"
-        st.rerun()
+    # LINK DO PLAYBOOK: Formatado para abrir em NOVA ABA (target="_blank")
+    # O href "./Playbook_de_Vendas" funciona se o seu arquivo for pages/Playbook_de_Vendas.py
+    st.markdown("""
+        <a href="./Playbook_de_Vendas" target="_blank" style="text-decoration: none;">
+            <div style="
+                background-color: #ffffff;
+                color: #31333F;
+                padding: 10px;
+                text-align: center;
+                border-radius: 8px;
+                border: 1px solid #d3d3d3;
+                margin-top: 5px;
+                font-weight: 500;
+                cursor: pointer;
+            ">
+                📖 Playbook em Nova Aba
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
 
-# 3. LÓGICA DE EXIBIÇÃO
-if st.session_state.pagina_atual == "dashboard":
-    st.title("📊 Performance de Vendas")
-    # AQUI VOCÊ MANTÉM O RESTO DO SEU CÓDIGO DO DASHBOARD (Gráficos, tabelas, etc.)
-    st.write("Seu dashboard de clientes aqui...")
 
-elif st.session_state.pagina_atual == "playbook":
-    st.title("📖 Playbook de Vendas")
-    
-    # Exemplo da tabela de comissão que você planejou (90% a 110%)
-    st.subheader("🎯 Metas e Premiações - Março/2026")
-    st.table({
-        "Atingimento": ["< 90%", "90% a 99%", "100% a 109%", ">= 110%"],
-        "Bônus": ["R$ 0,00", "R$ 500,00", "R$ 1.200,00", "R$ 2.000,00 + Aceleração"]
-    })
-    st.info("💡 Lembre-se: Campanhas de aceleração são cumulativas!")
     
 import json
 import os
