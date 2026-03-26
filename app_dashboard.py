@@ -29,6 +29,31 @@ with st.sidebar:
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.session_state.pagina_atual = "dashboard"
         st.rerun()
+
+    # BOTÃO HUB INSIDE SALES (ABRE EM NOVA ABA)
+    st.markdown("""
+        <a href="https://playbook-mmnvwibahw4xwru2endcx2.streamlit.app/" target="_blank" style="text-decoration: none;">
+            <div style="
+                background-color: #ffffff;
+                color: #31333F;
+                padding: 10px;
+                text-align: center;
+                border-radius: 8px;
+                border: 1px solid #d1d1d1;
+                margin-top: 10px;
+                font-weight: 500;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+            ">
+                🚀 Hub Inside Sales
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
     
 import json
 import os
