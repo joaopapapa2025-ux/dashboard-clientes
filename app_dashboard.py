@@ -25,11 +25,6 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Botão do Dashboard: Recarrega a página atual
-    if st.button("📊 Dashboard Principal", use_container_width=True):
-        st.session_state.pagina_atual = "dashboard"
-        st.rerun()
-
     # BOTÃO HUB INSIDE SALES (ABRE EM NOVA ABA)
     st.markdown("""
         <a href="https://playbook-mmnvwibahw4xwru2endcx2.streamlit.app/" target="_blank" style="text-decoration: none;">
