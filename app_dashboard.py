@@ -47,13 +47,13 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Botão do Dashboard: Continua igual, pois você quer que ele atualize na mesma aba
+    # Botão do Dashboard: Recarrega a página atual
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.session_state.pagina_atual = "dashboard"
         st.rerun()
 
-    # LINK DO PLAYBOOK: Formatado para abrir em NOVA ABA (target="_blank")
-    # O href "./Playbook_de_Vendas" funciona se o seu arquivo for pages/Playbook_de_Vendas.py
+    # LINK HTML: Única forma real de abrir em NOVA ABA no Streamlit Cloud
+    # Importante: O href deve ser o nome do arquivo SEM o .py
     st.markdown("""
         <a href="./Playbook_de_Vendas" target="_blank" style="text-decoration: none;">
             <div style="
@@ -62,20 +62,18 @@ with st.sidebar:
                 padding: 10px;
                 text-align: center;
                 border-radius: 8px;
-                border: 1px solid #d3d3d3;
+                border: 1px solid #d1d1d1;
                 margin-top: 5px;
                 font-weight: 500;
                 cursor: pointer;
             ">
-                📖 Playbook em Nova Aba
+                📖 Abrir Playbook (Nova Aba)
             </div>
         </a>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
 
-
-    
 import json
 import os
 
