@@ -47,8 +47,8 @@ with st.sidebar:
     st.button("📊 Dashboard Principal", disabled=True, use_container_width=True)
 
     if st.button("📘 Playbook de Vendas", use_container_width=True):
-    st.session_state.pagina_destino = "playbook"
-    st.switch_page("playbook.py")
+        st.session_state.pagina_destino = "playbook"
+        st.switch_page("playbook.py")
     )
     
 import json
