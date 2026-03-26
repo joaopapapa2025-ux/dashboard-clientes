@@ -44,17 +44,32 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Botão para recarregar a Home
+    # Botão Home
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
-    # BOTÃO DO PLAYBOOK (Voltou!)
-    # Usando switch_page com o caminho que o Streamlit Cloud costuma aceitar
-    if st.button("📖 Playbook de Vendas", use_container_width=True):
-        try:
-            st.switch_page("pages/Playbook_de_Vendas.py")
-        except:
-            st.switch_page("Playbook_de_Vendas.py")
+    # BOTÃO PLAYBOOK (HTML/Markdown)
+    # Isso cria um botão que parece nativo, mas funciona como um link real.
+    # Evita o erro "StreamlitAPIException" completamente.
+    st.markdown("""
+        <a href="./Playbook_de_Vendas" target="_self" style="text-decoration: none;">
+            <div style="
+                background-color: #ffffff;
+                color: #31333F;
+                padding: 10px;
+                text-align: center;
+                border-radius: 8px;
+                border: 1px solid #d3d3d3;
+                margin-top: 5px;
+                font-weight: 500;
+                cursor: pointer;
+            ">
+                📖 Playbook de Vendas
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
     
 import json
 import os
