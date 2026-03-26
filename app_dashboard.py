@@ -24,39 +24,19 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # 2. Botão Dashboard (Aba Atual)
-    if st.button("📊 Dashboard Principal", use_container_width=True):
-        st.rerun() # Apenas recarrega a home
-
-    # 3. Botão Playbook (ABRIR EM NOVA ABA)
-    # Substitua 'dashboard-clientes' abaixo pela URL real do seu app se for diferente
-    url_playbook = "https://dashboard-clientes.streamlit.app/Playbook_de_Vendas"
+    # 2. NAVEGAÇÃO NATIVA (Sem erro de Login)
+    # Importante: No switch_page, usamos apenas o nome do arquivo, 
+    # pois o Streamlit já sabe que páginas extras estão na pasta /pages
     
-    st.markdown(
-        f"""
-        <a href="{url_playbook}" target="_blank" style="text-decoration: none;">
-            <div style="
-                background-color: white;
-                color: #31333F;
-                padding: 8px;
-                text-align: center;
-                border-radius: 8px;
-                border: 1px solid #d3d3d3;
-                font-weight: 400;
-                font-size: 14px;
-                cursor: pointer;
-                display: flex;
-                align_items: center;
-                justify-content: center;
-                gap: 8px;
-                margin-top: 5px;
-            ">
-                📖 Playbook de Vendas
-            </div>
-        </a>
-        """,
-        unsafe_allow_html=True
-    )
+    if st.button("📊 Dashboard Principal", use_container_width=True):
+        st.switch_page("app_dashboard.py")
+        
+    if st.button("📖 Playbook de Vendas", use_container_width=True):
+        # Tente primeiro SEM o "pages/" se ele estiver dando erro
+        try:
+            st.switch_page("pages/Playbook_de_Vendas.py")
+        except:
+            st.switch_page("Playbook_de_Vendas.py")
 
     st.markdown("---")
     
