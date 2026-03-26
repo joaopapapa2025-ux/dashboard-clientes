@@ -16,10 +16,6 @@ from reportlab.lib import colors
 
 import streamlit as st
 
-# Inicializa página
-if "pagina" not in st.session_state:
-    st.session_state.pagina = "dashboard"
-
 with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
@@ -29,25 +25,14 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    if st.button("📊 Dashboard Principal", use_container_width=True):
-        st.session_state.pagina = "dashboard"
+    # Página atual
+    st.button("📊 Dashboard Principal", disabled=True, use_container_width=True)
 
-    if st.button("📘 Playbook de Vendas", use_container_width=True):
-        st.session_state.pagina = "playbook"
-
-# 👇 CONTROLE DE PÁGINA
-if st.session_state.pagina == "dashboard":
-    st.title("📊 Dashboard Principal")
-    st.write("Seu conteúdo do dashboard aqui")
-
-elif st.session_state.pagina == "playbook":
-    st.title("📘 Playbook de Vendas")
-    st.subheader("🎯 Metas e Premiações - Março/2026")
-
-    st.table({
-        "Atingimento": ["< 90%", "90% a 99%", "100% a 109%", ">= 110%"],
-        "Bônus": ["R$ 0,00", "R$ 500,00", "R$ 1.200,00", "R$ 2.000,00 + Aceleração"]
-    })
+    # 🔥 Link real para outra página
+    st.link_button(
+        "📘 Playbook de Vendas",
+        url="/Playbook_de_Vendas"
+    )
     
 import json
 import os
