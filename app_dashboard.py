@@ -21,6 +21,19 @@ with st.sidebar:
     except:
         st.subheader("💙 Papapá")
 
+    st.markdown("---")
+    st.info("📍 **Menu de Navegação**")
+
+    # 2. Links de Navegação
+    # Para a página principal, use o nome do arquivo raiz
+    st.page_link("app_dashboard.py", label="Dashboard Principal", icon="🏠")
+    
+    # Para o playbook, agora que está na pasta certa, usamos o caminho completo
+    st.page_link("pages/Playbook_de_Vendas.py", label="Playbook de Vendas", icon="📚")
+
+    st.markdown("---")
+    st.caption("Coordenação: João - Inside Sales")
+
 import json
 import os
 
