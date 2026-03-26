@@ -46,12 +46,14 @@ with st.sidebar:
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
-    # No Streamlit Cloud, o st.page_link é o "pulo do gato"
-    # Ele reconhece o arquivo dentro da pasta /pages automaticamente
+    st.markdown("---")
+    st.info("📍 **Menu de Navegação**")
+
+    # Use o caminho relativo exato que o Streamlit Cloud espera
+    st.page_link("app_dashboard.py", label="📊 Dashboard Principal")
     
-    st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="📊")
-    
-    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📖")
+    # Verifique se o nome do arquivo abaixo está IDÊNTICO ao do GitHub
+    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas")
     
 import json
 import os
