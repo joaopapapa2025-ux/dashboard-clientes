@@ -14,6 +14,26 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 
+import streamlit as st
+
+# 1. PROTEÇÃO DE ACESSO (Deve ser a primeira coisa)
+CODIGO_ACESSO = "amamosnossosclientes"
+
+if "acesso_liberado" not in st.session_state:
+    st.session_state.acesso_liberado = False
+
+if not st.session_state.acesso_liberado:
+    st.title("Acesso restrito")
+    codigo_digitado = st.text_input("Digite o código de acesso", type="password")
+    if st.button("Entrar"):
+        if codigo_digitado == CODIGO_ACESSO:
+            st.session_state.acesso_liberado = True
+            st.rerun()
+        else:
+            st.error("Código incorreto")
+    st.stop() # Trava o código aqui se não estiver logado
+
+# 2. SIDEBAR (Só roda se o acesso_liberado for True)
 with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
@@ -23,9 +43,12 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Botão Home
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
+
+    # Este é o comando que vai levar para a outra página
+    if st.button("📖 Playbook de Vendas", use_container_width=True):
+        st.switch_page("pages/Playbook_de_Vendas.py")
     
 import json
 import os
