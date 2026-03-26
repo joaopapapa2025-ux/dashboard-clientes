@@ -16,7 +16,7 @@ from reportlab.lib import colors
 
 import streamlit as st
 
-# 1. PROTEÇÃO DE ACESSO (Deve ser a primeira coisa)
+# 1. PROTEÇÃO DE ACESSO
 CODIGO_ACESSO = "amamosnossosclientes"
 
 if "acesso_liberado" not in st.session_state:
@@ -32,9 +32,9 @@ if not st.session_state.acesso_liberado:
             st.rerun()
         else:
             st.error("Código incorreto")
-    st.stop() # Trava o código aqui se não estiver logado
+    st.stop()
 
-# 2. SIDEBAR (Só roda se o acesso_liberado for True)
+# 2. SIDEBAR (MENU ÚNICO E COMPLETO)
 with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
@@ -44,16 +44,17 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Para a Home (onde você já está), usamos o botão de Rerun:
+    # Botão para recarregar a Home
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
-    # Para o Playbook, usamos o link oficial (ajustado para evitar o KeyError):
-    try:
-        st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas")
-    except:
-        # Caso o Streamlit Cloud ainda esteja indexando a pasta:
-        st.write("⌛ Carregando menu...")
+    # BOTÃO DO PLAYBOOK (Voltou!)
+    # Usando switch_page com o caminho que o Streamlit Cloud costuma aceitar
+    if st.button("📖 Playbook de Vendas", use_container_width=True):
+        try:
+            st.switch_page("pages/Playbook_de_Vendas.py")
+        except:
+            st.switch_page("Playbook_de_Vendas.py")
     
 import json
 import os
