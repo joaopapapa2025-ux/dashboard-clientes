@@ -29,12 +29,7 @@ with st.sidebar:
         
     # Botão Playbook - Tente este caminho exato
     if st.button("📖 Playbook de Vendas", use_container_width=True):
-        # Tentativa 1: O caminho que o Streamlit Cloud costuma registrar
-        try:
-            st.switch_page("pages/Playbook_de_Vendas.py")
-        except:
-            # Tentativa 2: Apenas o nome do arquivo (Caso ele já tenha indexado a pasta)
-            st.switch_page("Playbook_de_Vendas.py")
+        st.switch_page("pages/Playbook_de_Vendas.py")
 
     st.markdown("---")
     
