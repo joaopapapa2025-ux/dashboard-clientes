@@ -24,19 +24,14 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # 2. NAVEGAÇÃO NATIVA (Sem erro de Login)
-    # Importante: No switch_page, usamos apenas o nome do arquivo, 
-    # pois o Streamlit já sabe que páginas extras estão na pasta /pages
+    # 2. BOTÕES DE NAVEGAÇÃO NATIVOS
+    # No Streamlit Cloud, o caminho DEVE começar com 'pages/' se o arquivo estiver lá.
     
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.switch_page("app_dashboard.py")
         
     if st.button("📖 Playbook de Vendas", use_container_width=True):
-        # Tente primeiro SEM o "pages/" se ele estiver dando erro
-        try:
-            st.switch_page("pages/Playbook_de_Vendas.py")
-        except:
-            st.switch_page("Playbook_de_Vendas.py")
+        st.switch_page("pages/Playbook_de_Vendas.py")
 
     st.markdown("---")
     
