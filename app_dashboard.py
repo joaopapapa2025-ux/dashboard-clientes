@@ -15,7 +15,6 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 with st.sidebar:
-    # 1. Logo Papapá
     try:
         st.image("Papapa-azul.png", width=180)
     except:
@@ -24,12 +23,11 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # 2. BOTÕES DE NAVEGAÇÃO NATIVOS
-    # No Streamlit Cloud, o caminho DEVE começar com 'pages/' se o arquivo estiver lá.
-    
+    # Botão Home
     if st.button("📊 Dashboard Principal", use_container_width=True):
-        st.switch_page("app_dashboard.py")
+        st.rerun()
         
+    # Botão Playbook - Tente este caminho exato
     if st.button("📖 Playbook de Vendas", use_container_width=True):
         st.switch_page("pages/Playbook_de_Vendas.py")
 
