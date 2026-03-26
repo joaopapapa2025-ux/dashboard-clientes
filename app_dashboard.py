@@ -46,11 +46,31 @@ with st.sidebar:
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
-    if st.button("📖 Playbook de Vendas", use_container_width=True):
-        try:
-            st.switch_page("pages/Playbook_de_Vendas.py")
-        except:
-            st.switch_page("Playbook_de_Vendas.py")
+    # BOTÃO PLAYBOOK (Link Direto - À prova de erros)
+    # O Streamlit cria a URL automaticamente baseada no nome do arquivo
+    url_playbook = "https://dashboard-clientes.streamlit.app/Playbook_de_Vendas"
+    
+    st.markdown(
+        f"""
+        <a href="{url_playbook}" target="_self" style="text-decoration: none;">
+            <div style="
+                background-color: white;
+                color: #31333F;
+                padding: 8px 16px;
+                text-align: center;
+                border-radius: 8px;
+                border: 1px solid #d3d3d3;
+                font-size: 14px;
+                font-weight: 400;
+                cursor: pointer;
+                margin-top: 5px;
+            ">
+                📖 Playbook de Vendas
+            </div>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
     
 import json
 import os
