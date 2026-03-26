@@ -136,8 +136,7 @@ if not st.session_state.acesso_liberado:
 
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
-        if senha == "SUA_SENHA_AQUI":
-            st.session_state.acesso_liberado = True
+            st.rerun()
 
         else:
             st.error("Código incorreto")
