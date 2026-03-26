@@ -16,34 +16,6 @@ from reportlab.lib import colors
 
 import streamlit as st
 
-def proteger_acesso():
-    import streamlit as st
-
-    if "acesso_liberado" not in st.session_state:
-        st.session_state.acesso_liberado = False
-
-    if not st.session_state.acesso_liberado:
-        st.title("🔐 Acesso restrito")
-
-        senha = st.text_input("Digite a senha:", type="password")
-
-        if st.button("Entrar"):
-            if senha == "SUA_SENHA_AQUI":
-                st.session_state.acesso_liberado = True
-
-                # 🔥 REDIRECIONAMENTO CORRETO
-                destino = st.session_state.get("pagina_destino", "dashboard")
-
-                if destino == "playbook":
-                    st.switch_page("playbook.py")
-                else:
-                    st.switch_page("app_dashboard.py")
-
-            else:
-                st.error("Senha incorreta")
-
-        st.stop()
-
 with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
@@ -56,9 +28,17 @@ with st.sidebar:
     # Página atual
     st.button("📊 Dashboard Principal", disabled=True, use_container_width=True)
 
-    if st.button("📘 Playbook de Vendas", use_container_width=True):
-        st.session_state.pagina_destino = "playbook"
-        st.switch_page("playbook.py")
+    # 🔥 BOTÃO QUE FUNCIONA (vai pra outra página)
+    st.markdown(
+        """
+        <a href="/playbook" target="_self">
+            <button style="width:100%;padding:10px;border-radius:8px;">
+                📘 Playbook de Vendas
+            </button>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
     
 import json
 import os
