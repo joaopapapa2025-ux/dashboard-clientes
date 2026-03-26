@@ -1321,8 +1321,12 @@ if len(df_filtrado) == 1:
         
         linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=linhas_papapa)
 
-        # Filtro de dados para a linha escolhida
-        df_detalhe_linha = vendas_cliente_atual[vendas_cliente_atual["LINHA"] == linha_selecionada]
+        # --- CORREÇÃO AQUI: Limpeza de espaços e padronização para o filtro funcionar ---
+        # Usamos .str.strip() para ignorar espaços invisíveis no banco de dados
+        df_detalhe_linha = vendas_cliente_atual[
+            vendas_cliente_atual["LINHA"].astype(str).str.strip().str.upper() == linha_selecionada.strip().upper()
+        ].copy()
+        # -------------------------------------------------------------------------------
         
         if not df_detalhe_linha.empty:
             # Agrupar performance por SKU (usando VALOR TOTAL ou VALOR dependendo da sua coluna)
