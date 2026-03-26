@@ -15,7 +15,7 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 with st.sidebar:
-    # Mantém a sua logo azul
+    # 1. Mantém a sua logo azul
     try:
         st.image("Papapa-azul.png", width=180)
     except:
@@ -24,11 +24,13 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # SOLUÇÃO PARA O KEYERROR:
-    # Em vez de passar o nome do arquivo, passamos apenas o label se for a página atual,
-    # ou usamos o link relativo direto.
-    st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
-    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
+    # 2. SOLUÇÃO DEFINITIVA: 
+    # Use o nome exato do arquivo principal. 
+    # Se der erro com "app_dashboard.py", tente usar apenas "app_dashboard.py"
+    # mas garantindo que o arquivo na raiz do seu GitHub tenha esse nome exato.
+    
+    st.page_link("app_dashboard.py", label="Dashboard Principal", icon="🏠")
+    st.page_link("pages/Playbook_de_Vendas.py", label="Playbook de Vendas", icon="📚")
 
     st.markdown("---")
     st.caption("Coordenação: João - Inside Sales")
