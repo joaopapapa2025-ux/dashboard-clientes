@@ -130,40 +130,6 @@ if not st.session_state.acesso_liberado:
 
     st.stop()
 
-
-# =========================
-# INTERFACE (SÓ RODA SE LOGADO)
-# =========================
-with st.sidebar:
-    try:
-        st.image("Papapa-azul.png", width=180)
-    except:
-        st.subheader("💙 Papapá")
-    
-    st.markdown("---")
-    st.info("📍 **Menu de Navegação**")
-
-    # Botão que agora vai funcionar porque o acesso já foi validado acima
-    if st.button("📖 Playbook de Vendas", use_container_width=True):
-        st.switch_page("pages/Playbook_de_Vendas.py")
-
-
-# =========================
-# INTERFACE (SÓ RODA SE LOGADO)
-# =========================
-with st.sidebar:
-    try:
-        st.image("Papapa-azul.png", width=180)
-    except:
-        st.subheader("💙 Papapá")
-    
-    st.markdown("---")
-    st.info("📍 **Menu de Navegação**")
-
-    # Botão que agora vai funcionar porque o acesso já foi validado acima
-    if st.button("📖 Playbook de Vendas", use_container_width=True):
-        st.switch_page("pages/Playbook_de_Vendas.py")
-
 # ==========================================
 # 📝 AJUSTE MANUAL DIÁRIO (MARÇO 2026)
 # ==========================================
