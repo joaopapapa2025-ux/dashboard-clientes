@@ -1241,19 +1241,25 @@ if not df_vendas.empty:
         
         def mapear_catalogo_detalhado(nome):
             nome = str(nome).upper()
-            # Dicionário baseado nas linhas oficiais que você passou
+            
+            # 1. Trava de Prioridade: Se for Macarrão, já retorna logo para não cair em outras categorias
+            termos_macarrao = ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO", "MASSA", "LETRE"]
+            if any(key in nome for key in termos_macarrao):
+                return "MACARRÃO"
+
+            # 2. Dicionário para as demais linhas
             catalogo = {
                 "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO"],
                 "SOPINHAS": ["SOPINHA"],
-                "YOGUZINHO": ["IOGURTE", "YOGUZINHO"],
+                "YOGUZINHO": ["IOGURTE", "YOGUZINHO", "YOGU"],
                 "PAPINHAS SALGADAS": ["CARNE", "ARROZ", "120G", "GRAO"],
                 "PAPINHAS DE FRUTAS": ["MACA", "AMEIXA", "BANANA", "MIRTILO", "MANGA", "PERA", "ESPINA", "DOCE", "CENOURA", "MORANGO"],
                 "BISCOTTI": ["LARANJ", "MAC", "CANEL", "CACAU", "GOIAB", "MARACUJ", "BISCOTTI"],
                 "PALITINHOS": ["PALIT"],
-                "DENTIÇÃO": ["DENTICAO"],
-                "MACARRÃO": ["ELBOW", "FUSILLI", "MASSA", "LETRE"],
+                "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
                 "CEREAIS": ["CEREAL", "AVEIA"]
             }
+            
             for linha, keywords in catalogo.items():
                 if any(key in nome for key in keywords):
                     return linha
