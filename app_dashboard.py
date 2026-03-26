@@ -25,7 +25,10 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
+    # Página atual (não clicável)
     st.button("📊 Dashboard Principal", disabled=True, use_container_width=True)
+
+    # Navegação para outra página
     st.page_link("pages/playbook.py", label="📘 Playbook de Vendas")
     
 import json
