@@ -1305,34 +1305,37 @@ else:
 # 🏆 PERFORMANCE POR LINHA (VISÃO DETALHADA)
 # ==========================================
 
-# 1. Só aparece se houver exatamente 1 cliente selecionado
 if len(df_filtrado) == 1:
-    # 2. Só aparece se a variável de vendas existir (evita o NameError)
     if 'vendas_cliente_atual' in locals() and not vendas_cliente_atual.empty:
         st.markdown("---")
         st.markdown("#### 🏆 Performance por Linha de Produto")
         
-        # Usamos as categorias oficiais da Papapá
-        linhas_papapa = [
-            "PAPINHAS SALGADAS", "YOGUZINHO", "PAPINHAS DE FRUTAS", 
-            "PALITINHOS", "DENTIÇÃO", "MACARRÃO", "LA CHEF", 
-            "CEREAIS", "BISCOTTI", "SOPINHAS"
-        ]
+        # Mapeamento de busca: O que aparece no menu vs O que o código busca no banco
+        mapeamento = {
+            "PAPINHAS SALGADAS": "SALGADA",
+            "YOGUZINHO": "YOGU",
+            "PAPINHAS DE FRUTAS": "FRUTA",
+            "PALITINHOS": "PALITO",
+            "DENTIÇÃO": "DENTI",
+            "MACARRÃO": "MACAR",
+            "LA CHEF": "CHEF",
+            "CEREAIS": "CEREA",
+            "BISCOTTI": "BISCO",
+            "SOPINHAS": "SOPA"
+        }
         
-        linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=linhas_papapa)
+        linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=list(mapeamento.keys()))
 
-        # --- CORREÇÃO DEFINITIVA: BUSCA POR APROXIMAÇÃO (CONTAINS) ---
-        # Criamos uma versão simplificada do nome para a busca (ex: busca "SALGADA" em vez de "PAPINHAS SALGADAS")
-        termo_busca = linha_selecionada.replace("PAPINHAS ", "").strip().upper()
+        # --- FILTRO ULTRA ROBUSTO ---
+        # Ele pega o "termo curto" (ex: "SOPA" para achar "SOPINHAS")
+        termo_curto = mapeamento[linha_selecionada]
         
-        # O filtro abaixo busca o termo dentro da coluna LINHA, ignorando se é singular/plural ou se tem espaços
         df_detalhe_linha = vendas_cliente_atual[
-            vendas_cliente_atual["LINHA"].astype(str).str.upper().str.contains(termo_busca, na=False)
+            vendas_cliente_atual["LINHA"].astype(str).str.upper().str.contains(termo_curto, na=False)
         ].copy()
-        # -----------------------------------------------------------
+        # -----------------------------
         
         if not df_detalhe_linha.empty:
-            # Agrupar performance por SKU
             col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_detalhe_linha.columns else "VALOR"
             col_qtd = "QTD" if "QTD" in df_detalhe_linha.columns else "QTDE"
 
@@ -1353,7 +1356,6 @@ if len(df_filtrado) == 1:
                 st.metric(label=f"Investimento Total em {linha_selecionada}", value=f"R$ {total_linha:,.2f}")
                 st.metric(label="Volume Total (Unidades)", value=int(qtd_total))
                 
-                # Gráfico de barras lateral
                 fig_bar_linha = px.bar(
                     performance_sku.head(5), 
                     x=col_valor, 
