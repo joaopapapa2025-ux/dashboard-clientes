@@ -24,12 +24,39 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # 2. NAVEGAÇÃO À PROVA DE ERRO (Sem st.page_link)
+    # 2. Botão Dashboard (Aba Atual)
     if st.button("📊 Dashboard Principal", use_container_width=True):
-        st.switch_page("app_dashboard.py")
-        
-    if st.button("📖 Playbook de Vendas", use_container_width=True):
-        st.switch_page("pages/Playbook_de_Vendas.py")
+        st.rerun() # Apenas recarrega a home
+
+    # 3. Botão Playbook (ABRIR EM NOVA ABA)
+    # Substitua 'dashboard-clientes' abaixo pela URL real do seu app se for diferente
+    url_playbook = "https://dashboard-clientes.streamlit.app/Playbook_de_Vendas"
+    
+    st.markdown(
+        f"""
+        <a href="{url_playbook}" target="_blank" style="text-decoration: none;">
+            <div style="
+                background-color: white;
+                color: #31333F;
+                padding: 8px;
+                text-align: center;
+                border-radius: 8px;
+                border: 1px solid #d3d3d3;
+                font-weight: 400;
+                font-size: 14px;
+                cursor: pointer;
+                display: flex;
+                align_items: center;
+                justify-content: center;
+                gap: 8px;
+                margin-top: 5px;
+            ">
+                📖 Playbook de Vendas
+            </div>
+        </a>
+        """,
+        unsafe_allow_html=True
+    )
 
     st.markdown("---")
     
