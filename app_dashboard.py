@@ -1310,26 +1310,29 @@ if len(df_filtrado) == 1:
         st.markdown("---")
         st.markdown("#### 🏆 Performance por Linha de Produto")
         
-        # 1. LISTA COMPLETA E OFICIAL (Recolocando todas que você pediu)
-        linhas_papapa = [
-            "PAPINHAS DE FRUTAS", 
-            "PAPINHAS SALGADAS", 
-            "DENTIÇÃO", 
-            "BISCOTTI", 
-            "LA CHEF", 
-            "CEREAIS", 
-            "SOPINHAS", 
-            "YOGUZINHO", 
-            "MACARRÃO",
-            "PALITINHOS"
-        ]
+        # 1. Definimos o seu dicionário de regras (Palavras-chave por linha)
+        regras_linhas = {
+            "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"],
+            "SOPINHAS": ["SOPINHA"],
+            "YOGUZINHO": ["IOGURTE", "YOGU"],
+            "PAPINHAS SALGADAS": ["PAPINHA CARNE", "PAPINHA FRANGO", "SALGADA"],
+            "PAPINHAS DE FRUTAS": ["ORG MAÇÃ", "ORG BANANA", "ORG MANGA", "ORG PERA", "ORG MORANGO", "FRUTAS"],
+            "BISCOTTI": ["BISCOTTI"],
+            "PALITINHOS": ["PALITINHO"],
+            "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
+            "MACARRÃO": ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO"],
+            "CEREAIS": ["CEREAL", "AVEIA"]
+        }
         
-        linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=linhas_papapa)
+        linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=list(regras_linhas.keys()))
 
-        # 2. FILTRO BLINDADO
-        # Ele limpa os espaços do banco e da sua seleção para garantir que se encontrem
+        # 2. MÁGICA DO FILTRO: Procuramos as palavras-chave dentro da coluna DESC PRODUTO
+        termos = regras_linhas[linha_selecionada]
+        
+        # Criamos o filtro dinâmico: ele checa se QUALQUER termo da lista está no nome do produto
+        filtro_termos = "|".join(termos)
         df_detalhe_linha = vendas_cliente_atual[
-            vendas_cliente_atual["LINHA"].astype(str).str.strip().str.upper() == linha_selecionada.strip().upper()
+            vendas_cliente_atual["DESC PRODUTO"].str.upper().str.contains(filtro_termos, na=False)
         ].copy()
         
         if not df_detalhe_linha.empty:
@@ -1358,18 +1361,15 @@ if len(df_filtrado) == 1:
                     x=col_valor, 
                     y="DESC PRODUTO", 
                     orientation='h',
-                    title=f"Top 5 SKUs: {linha_selecionada}",
+                    title=f"Top SKUs: {linha_selecionada}",
                     labels={col_valor: "Valor (R$)", "DESC PRODUTO": "Produto"},
                     color_discrete_sequence=["#00CC96"]
                 )
                 fig_bar_linha.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
                 st.plotly_chart(fig_bar_linha, use_container_width=True)
         else:
-            # Se não houver venda dessa linha específica para o cliente
-            st.warning(f"O cliente ainda não realizou compras na linha '{linha_selecionada}'.")
-            st.info(f"💡 Dica: Verifique os itens de {linha_selecionada} no **Cross-sell** acima!")
-    else:
-        st.info("ℹ️ Selecione um cliente com histórico de vendas para ver a performance por linha.")
+            st.warning(f"O cliente não possui compras identificadas como '{linha_selecionada}'.")
+            st.info(f"💡 Dica: Verifique se os produtos desta linha aparecem com outros nomes no Cross-sell.")
         
 # ==========================================
 # 📊 DISTRIBUIÇÃO CADASTRAL (CORREÇÃO COLUNA FATURAMENTO)
