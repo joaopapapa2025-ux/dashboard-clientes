@@ -25,20 +25,10 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Botão do Dashboard (página atual)
-    st.button("📊 Dashboard Principal", disabled=True, use_container_width=True)
-
-    # 🔥 Botão que leva para o Playbook (nova página)
-    st.markdown(
-        """
-        <a href="/playbook" target="_self">
-            <button style="width:100%;padding:10px;border-radius:8px;">
-                📘 Playbook de Vendas
-            </button>
-        </a>
-        """,
-        unsafe_allow_html=True
-    )
+    # Botão do Dashboard: Recarrega a página atual
+    if st.button("📊 Dashboard Principal", use_container_width=True):
+        st.session_state.pagina_atual = "dashboard"
+        st.rerun()
     
 import json
 import os
