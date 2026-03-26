@@ -1310,9 +1310,12 @@ if len(df_filtrado) == 1:
         st.markdown("---")
         st.markdown("#### 🏆 Performance por Linha de Produto")
         
-        # 1. Definimos o seu dicionário de regras (Palavras-chave por linha)
+        # 1. Definimos as regras de palavras-chave
+        # Criamos uma lista separada para a La Chef para usar como "trava" depois
+        termos_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"]
+        
         regras_linhas = {
-            "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"],
+            "LA CHEF": termos_la_chef,
             "SOPINHAS": ["SOPINHA"],
             "YOGUZINHO": ["IOGURTE", "YOGU"],
             "PAPINHAS SALGADAS": ["PAPINHA CARNE", "PAPINHA FRANGO", "SALGADA"],
@@ -1326,14 +1329,23 @@ if len(df_filtrado) == 1:
         
         linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=list(regras_linhas.keys()))
 
-        # 2. MÁGICA DO FILTRO: Procuramos as palavras-chave dentro da coluna DESC PRODUTO
+        # 2. LÓGICA DE FILTRO COM TRAVA
         termos = regras_linhas[linha_selecionada]
-        
-        # Criamos o filtro dinâmico: ele checa se QUALQUER termo da lista está no nome do produto
         filtro_termos = "|".join(termos)
+        
+        # Filtro base: busca os termos no nome do produto
         df_detalhe_linha = vendas_cliente_atual[
             vendas_cliente_atual["DESC PRODUTO"].str.upper().str.contains(filtro_termos, na=False)
         ].copy()
+
+        # --- A TRAVA PARA LA CHEF ---
+        # Se eu selecionei "SOPINHAS", eu removo qualquer coisa que seja da "LA CHEF"
+        if linha_selecionada == "SOPINHAS":
+            filtro_trava = "|".join(termos_la_chef)
+            df_detalhe_linha = df_detalhe_linha[
+                ~df_detalhe_linha["DESC PRODUTO"].str.upper().str.contains(filtro_trava, na=False)
+            ]
+        # ----------------------------
         
         if not df_detalhe_linha.empty:
             col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_detalhe_linha.columns else "VALOR"
@@ -1369,7 +1381,6 @@ if len(df_filtrado) == 1:
                 st.plotly_chart(fig_bar_linha, use_container_width=True)
         else:
             st.warning(f"O cliente não possui compras identificadas como '{linha_selecionada}'.")
-            st.info(f"💡 Dica: Verifique se os produtos desta linha aparecem com outros nomes no Cross-sell.")
         
 # ==========================================
 # 📊 DISTRIBUIÇÃO CADASTRAL (CORREÇÃO COLUNA FATURAMENTO)
