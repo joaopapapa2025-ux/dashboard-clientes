@@ -26,26 +26,6 @@ with st.sidebar:
     # Botão Home
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
-        
-    # Em vez de st.button + st.switch_page, vamos usar um link direto
-    # O Streamlit Cloud gera a URL da página seguindo o nome do arquivo
-    st.markdown("""
-        <a href="/Playbook_de_Vendas" target="_self" style="text-decoration: none;">
-            <div style="
-                background-color: #f0f2f6;
-                color: #31333F;
-                padding: 10px;
-                text-align: center;
-                border-radius: 5px;
-                border: 1px solid #d3d3d3;
-                margin-bottom: 10px;
-                font-weight: bold;
-            ">
-                📖 Playbook de Vendas
-            </div>
-        </a>
-    """, unsafe_allow_html=True)
-    st.markdown("---")
     
 import json
 import os
@@ -124,21 +104,32 @@ st.set_page_config(
 # =========================
 # PROTEÇÃO DE ACESSO
 # =========================
+
 CODIGO_ACESSO = "amamosnossosclientes"
 
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
 if not st.session_state.acesso_liberado:
-    st.title("🔒 Acesso restrito")
-    codigo_digitado = st.text_input("Digite o código de acesso", type="password")
+
+    st.title("Acesso restrito")
+
+    codigo_digitado = st.text_input(
+        "Digite o código de acesso",
+        type="password"
+    )
+
     if st.button("Entrar"):
+
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
             st.rerun()
+
         else:
             st.error("Código incorreto")
+
     st.stop()
+
 
 # =========================
 # INTERFACE (SÓ RODA SE LOGADO)
