@@ -15,7 +15,7 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 with st.sidebar:
-    # 1. Sua logo azul (Papapá)
+    # Mantém a sua logo azul
     try:
         st.image("Papapa-azul.png", width=180)
     except:
@@ -24,10 +24,14 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # 2. Links de navegação (Padrão para não pedir login de novo)
+    # O SEGREDO ESTÁ AQUI: 
+    # Para a página principal, use o nome do arquivo SEM o caminho completo
+    # ou simplesmente coloque o nome que está no topo do seu repositório.
     st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
-    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
     
+    # Para as páginas na pasta /pages, o caminho deve ser completo
+    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
+
     st.markdown("---")
     st.caption("Coordenação: João - Inside Sales")
 
