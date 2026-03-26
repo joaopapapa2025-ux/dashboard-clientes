@@ -74,6 +74,34 @@ elif st.session_state.pagina_atual == "playbook":
         "Bônus": ["R$ 0,00", "R$ 500,00", "R$ 1.200,00", "R$ 2.000,00 + Aceleração"]
     })
     st.info("💡 Lembre-se: Campanhas de aceleração são cumulativas!")
+
+# ... (Todo o código de Login e Sidebar que mandei antes fica igual)
+
+# 3. LÓGICA DE EXIBIÇÃO (O SEGREDO ESTÁ AQUI)
+
+if st.session_state.pagina_atual == "dashboard":
+    # ---------------------------------------------------------
+    # COLE AQUI TODO O SEU CÓDIGO ORIGINAL DO DASHBOARD
+    # (Tudo o que mostra a Meta de R$ 872k, Faturado, Gráficos, etc.)
+    # ---------------------------------------------------------
+    st.title("📊 Performance Diária - Inside Sales")
+    # ... seu código antigo continua aqui ...
+
+
+elif st.session_state.pagina_atual == "playbook":
+    # ---------------------------------------------------------
+    # CONTEÚDO DO PLAYBOOK (Aparece apenas quando clicar no botão)
+    # ---------------------------------------------------------
+    st.title("📖 Playbook de Vendas - Papapá")
+    
+    st.subheader("🎯 Metas e Premiações - Março/2026")
+    st.table({
+        "Atingimento": ["< 90%", "90% a 99%", "100% a 109%", ">= 110%"],
+        "Bônus": ["R$ 0,00", "R$ 500,00", "R$ 1.200,00", "R$ 2.000,00 + Aceleração"]
+    })
+    st.info("💡 Lembre-se: Campanhas de aceleração são cumulativas!")
+    
+    # Se quiser colocar mais textos do seu playbook, é só adicionar st.write() aqui
     
 import json
 import os
