@@ -15,8 +15,6 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 import streamlit as st
-import os
-st.write("PAGES:", os.listdir("pages"))
 
 with st.sidebar:
     try:
@@ -27,11 +25,8 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    if st.button("📊 Dashboard Principal", use_container_width=True):
-        st.switch_page("app_dashboard.py")
-
-    if st.button("📘 Playbook de Vendas", use_container_width=True):
-        st.switch_page("playbook.py")
+    st.page_link("app_dashboard.py", label="📊 Dashboard Principal")
+    st.page_link("pages/playbook.py", label="📘 Playbook de Vendas")
     
 import json
 import os
