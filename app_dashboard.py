@@ -25,10 +25,8 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Botão do Dashboard: Recarrega a página atual
-    if st.button("📊 Dashboard Principal", use_container_width=True):
-        st.session_state.pagina_atual = "dashboard"
-        st.rerun()
+    st.page_link("app.py", label="📊 Dashboard Principal")
+    st.page_link("pages/Playbook_de_Vendas.py", label="📘 Playbook de Vendas")
 
 import json
 import os
