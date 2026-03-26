@@ -46,10 +46,9 @@ with st.sidebar:
     # Página atual
     st.button("📊 Dashboard Principal", disabled=True, use_container_width=True)
 
-    # 🔥 Link real para outra página
-    st.link_button(
-        "📘 Playbook de Vendas",
-        url="/playbook"
+    if st.button("📘 Playbook de Vendas", use_container_width=True):
+    st.session_state.pagina_destino = "playbook"
+    st.switch_page("playbook.py")
     )
     
 import json
