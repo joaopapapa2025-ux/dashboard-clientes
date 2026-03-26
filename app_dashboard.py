@@ -49,7 +49,6 @@ with st.sidebar:
     if st.button("📘 Playbook de Vendas", use_container_width=True):
         st.session_state.pagina_destino = "playbook"
         st.switch_page("playbook.py")
-    )
     
 import json
 import os
