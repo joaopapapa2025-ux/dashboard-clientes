@@ -16,6 +16,24 @@ from reportlab.lib import colors
 
 import streamlit as st
 
+def proteger_acesso():
+    if "acesso_liberado" not in st.session_state:
+        st.session_state.acesso_liberado = False
+
+    if not st.session_state.acesso_liberado:
+        st.title("🔐 Acesso restrito")
+
+        senha = st.text_input("Digite a senha:", type="password")
+
+        if st.button("Entrar"):
+            if senha == "SUA_SENHA_AQUI":
+                st.session_state.acesso_liberado = True
+                st.rerun()
+            else:
+                st.error("Senha incorreta")
+
+        st.stop()
+
 with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
