@@ -46,9 +46,11 @@ with st.sidebar:
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
-    # Este é o comando que vai levar para a outra página
     if st.button("📖 Playbook de Vendas", use_container_width=True):
-        st.switch_page("pages/Playbook_de_Vendas.py")
+        try:
+            st.switch_page("pages/Playbook_de_Vendas.py")
+        except:
+            st.switch_page("Playbook_de_Vendas.py")
     
 import json
 import os
