@@ -1321,15 +1321,18 @@ if len(df_filtrado) == 1:
         
         linha_selecionada = st.selectbox("Selecione uma linha para análise:", options=linhas_papapa)
 
-        # --- CORREÇÃO AQUI: Limpeza de espaços e padronização para o filtro funcionar ---
-        # Usamos .str.strip() para ignorar espaços invisíveis no banco de dados
+        # --- CORREÇÃO DEFINITIVA: BUSCA POR APROXIMAÇÃO (CONTAINS) ---
+        # Criamos uma versão simplificada do nome para a busca (ex: busca "SALGADA" em vez de "PAPINHAS SALGADAS")
+        termo_busca = linha_selecionada.replace("PAPINHAS ", "").strip().upper()
+        
+        # O filtro abaixo busca o termo dentro da coluna LINHA, ignorando se é singular/plural ou se tem espaços
         df_detalhe_linha = vendas_cliente_atual[
-            vendas_cliente_atual["LINHA"].astype(str).str.strip().str.upper() == linha_selecionada.strip().upper()
+            vendas_cliente_atual["LINHA"].astype(str).str.upper().str.contains(termo_busca, na=False)
         ].copy()
-        # -------------------------------------------------------------------------------
+        # -----------------------------------------------------------
         
         if not df_detalhe_linha.empty:
-            # Agrupar performance por SKU (usando VALOR TOTAL ou VALOR dependendo da sua coluna)
+            # Agrupar performance por SKU
             col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_detalhe_linha.columns else "VALOR"
             col_qtd = "QTD" if "QTD" in df_detalhe_linha.columns else "QTDE"
 
