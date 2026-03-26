@@ -1,18 +1,18 @@
 import streamlit as st
 
-# REMOVEMOS A TRAVA DAQUI PARA ACABAR COM O LOOP
-# O acesso já foi validado na página principal (app_dashboard.py)
+# O Streamlit Cloud às vezes perde o session_state entre páginas.
+# Se isso acontecer, em vez de dar erro, vamos apenas pedir a senha de novo nela.
+if "acesso_liberado" not in st.session_state or not st.session_state.acesso_liberado:
+    st.warning("Por favor, valide seu acesso na página principal.")
+    if st.button("Ir para o Dashboard"):
+        st.switch_page("app_dashboard.py")
+    st.stop()
 
-with st.sidebar:
-    try:
-        st.image("Papapa-azul.png", width=180)
-    except:
-        st.subheader("💙 Papapá")
-    
-    # Link manual para voltar ao Dash
-    st.page_link("app_dashboard.py", label="📊 Voltar ao Dashboard", icon="📊")
+# CONTEÚDO DA NOVA PÁGINA
+st.title("📖 Playbook de Vendas")
+st.subheader("🎯 Metas e Premiações - Março/2026")
 
-st.title("📖 Playbook de Vendas - Papapá")
-st.success("Operação validada. Bem-vindo, João!")
-
-# --- AQUI VAMOS COLOCAR AS REGRAS DE MARÇO ---
+st.table({
+    "Atingimento": ["< 90%", "90% a 99%", "100% a 109%", ">= 110%"],
+    "Bônus": ["R$ 0,00", "R$ 500,00", "R$ 1.200,00", "R$ 2.000,00 + Aceleração"]
+})
