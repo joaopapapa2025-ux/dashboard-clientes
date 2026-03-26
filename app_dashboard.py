@@ -15,13 +15,21 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 
 with st.sidebar:
-    # Mantém a sua logo azul
+    # 1. Sua logo azul (Papapá)
     try:
         st.image("Papapa-azul.png", width=180)
     except:
         st.subheader("💙 Papapá")
 
-    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Abrir Playbook de Vendas", icon="📚")
+    st.markdown("---")
+    st.info("📍 **Menu de Navegação**")
+
+    # 2. Links de navegação (Padrão para não pedir login de novo)
+    st.page_link("app_dashboard.py", label="📊 Dashboard Principal", icon="🏠")
+    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas", icon="📚")
+    
+    st.markdown("---")
+    st.caption("Coordenação: João - Inside Sales")
 
 import json
 import os
