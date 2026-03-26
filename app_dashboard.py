@@ -48,10 +48,9 @@ with st.sidebar:
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
-    # BOTÃO PLAYBOOK COM TOKEN DE ACESSO
-    # Passamos o parâmetro 'auth=ok' na URL para o Playbook saber que o login foi feito
+    # BOTÃO PLAYBOOK (Simples e direto)
     st.markdown("""
-        <a href="./Playbook_de_Vendas?auth=ok" target="_self" style="text-decoration: none;">
+        <a href="./Playbook_de_Vendas" target="_self" style="text-decoration: none;">
             <div style="
                 background-color: #ffffff; color: #31333F; padding: 10px;
                 text-align: center; border-radius: 8px; border: 1px solid #d3d3d3;
