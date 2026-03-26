@@ -32,7 +32,6 @@ with st.sidebar:
         st.switch_page("pages/Playbook_de_Vendas.py")
 
     st.markdown("---")
-    st.caption("Coordenação: João - Inside Sales")
     
 import json
 import os
