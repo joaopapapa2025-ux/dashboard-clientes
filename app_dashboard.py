@@ -17,6 +17,8 @@ from reportlab.lib import colors
 import streamlit as st
 
 def proteger_acesso():
+    import streamlit as st
+
     if "acesso_liberado" not in st.session_state:
         st.session_state.acesso_liberado = False
 
@@ -28,7 +30,15 @@ def proteger_acesso():
         if st.button("Entrar"):
             if senha == "SUA_SENHA_AQUI":
                 st.session_state.acesso_liberado = True
-                st.rerun()
+
+                # 🔥 REDIRECIONAMENTO CORRETO
+                destino = st.session_state.get("pagina_destino", "dashboard")
+
+                if destino == "playbook":
+                    st.switch_page("playbook.py")
+                else:
+                    st.switch_page("app_dashboard.py")
+
             else:
                 st.error("Senha incorreta")
 
