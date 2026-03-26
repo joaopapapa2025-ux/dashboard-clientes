@@ -34,7 +34,7 @@ if not st.session_state.acesso_liberado:
             st.error("Código incorreto")
     st.stop()
 
-# 2. SIDEBAR (MENU ÚNICO E COMPLETO)
+# 2. SIDEBAR (MENU À PROVA DE ERROS)
 with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
@@ -44,13 +44,12 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # Botão Home
+    # Botão Home - Recarrega a página atual
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
     # BOTÃO PLAYBOOK (HTML/Markdown)
-    # Isso cria um botão que parece nativo, mas funciona como um link real.
-    # Evita o erro "StreamlitAPIException" completamente.
+    # O link "./Playbook_de_Vendas" funciona se o arquivo for "Playbook_de_Vendas.py"
     st.markdown("""
         <a href="./Playbook_de_Vendas" target="_self" style="text-decoration: none;">
             <div style="
@@ -63,7 +62,8 @@ with st.sidebar:
                 margin-top: 5px;
                 font-weight: 500;
                 cursor: pointer;
-            ">
+                transition: 0.3s;
+            " onmouseover="this.style.backgroundColor='#f0f2f6'" onmouseout="this.style.backgroundColor='#ffffff'">
                 📖 Playbook de Vendas
             </div>
         </a>
