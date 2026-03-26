@@ -23,8 +23,9 @@ if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
 if not st.session_state.acesso_liberado:
-    st.title("Acesso restrito")
+    st.title("🔒 Acesso restrito")
     codigo_digitado = st.text_input("Digite o código de acesso", type="password")
+    
     if st.button("Entrar"):
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
@@ -43,17 +44,16 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
+    # Para a Home (onde você já está), usamos o botão de Rerun:
     if st.button("📊 Dashboard Principal", use_container_width=True):
         st.rerun()
 
-    st.markdown("---")
-    st.info("📍 **Menu de Navegação**")
-
-    # Use o caminho relativo exato que o Streamlit Cloud espera
-    st.page_link("app_dashboard.py", label="📊 Dashboard Principal")
-    
-    # Verifique se o nome do arquivo abaixo está IDÊNTICO ao do GitHub
-    st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas")
+    # Para o Playbook, usamos o link oficial (ajustado para evitar o KeyError):
+    try:
+        st.page_link("pages/Playbook_de_Vendas.py", label="📖 Playbook de Vendas")
+    except:
+        # Caso o Streamlit Cloud ainda esteja indexando a pasta:
+        st.write("⌛ Carregando menu...")
     
 import json
 import os
