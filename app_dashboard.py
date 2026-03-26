@@ -124,21 +124,32 @@ st.set_page_config(
 # =========================
 # PROTEÇÃO DE ACESSO
 # =========================
+
 CODIGO_ACESSO = "amamosnossosclientes"
 
 if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
 if not st.session_state.acesso_liberado:
-    st.title("🔒 Acesso restrito")
-    codigo_digitado = st.text_input("Digite o código de acesso", type="password")
+
+    st.title("Acesso restrito")
+
+    codigo_digitado = st.text_input(
+        "Digite o código de acesso",
+        type="password"
+    )
+
     if st.button("Entrar"):
+
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
             st.rerun()
+
         else:
             st.error("Código incorreto")
+
     st.stop()
+
 
 # =========================
 # INTERFACE (SÓ RODA SE LOGADO)
