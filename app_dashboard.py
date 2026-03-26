@@ -25,11 +25,11 @@ with st.sidebar:
     st.markdown("---")
     st.info("📍 **Menu de Navegação**")
 
-    # 🔹 Página principal (use o nome REAL do seu arquivo)
-    st.page_link("app_dashboard.py", label="📊 Dashboard Principal")
+    if st.button("📊 Dashboard Principal", use_container_width=True):
+    st.switch_page("app_dashboard.py")
 
-    # 🔹 Página Playbook (dentro da pasta pages)
-    st.page_link("pages/Playbook_de_Vendas.py", label="📘 Playbook de Vendas")
+    if st.button("📘 Playbook de Vendas", use_container_width=True):
+    st.switch_page("pages/Playbook_de_Vendas.py")
     
 import json
 import os
