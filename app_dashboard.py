@@ -873,11 +873,18 @@ if len(df_filtrado) == 1:
 
 if len(df_filtrado) == 1:
     with col_crm:
-        st.subheader("📝 Notas e Histórico")
-        
-        # 1. Seletor de usuário
-        lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
-        quem_comentou = st.selectbox("Quem está comentando?", lista_pessoas)
+    st.subheader("📝 Notas e Histórico")
+    
+    # 1. Seletor de usuário (Iniciando em branco)
+    lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
+    
+    quem_comentou = st.selectbox(
+        "Quem está comentando?", 
+        lista_pessoas,
+        index=None,
+        placeholder="Selecione seu nome...",
+        key="nome_usuario_crm"
+    )
 
         # 2. Função disparada pelo botão
         def clicar_salvar():
