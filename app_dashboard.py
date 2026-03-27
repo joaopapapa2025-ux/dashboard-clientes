@@ -877,14 +877,6 @@ if len(df_filtrado) == 1:
         
         # 1. Seletor de usuário (Iniciando em branco)
         lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
-        
-        quem_comentou = st.selectbox(
-            "Quem está comentando?", 
-            lista_pessoas,
-            index=None,
-            placeholder="Selecione seu nome...",
-            key="nome_usuario_crm"
-        )
             
             # Pega o texto da área de texto via session_state
             texto_digitado = st.session_state.get("txt_area_crm", "")
