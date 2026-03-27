@@ -877,16 +877,30 @@ if len(df_filtrado) == 1:
         
         # 1. Seletor de usuário (Iniciando em branco)
         lista_pessoas = ["João Tadra", "Ana", "Pedro", "João Paulo", "Bernardo", "Thiago"]
+        
+        quem_comentou = st.selectbox(
+            "Quem está comentando?", 
+            lista_pessoas,
+            index=None,
+            placeholder="Selecione seu nome...",
+            key="nome_usuario_crm"
+        )
+
+        # 2. Função que processa o salvamento
+        def clicar_salvar():
+            global comentarios
             
-            # Pega o texto da área de texto via session_state
+            # Pega os dados dos campos via session_state
             texto_digitado = st.session_state.get("txt_area_crm", "")
+            autor = st.session_state.get("nome_usuario_crm")
             
-            if texto_digitado.strip():
+            if texto_digitado.strip() and autor:
                 # Data e Hora (Brasília)
+                from datetime import datetime, timedelta
                 agora = (datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-                texto_final = f"[{quem_comentou}] {texto_digitado.strip()}"
+                texto_final = f"[{autor}] {texto_digitado.strip()}"
                 
-                # Garante que a chave do cliente existe
+                # Garante que a chave do cliente existe (id_cliente deve estar definido antes)
                 id_cliente_str = str(id_cliente)
                 if id_cliente_str not in comentarios:
                     comentarios[id_cliente_str] = []
@@ -894,16 +908,19 @@ if len(df_filtrado) == 1:
                 # Adiciona o novo comentário no topo da lista
                 comentarios[id_cliente_str].insert(0, {"texto": texto_final, "data": agora})
                 
-                # SALVAMENTO FÍSICO
+                # SALVAMENTO FÍSICO (Certifique-se que essa função existe no seu código)
                 salvar_comentarios(comentarios)
                 
-                # Limpa o campo para o próximo uso
+                # Limpa o campo de texto
                 st.session_state["txt_area_crm"] = ""
                 st.toast("✅ Nota salva com sucesso!")
             else:
-                st.warning("O campo está vazio.")
+                if not autor:
+                    st.warning("⚠️ Por favor, selecione quem está registrando a nota.")
+                else:
+                    st.warning("⚠️ O campo de texto está vazio.")
 
-        # 3. Campo de entrada de texto
+        # 3. Interface de entrada
         st.text_area(
             "Novo registro:", 
             placeholder="Descreva a conversa...", 
