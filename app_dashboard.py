@@ -159,8 +159,8 @@ from datetime import datetime
 import pandas as pd
 
 meta_marco = 872507.00
-faturado_marco = 652811.00
-digitado_marco = 98433.00
+faturado_marco = 685008.00
+digitado_marco = 120381.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
 hoje = datetime.now()
