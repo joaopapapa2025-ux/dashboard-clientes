@@ -155,33 +155,46 @@ if not st.session_state.acesso_liberado:
 # ==========================================
 # 📝 AJUSTE MANUAL DIÁRIO (MARÇO 2026)
 # ==========================================
+from datetime import datetime
+import pandas as pd
 
-# --- AJUSTE MANUAL DIÁRIO (MARÇO 2026) ---
 meta_marco = 872507.00
 faturado_marco = 652811.00
 digitado_marco = 98433.00
-# --- CÁLCULOS AUTOMÁTICOS ---
-total_geral = faturado_marco + digitado_marco
-falta_r_cifra = meta_marco - total_geral
 
-# Cálculo de Dias Úteis (Segunda a Sexta)
+# --- CÁLCULOS DE CALENDÁRIO ---
 hoje = datetime.now()
-ultimo_dia_mes = datetime(2026, 3, 31)
-dias_uteis_restantes = len(pd.date_range(hoje, ultimo_dia_mes, freq='B'))
+inicio_mes = datetime(2026, 3, 1)
+fim_mes = datetime(2026, 3, 31)
 
-# Ritmo Diário necessário
-ritmo = falta_r_cifra / dias_uteis_restantes if dias_uteis_restantes > 0 else 0
-ritmo_final = max(ritmo, 0)
+# Total de dias úteis no mês (Seg-Sex)
+dias_uteis_totais = len(pd.date_range(inicio_mes, fim_mes, freq='B'))
+# Dias úteis que JÁ PASSARAM (incluindo hoje)
+dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
+# Dias úteis RESTANTES
+dias_uteis_restantes = max(0, dias_uteis_totais - dias_uteis_passados)
 
-# --- EXIBIÇÃO DE ALERTAS ---
-if falta_r_cifra <= 0:
-    st.balloons()
-    st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
-elif ritmo_final > 60000:
-    st.error(f"⚠️ **ALERTA DE RITMO:** Precisamos de R$ {ritmo_final:,.0f} por dia útil!".replace(",", "."))
+# --- CÁLCULOS DE PERFORMANCE ---
+total_geral = faturado_marco + digitado_marco
+percentual_atual = (total_geral / meta_marco) * 100
+
+# ONDE DEVERÍAMOS ESTAR? (Meta Linear)
+# Ex: Se passou 10/20 dias úteis, deveria estar em 50%
+percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
+gap_vs_linear = percentual_atual - percentual_esperado
+
+falta_r_cifra = meta_marco - total_geral
+ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
 
 # --- EXIBIÇÃO NO TOPO ---
-st.subheader("📊 Performance Diária - Inside Sales (D -1)")
+st.subheader("📊 Performance Diária - Inside Sales")
+
+# Alerta crítico se estiver abaixo da linha linear
+if gap_vs_linear < -5 and falta_r_cifra > 0:
+    st.error(f"⚠️ **Atenção:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ritmo esperado para o dia {hoje.day}.")
+elif falta_r_cifra <= 0:
+    st.balloons()
+    st.success("🏆 **META BATIDA!**")
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
@@ -195,21 +208,28 @@ with col3:
     st.metric("📝 Digitado", f"R$ {digitado_marco:,.0f}".replace(",", "."))
 
 with col4:
-    # Mostra quanto falta ou quanto sobrou
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
-    st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), 
-              delta_color="inverse")
+    st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."))
 
 with col5:
-    percentual = (total_geral / meta_marco) * 100
-    st.metric("🔥 Total (Fat+Dig)", f"R$ {total_geral:,.0f}".replace(",", "."), 
-              delta=f"{percentual:.1f}%")
+    # AQUI ESTÁ A MUDANÇA: O delta agora compara o Real vs o Esperado para o dia
+    color_delta = "normal" if gap_vs_linear >= 0 else "inverse"
+    st.metric(
+        "🔥 Atingimento", 
+        f"{percentual_atual:.1f}%", 
+        delta=f"{gap_vs_linear:.1f}% vs Ideal",
+        delta_color=color_delta
+    )
 
 with col6:
-    # Mostra os dias úteis e o valor diário necessário no delta
-    st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú.", 
-              delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
+    st.metric(
+        "📅 Ritmo Diário", 
+        f"{dias_uteis_restantes} d.ú. rest.", 
+        delta=f"R$ {ritmo_final:,.0f}/dia", 
+        delta_color="inverse"
+    )
 
+st.markdown(f"**Info:** No dia {hoje.day}, o esperado era estar em **{percentual_esperado:.1f}%** da meta.")
 st.markdown("---")
 
 # =========================
