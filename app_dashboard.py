@@ -121,20 +121,23 @@ st.set_page_config(
     layout="wide"
 )
 
-# =========================
-# PROTEÇÃO DE ACESSO (VIA URL - PERSISTENTE AO F5)
-# =========================
+# ==========================================
+# 🔐 PROTEÇÃO DE ACESSO (F5-PROOF + EXPIRAÇÃO DIÁRIA)
+# ==========================================
 import streamlit as st
+from datetime import date
 
 CODIGO_ACESSO = "amamosnossosclientes"
+token_hoje = f"access_{date.today().strftime('%Y%m%d')}" # Gera algo como 'access_20260331'
 
-# 1. Tenta ler se já existe o parâmetro de acesso na URL
+# 1. Tenta ler o token de acesso da URL
 query_params = st.query_params
-acesso_via_url = query_params.get("login") == "ok"
+acesso_valido = query_params.get("auth") == token_hoje
 
-# 2. Se não estiver na URL, pede a senha
-if not acesso_via_url:
-    st.title("🔐 Acesso Restrito")
+# 2. Se o token não existir ou for de um dia passado, pede a senha
+if not acesso_valido:
+    st.title("🔐 Acesso Restrito - Papapá")
+    st.info(f"Validação necessária para o dia: {date.today().strftime('%d/%m/%Y')}")
     
     codigo_digitado = st.text_input(
         "Digite o código de acesso",
@@ -143,16 +146,16 @@ if not acesso_via_url:
 
     if st.button("Entrar"):
         if codigo_digitado == CODIGO_ACESSO:
-            # Salva o parâmetro na URL e recarrega
-            st.query_params["login"] = "ok"
+            # Salva o token com a data de hoje na URL
+            st.query_params["auth"] = token_hoje
             st.rerun()
         else:
             st.error("Código incorreto")
 
     st.stop()
 
-# Botão opcional de Sair (limpa a URL)
-if st.sidebar.button("Logoff (Pedir senha no F5)"):
+# Botão opcional na barra lateral para limpar o acesso
+if st.sidebar.button("Sair (Limpar Sessão)"):
     st.query_params.clear()
     st.rerun()
 
