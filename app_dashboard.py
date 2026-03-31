@@ -215,12 +215,13 @@ with col4:
     st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), delta_color="inverse")
 
 with col5:
-    # Mostra o atingimento atual. O delta fica VERMELHO se gap_vs_linear for negativo.
+    # Forçamos o delta a ser o GAP real (negativo se estiver atrás)
+    # Assim o Streamlit entende que 'menos' é vermelho e 'mais' é verde
     st.metric(
         "🔥 Atingimento", 
         f"{percentual_atual:.1f}%", 
         delta=f"{gap_vs_linear:.1f}% vs Ideal",
-        delta_color=cor_atingimento
+        delta_color="normal" # 'normal' faz: + é verde, - é vermelho
     )
 
 with col6:
