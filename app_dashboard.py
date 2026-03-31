@@ -122,34 +122,61 @@ st.set_page_config(
 )
 
 # =========================
-# PROTEÇÃO DE ACESSO (Expira Diariamente)
+# PROTEÇÃO DE ACESSO (PERSISTENTE POR DIA)
 # =========================
+import streamlit as st
 from datetime import date
+import streamlit.components.v1 as components
 
 CODIGO_ACESSO = "amamosnossosclientes"
 hoje = str(date.today())
 
-# Verifica se o acesso já foi feito HOJE
-if "data_acesso" not in st.session_state or st.session_state.data_acesso != hoje:
+# 1. Função Invisível para Gerenciar o "Cookie" no Navegador
+def gerenciar_acesso_navegador():
+    # Este componente salva a data no localStorage do seu Chrome/Edge/Safari
+    js_code = f"""
+    <script>
+        const gateKey = "acesso_papapa_date";
+        const hoje = "{hoje}";
+        
+        // Verifica se já existe o acesso de hoje salvo no navegador
+        if (localStorage.getItem(gateKey) === hoje) {{
+            window.parent.postMessage({{"type": "auth_success", "auth": true}}, "*");
+        }}
+
+        // Escuta o comando de 'sucesso' para salvar
+        window.addEventListener("message", (event) => {{
+            if (event.data.type === "save_auth") {{
+                localStorage.setItem(gateKey, hoje);
+            }}
+        }});
+    </script>
+    """
+    components.html(js_code, height=0)
+
+# 2. Inicializa o estado se for a primeira vez na sessão atual
+if "acesso_liberado" not in st.session_state:
     st.session_state.acesso_liberado = False
 
+# 3. Roda o componente de check
+gerenciar_acesso_navegador()
+
+# Interface de Senha
 if not st.session_state.acesso_liberado:
     st.title("🔐 Acesso Restrito")
     st.write(f"Validar acesso para: **{date.today().strftime('%d/%m/%Y')}**")
 
-    codigo_digitado = st.text_input(
-        "Digite o código de acesso",
-        type="password"
-    )
+    codigo_digitado = st.text_input("Digite o código de acesso", type="password")
 
     if st.button("Entrar"):
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
-            st.session_state.data_acesso = hoje  # Salva a data que logou
+            # Manda o comando para o navegador salvar que hoje está liberado
+            components.html(f"""<script>window.parent.postMessage({{"type": "save_auth"}}, "*");</script>""", height=0)
             st.rerun()
         else:
             st.error("Código incorreto")
-
+    
     st.stop()
 
 # ==========================================
