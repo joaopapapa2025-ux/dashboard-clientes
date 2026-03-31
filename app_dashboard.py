@@ -122,62 +122,39 @@ st.set_page_config(
 )
 
 # =========================
-# PROTEÇÃO DE ACESSO (PERSISTENTE POR DIA)
+# PROTEÇÃO DE ACESSO (VIA URL - PERSISTENTE AO F5)
 # =========================
 import streamlit as st
-from datetime import date
-import streamlit.components.v1 as components
 
 CODIGO_ACESSO = "amamosnossosclientes"
-hoje = str(date.today())
 
-# 1. Função Invisível para Gerenciar o "Cookie" no Navegador
-def gerenciar_acesso_navegador():
-    # Este componente salva a data no localStorage do seu Chrome/Edge/Safari
-    js_code = f"""
-    <script>
-        const gateKey = "acesso_papapa_date";
-        const hoje = "{hoje}";
-        
-        // Verifica se já existe o acesso de hoje salvo no navegador
-        if (localStorage.getItem(gateKey) === hoje) {{
-            window.parent.postMessage({{"type": "auth_success", "auth": true}}, "*");
-        }}
+# 1. Tenta ler se já existe o parâmetro de acesso na URL
+query_params = st.query_params
+acesso_via_url = query_params.get("login") == "ok"
 
-        // Escuta o comando de 'sucesso' para salvar
-        window.addEventListener("message", (event) => {{
-            if (event.data.type === "save_auth") {{
-                localStorage.setItem(gateKey, hoje);
-            }}
-        }});
-    </script>
-    """
-    components.html(js_code, height=0)
-
-# 2. Inicializa o estado se for a primeira vez na sessão atual
-if "acesso_liberado" not in st.session_state:
-    st.session_state.acesso_liberado = False
-
-# 3. Roda o componente de check
-gerenciar_acesso_navegador()
-
-# Interface de Senha
-if not st.session_state.acesso_liberado:
+# 2. Se não estiver na URL, pede a senha
+if not acesso_via_url:
     st.title("🔐 Acesso Restrito")
-    st.write(f"Validar acesso para: **{date.today().strftime('%d/%m/%Y')}**")
-
-    codigo_digitado = st.text_input("Digite o código de acesso", type="password")
+    
+    codigo_digitado = st.text_input(
+        "Digite o código de acesso",
+        type="password"
+    )
 
     if st.button("Entrar"):
         if codigo_digitado == CODIGO_ACESSO:
-            st.session_state.acesso_liberado = True
-            # Manda o comando para o navegador salvar que hoje está liberado
-            components.html(f"""<script>window.parent.postMessage({{"type": "save_auth"}}, "*");</script>""", height=0)
+            # Salva o parâmetro na URL e recarrega
+            st.query_params["login"] = "ok"
             st.rerun()
         else:
             st.error("Código incorreto")
-    
+
     st.stop()
+
+# Botão opcional de Sair (limpa a URL)
+if st.sidebar.button("Logoff (Pedir senha no F5)"):
+    st.query_params.clear()
+    st.rerun()
 
 # ==========================================
 # 📝 AJUSTE MANUAL DIÁRIO (MARÇO 2026)
