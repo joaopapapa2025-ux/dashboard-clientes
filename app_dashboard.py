@@ -122,17 +122,20 @@ st.set_page_config(
 )
 
 # =========================
-# PROTEÇÃO DE ACESSO
+# PROTEÇÃO DE ACESSO (Expira Diariamente)
 # =========================
+from datetime import date
 
 CODIGO_ACESSO = "amamosnossosclientes"
+hoje = str(date.today())
 
-if "acesso_liberado" not in st.session_state:
+# Verifica se o acesso já foi feito HOJE
+if "data_acesso" not in st.session_state or st.session_state.data_acesso != hoje:
     st.session_state.acesso_liberado = False
 
 if not st.session_state.acesso_liberado:
-
-    st.title("Acesso restrito")
+    st.title("🔐 Acesso Restrito")
+    st.write(f"Validar acesso para: **{date.today().strftime('%d/%m/%Y')}**")
 
     codigo_digitado = st.text_input(
         "Digite o código de acesso",
@@ -140,11 +143,10 @@ if not st.session_state.acesso_liberado:
     )
 
     if st.button("Entrar"):
-
         if codigo_digitado == CODIGO_ACESSO:
             st.session_state.acesso_liberado = True
+            st.session_state.data_acesso = hoje  # Salva a data que logou
             st.rerun()
-
         else:
             st.error("Código incorreto")
 
