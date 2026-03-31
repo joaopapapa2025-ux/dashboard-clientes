@@ -159,7 +159,7 @@ from datetime import datetime
 import pandas as pd
 
 meta_marco = 872507.00
-faturado_marco = 685008.00
+faturado_marco = 657452.00
 digitado_marco = 120381.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
