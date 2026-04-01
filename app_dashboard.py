@@ -1631,7 +1631,7 @@ if not df_filtrado.empty:
                 """, unsafe_allow_html=True)
 
 # ==========================================
-# 📂 EXPORTAÇÃO E LISTAGEM (CORRIGIDO)
+# 📂 EXPORTAÇÃO E LISTAGEM (MANTIDOS)
 # ==========================================
 st.markdown("---")
 if not df_filtrado.empty:
@@ -1647,34 +1647,24 @@ if not df_filtrado.empty:
 
 st.subheader("📋 Listagem Detalhada")
 
-# WhatsApp e Tabela
+# WhatsApp e Tabela (Sua lógica que já funciona)
 def criar_link_whatsapp(tel):
     if not tel or pd.isna(tel): return None
     num = "".join(filter(str.isdigit, str(tel)))
-    if len(num) > 0 and not (num.startswith("55") and len(num) > 11): 
-        num = "55" + num
+    if len(num) > 0 and not num.startswith("55"): num = "55" + num
     return f"https://wa.me/{num}"
 
-if "TELEFONE" in df_filtrado.columns:
-    df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
-    cols = list(df_filtrado.columns)
-    if "CONTATO" in cols:
-        idx = cols.index("TELEFONE")
-        cols.insert(idx + 1, cols.pop(cols.index("CONTATO")))
-        df_filtrado = df_filtrado[cols]
+df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
+cols = list(df_filtrado.columns)
+if "TELEFONE" in cols and "CONTATO" in cols:
+    idx = cols.index("TELEFONE")
+    cols.insert(idx + 1, cols.pop(cols.index("CONTATO")))
+    df_filtrado = df_filtrado[cols]
 
-# --- CORREÇÃO DO ERRO DE COLUNAS DE MÊS ---
-# Agora ele identifica colunas de meses se tiver "/" (formato antigo) ou se for uma data/string de ano-mes (formato novo)
-colunas_meses = []
-for c in df_filtrado.columns:
-    c_str = str(c)
-    # Verifica se é formato JAN/26 ou se parece uma data 2026-03-01
-    if ("/" in c_str and len(c_str) <= 7) or ("202" in c_str and "-" in c_str):
-        colunas_meses.append(c)
+# Configurações de exibição
+colunas_meses = [c for c in df_filtrado.columns if "/" in c and len(c) == 6]
+config_moeda = {c: st.column_config.NumberColumn(c, format="R$ %.2f") for c in colunas_meses}
 
-config_moeda = {c: st.column_config.NumberColumn(str(c), format="R$ %.2f") for c in colunas_meses}
-
-# Formatação final da tabela
 st.dataframe(
     df_filtrado,
     column_config={
@@ -1687,6 +1677,7 @@ st.dataframe(
 )
 
 st.markdown("<div style='text-align: center; color: #888; font-size: 12px; margin-top: 50px;'>Dashboard Inside Sales Papapá © 2026 - v1.2</div>", unsafe_allow_html=True)
+
 
 
 
