@@ -871,47 +871,32 @@ if len(df_filtrado) == 1:
     # --- SAINDO DAS COLUNAS (Largura Total) ---
         
     # 2. GRÁFICO EM PÁGINA INTEIRA (Full Width)
-if not df_vendas.empty:
-    id_cliente_str = str(id_cliente).strip()
-    vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str].copy()
+    if not df_vendas.empty:
+        id_cliente_str = str(id_cliente).strip()
+        vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str].copy()
 
-    if not vendas_hist.empty:
-        st.markdown("---")
-        st.subheader("📈 Histórico Mensal de Compras")
-        
-        # --- SOLUÇÃO DEFINITIVA PARA MARÇO ---
-        # 1. Forçamos a conversão tentando os dois formatos mais comuns
-        vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
-        
-        # 2. Se houver falha (NaN), tentamos o formato específico Ano-Mês-Dia que vi no seu arquivo
-        nulos = vendas_hist['DATA PEDIDO'].isna()
-        if nulos.any():
-             vendas_hist.loc[nulos, 'DATA PEDIDO'] = pd.to_datetime(df_vendas.loc[vendas_hist.index[nulos], 'DATA PEDIDO'], format='%Y-%m-%d', errors='coerce')
+        if not vendas_hist.empty:
+            st.markdown("---")
+            st.subheader("📈 Histórico Mensal de Compras")
+            
+            vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
+            vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
+            vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
+            
+            hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
+            hist_mensal = hist_mensal.sort_values("MES_ANO")
 
-        # 3. Removemos apenas o que realmente for lixo
-        vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
-        
-        # 4. Criamos uma coluna de período (Year-Month) para ordenação correta
-        vendas_hist['PERIODO'] = vendas_hist['DATA PEDIDO'].dt.to_period('M').astype(str)
-        
-        hist_mensal = vendas_hist.groupby('PERIODO')['VALOR'].sum().reset_index()
-        hist_mensal = hist_mensal.sort_values("PERIODO")
-
-        # Criar o gráfico
-        fig_hist_cli = px.bar(
-            hist_mensal,
-            x="PERIODO",
-            y="VALOR",
-            text_auto='.2s',
-            title="Evolução de Pedidos (R$)",
-            color_discrete_sequence=["#E74C3C"],
-            labels={"PERIODO": "Mês", "VALOR": "Total (R$)"}
-        )
-        
-        # Força o Plotly a tratar o eixo X como nomes (evita pular Março)
-        fig_hist_cli.update_layout(xaxis_type='category')
-        
-        st.plotly_chart(fig_hist_cli, use_container_width=True)
+            fig_hist_cli = px.bar(
+                hist_mensal,
+                x="MES_ANO",
+                y="VALOR",
+                text_auto='.2s',
+                title="Evolução de Pedidos (R$)",
+                color_discrete_sequence=["#E74C3C"]
+            )
+            
+            # Força o gráfico a usar toda a largura disponível
+            st.plotly_chart(fig_hist_cli, use_container_width=True)
 
     # --- COLUNA DIREITA: CRM ---
 # ==========================================
