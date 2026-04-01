@@ -871,32 +871,42 @@ if len(df_filtrado) == 1:
     # --- SAINDO DAS COLUNAS (Largura Total) ---
         
     # 2. GRÁFICO EM PÁGINA INTEIRA (Full Width)
-    if not df_vendas.empty:
-        id_cliente_str = str(id_cliente).strip()
-        vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str].copy()
+if not df_vendas.empty:
+    id_cliente_str = str(id_cliente).strip()
+    vendas_hist = df_vendas[df_vendas["CNPJ_LIMPO"] == id_cliente_str].copy()
 
-        if not vendas_hist.empty:
-            st.markdown("---")
-            st.subheader("📈 Histórico Mensal de Compras")
-            
-            vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
-            vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
-            vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
-            
-            hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
-            hist_mensal = hist_mensal.sort_values("MES_ANO")
+    if not vendas_hist.empty:
+        st.markdown("---")
+        st.subheader("📈 Histórico Mensal de Compras")
+        
+        # --- CORREÇÃO AQUI ---
+        # Tentamos converter garantindo o formato dia/mes/ano primeiro, que é o comum nas planilhas da Papapá
+        vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], dayfirst=True, errors='coerce')
+        
+        # Se ainda houver nulos, tentamos converter o que sobrou (formato ISO/Excel)
+        vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
+        
+        # Criamos o MES_ANO garantindo que seja uma string para o gráfico não pular meses vazios
+        vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
+        
+        hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
+        hist_mensal = hist_mensal.sort_values("MES_ANO")
 
-            fig_hist_cli = px.bar(
-                hist_mensal,
-                x="MES_ANO",
-                y="VALOR",
-                text_auto='.2s',
-                title="Evolução de Pedidos (R$)",
-                color_discrete_sequence=["#E74C3C"]
-            )
-            
-            # Força o gráfico a usar toda a largura disponível
-            st.plotly_chart(fig_hist_cli, use_container_width=True)
+        # Ajuste para garantir que o eixo X mostre o nome do mês certinho
+        fig_hist_cli = px.bar(
+            hist_mensal,
+            x="MES_ANO",
+            y="VALOR",
+            text_auto='.2s',
+            labels={"MES_ANO": "Mês/Ano", "VALOR": "Total (R$)"},
+            title="Evolução de Pedidos (R$)",
+            color_discrete_sequence=["#E74C3C"]
+        )
+        
+        # Melhora a visualização do eixo X
+        fig_hist_cli.update_layout(xaxis_type='category')
+        
+        st.plotly_chart(fig_hist_cli, use_container_width=True)
 
     # --- COLUNA DIREITA: CRM ---
 # ==========================================
