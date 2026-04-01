@@ -879,31 +879,36 @@ if not df_vendas.empty:
         st.markdown("---")
         st.subheader("📈 Histórico Mensal de Compras")
         
-        # --- CORREÇÃO AQUI ---
-        # Tentamos converter garantindo o formato dia/mes/ano primeiro, que é o comum nas planilhas da Papapá
-        vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], dayfirst=True, errors='coerce')
+        # --- SOLUÇÃO DEFINITIVA PARA MARÇO ---
+        # 1. Forçamos a conversão tentando os dois formatos mais comuns
+        vendas_hist['DATA PEDIDO'] = pd.to_datetime(vendas_hist['DATA PEDIDO'], errors='coerce')
         
-        # Se ainda houver nulos, tentamos converter o que sobrou (formato ISO/Excel)
+        # 2. Se houver falha (NaN), tentamos o formato específico Ano-Mês-Dia que vi no seu arquivo
+        nulos = vendas_hist['DATA PEDIDO'].isna()
+        if nulos.any():
+             vendas_hist.loc[nulos, 'DATA PEDIDO'] = pd.to_datetime(df_vendas.loc[vendas_hist.index[nulos], 'DATA PEDIDO'], format='%Y-%m-%d', errors='coerce')
+
+        # 3. Removemos apenas o que realmente for lixo
         vendas_hist = vendas_hist.dropna(subset=['DATA PEDIDO'])
         
-        # Criamos o MES_ANO garantindo que seja uma string para o gráfico não pular meses vazios
-        vendas_hist['MES_ANO'] = vendas_hist['DATA PEDIDO'].dt.strftime('%Y-%m')
+        # 4. Criamos uma coluna de período (Year-Month) para ordenação correta
+        vendas_hist['PERIODO'] = vendas_hist['DATA PEDIDO'].dt.to_period('M').astype(str)
         
-        hist_mensal = vendas_hist.groupby('MES_ANO')['VALOR'].sum().reset_index()
-        hist_mensal = hist_mensal.sort_values("MES_ANO")
+        hist_mensal = vendas_hist.groupby('PERIODO')['VALOR'].sum().reset_index()
+        hist_mensal = hist_mensal.sort_values("PERIODO")
 
-        # Ajuste para garantir que o eixo X mostre o nome do mês certinho
+        # Criar o gráfico
         fig_hist_cli = px.bar(
             hist_mensal,
-            x="MES_ANO",
+            x="PERIODO",
             y="VALOR",
             text_auto='.2s',
-            labels={"MES_ANO": "Mês/Ano", "VALOR": "Total (R$)"},
             title="Evolução de Pedidos (R$)",
-            color_discrete_sequence=["#E74C3C"]
+            color_discrete_sequence=["#E74C3C"],
+            labels={"PERIODO": "Mês", "VALOR": "Total (R$)"}
         )
         
-        # Melhora a visualização do eixo X
+        # Força o Plotly a tratar o eixo X como nomes (evita pular Março)
         fig_hist_cli.update_layout(xaxis_type='category')
         
         st.plotly_chart(fig_hist_cli, use_container_width=True)
