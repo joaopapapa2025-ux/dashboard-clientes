@@ -160,7 +160,7 @@ if st.sidebar.button("Sair (Limpar Sessão)"):
     st.rerun()
 
 # ==========================================
-# 📝 AJUSTE MANUAL DIÁRIO (MARÇO 2026)
+# 📝 AJUSTE MANUAL DIÁRIO (ABRIL 2026)
 # ==========================================
 from datetime import datetime
 import pandas as pd
@@ -209,13 +209,13 @@ elif falta_r_cifra <= 0:
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
-    st.metric("🎯 Meta", f"R$ {meta_marco:,.0f}".replace(",", "."))
+    st.metric("🎯 Meta", f"R$ {meta_abril:,.0f}".replace(",", "."))
 
 with col2:
-    st.metric("✅ Faturado", f"R$ {faturado_marco:,.0f}".replace(",", "."))
+    st.metric("✅ Faturado", f"R$ {faturado_abril:,.0f}".replace(",", "."))
 
 with col3:
-    st.metric("📝 Digitado", f"R$ {digitado_marco:,.0f}".replace(",", "."))
+    st.metric("📝 Digitado", f"R$ {digitado_abril:,.0f}".replace(",", "."))
 
 with col4:
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
