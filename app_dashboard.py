@@ -165,14 +165,14 @@ if st.sidebar.button("Sair (Limpar Sessão)"):
 from datetime import datetime
 import pandas as pd
 
-meta_marco = 872507.00
-faturado_marco = 657452.00
-digitado_marco = 120381.00
+meta_abril = 882036.00
+faturado_abril = 000000.00
+digitado_abril = 000000.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
 hoje = datetime.now()
-inicio_mes = datetime(2026, 3, 1)
-fim_mes = datetime(2026, 3, 31)
+inicio_mes = datetime(2026, 4, 1)
+fim_mes = datetime(2026, 4, 30)
 
 # Total de dias úteis no mês (Seg-Sex)
 dias_uteis_totais = len(pd.date_range(inicio_mes, fim_mes, freq='B'))
