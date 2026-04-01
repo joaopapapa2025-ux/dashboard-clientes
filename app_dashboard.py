@@ -182,14 +182,14 @@ dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
 dias_uteis_restantes = max(0, dias_uteis_totais - dias_uteis_passados)
 
 # --- CÁLCULOS DE PERFORMANCE ---
-total_geral = faturado_marco + digitado_marco
-percentual_atual = (total_geral / meta_marco) * 100
+total_geral = faturado_abril + digitado_abril
+percentual_atual = (total_geral / meta_abril) * 100
 
 # ONDE DEVERÍAMOS ESTAR? (Meta Linear baseada nos dias passados)
 percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
 gap_vs_linear = percentual_atual - percentual_esperado
 
-falta_r_cifra = meta_marco - total_geral
+falta_r_cifra = meta_abril - total_geral
 # Ritmo diário considera apenas os dias que faltam a partir de amanhã
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
 
