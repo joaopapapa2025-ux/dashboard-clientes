@@ -301,7 +301,7 @@ df = carregar_dados()
 # CARREGAR BASE PRODUTOS (MIX)
 # =========================
 
-@st.cache_data
+@st.cache_data(ttl=60) # Adicione o tempo de expiração aqui também!
 def carregar_vendas():
     try:
         # Carrega a aba MIX
