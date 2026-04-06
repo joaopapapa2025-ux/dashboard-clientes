@@ -16,7 +16,7 @@ from reportlab.lib import colors
 
 import streamlit as st
 
-with st.sidebar:.
+with st.sidebar:
     try:
         st.image("Papapa-azul.png", width=180)
     except:
