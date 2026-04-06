@@ -193,7 +193,7 @@ falta_r_cifra = meta_abril - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
 
 # --- EXIBIÇÃO NO TOPO ---
-st.subheader("📊 Performance Diária - Inside Sales")
+st.subheader("📊 Resultado - Inside Sales (D -1)")
 
 # Lógica de cor para o Atingimento: Se negativo (atrás da meta do dia) -> Vermelho
 cor_atingimento = "normal" if gap_vs_linear >= 0 else "inverse"
@@ -205,7 +205,8 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
-col1, col2, col3, col4, col5, col6 = st.columns(6)
+# Aumentamos para 7 colunas
+col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 with col1:
     st.metric("🎯 Meta", f"R$ {meta_abril:,.0f}".replace(",", "."))
@@ -216,22 +217,23 @@ with col2:
 with col3:
     st.metric("📝 Digitado", f"R$ {digitado_abril:,.0f}".replace(",", "."))
 
+# NOVA COLUNA: TOTAL GERAL
+with col_total:
+    st.metric("💰 Total Geral", f"R$ {total_geral:,.0f}".replace(",", "."))
+
 with col4:
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
     st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), delta_color="inverse")
 
 with col5:
-    # Forçamos o delta a ser o GAP real (negativo se estiver atrás)
-    # Assim o Streamlit entende que 'menos' é vermelho e 'mais' é verde
     st.metric(
         "🔥 Atingimento", 
         f"{percentual_atual:.1f}%", 
         delta=f"{gap_vs_linear:.1f}% vs Ideal",
-        delta_color="normal" # 'normal' faz: + é verde, - é vermelho
+        delta_color="normal"
     )
 
 with col6:
-    # Mostra os dias úteis restantes e o valor diário necessário
     st.metric(
         "📅 Ritmo Diário", 
         f"{dias_uteis_restantes} d.ú. rest.", 
