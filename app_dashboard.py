@@ -293,7 +293,7 @@ st.markdown(html_vendedores, unsafe_allow_html=True)
 
 # Mensagem de destaque (Mantendo apenas o texto limpo)
 if dados_vendedores[0]["ating"] > 0:
-    st.success(f"Destaque do Mês: {dados_vendedores[0]['Vendedor']} com {dados_vendedores[0]['ating']:.1f}% da meta atingida.")
+    st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta! 🔥")
 
 st.markdown("---")
 # =========================
