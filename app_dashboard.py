@@ -239,13 +239,16 @@ with col6:
         delta_color="inverse"
     )
 
-# Cálculo do valor proporcional em R$
-valor_esperado_reais = (percentual_esperado / 100) * meta_total
+# Cálculo do valor proporcional em R$ (Usando o nome correto da variável: meta_abril)
+valor_esperado_reais = (percentual_esperado / 100) * meta_abril
+
+# Formatação para o padrão brasileiro: R$ 1.234,56
+valor_formatado_br = f"{valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # Exibição com os dois indicadores
 st.markdown(f"""
     **Análise de Ciclo:** Hoje é dia {hoje.day}. 
-    Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **R$ {valor_esperado_reais:,.2f}**) da meta atingida.
+    Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **R$ {valor_formatado_br}**) da meta atingida.
 """)
 st.markdown("---")
 
