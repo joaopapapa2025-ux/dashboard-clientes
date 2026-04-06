@@ -166,8 +166,8 @@ from datetime import datetime
 import pandas as pd
 
 meta_abril = 882036.00
-faturado_abril = 23540.00
-digitado_abril = 120378.00
+faturado_abril = 28169.00
+digitado_abril = 151573.00
 # --- CÁLCULOS DE CALENDÁRIO ---
 hoje = datetime.now()
 inicio_mes = datetime(2026, 4, 1)
