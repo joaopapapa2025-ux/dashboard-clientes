@@ -276,10 +276,12 @@ for i, v in enumerate(dados_vendedores):
     # Definindo medalhas para o top 3
     pos = i + 1
     medalha = ""
-    if pos == 1: medalha = "🥇 "
-    elif pos == 2: medalha = "🥈 "
-    elif pos == 3: medalha = "🥉 "
-    
+    if pos == 1: icone = "🥇 "
+    elif pos == 2: icone = "🥈 "
+    elif pos == 3: icone = "🥉 "
+    elif pos == 4: icone = "🚀 "  # 4º lugar voando
+    elif pos == 5: icone = "🔥 "  # 5º lugar no fogo
+    else: icone = "🎯 "          # Demais posições focadas no alvo
     largura = min(v["ating"], 100)
 
     html_vendedores += f"<tr>"
