@@ -220,28 +220,29 @@ st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado 
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (LIMPO)
+# 📈 PERFORMANCE POR VENDEDOR (COMPLETO)
 # ==========================================
 st.subheader("👥 Performance Individual - Abril")
 
 dados_vendedores = [
-    {"Vendedor": "Ana", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
-    {"Vendedor": "Pedro", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 18365.75},
-    {"Vendedor": "João Paulo", "Meta": 122000.00, "Faturado": 8703.42, "Digitado": 15574.26},
-    {"Vendedor": "Thiago", "Meta": 111000.00, "Faturado": 7466.79, "Digitado": 7727.83},
-    {"Vendedor": "Bernardo", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
+    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
+    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 18365.75},
+    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 8703.42, "Digitado": 15574.26},
+    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 7466.79, "Digitado": 7727.83},
+    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
+    {"Vendedor": "OUTROS (João Tadra)", "Meta": 00.00, "Faturado": 1411.76, "Digitado": 4797.28},
 ]
 
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Criando a estrutura base
+# Criando a estrutura base do HTML
 html_vendedores = """
 <style>
-    .tab-performance { width: 100%; border-collapse: collapse; }
+    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
     .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
     .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
-    .prog-bg { background-color: #ddd; border-radius: 10px; width: 70px; height: 8px; display: inline-block; margin-right: 5px; }
+    .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
     .prog-bar { background-color: #E74C3C; height: 8px; border-radius: 10px; }
 </style>
 <table class="tab-performance">
@@ -252,31 +253,44 @@ html_vendedores = """
             <th>Faturado</th>
             <th>Digitado</th>
             <th>Total</th>
+            <th>Falta (R$)</th>
             <th>Atingimento</th>
         </tr>
     </thead>
     <tbody>
 """
 
-# Alimentando as linhas
+vendedor_destaque = ""
+maior_ating = -1
+
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
     ating = (total / v["Meta"]) * 100
+    falta = max(0, v["Meta"] - total)
     largura = min(ating, 100)
     
+    # Lógica para descobrir quem é o destaque
+    if ating > maior_ating:
+        maior_ating = ating
+        vendedor_destaque = v["Vendedor"]
+
     html_vendedores += f"<tr>"
     html_vendedores += f"<td><b>{v['Vendedor']}</b></td>"
     html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
     html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
     html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
     html_vendedores += f"<td><b>{fmt_br(total)}</b></td>"
+    html_vendedores += f"<td style='color: #757575;'>{fmt_br(falta)}</td>"
     html_vendedores += f"<td><div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> {ating:.1f}%</td>"
     html_vendedores += f"</tr>"
 
 html_vendedores += "</tbody></table>"
 
-# Renderização
+# Renderiza a Tabela
 st.markdown(html_vendedores, unsafe_allow_html=True)
+
+# Mensagem de Destaque
+st.success(f"🚀 **Destaque do Mês:** Atualmente **{vendedor_destaque}** lidera o time com **{maior_ating:.1f}%** da meta atingida! Vamos pra cima! 🔥")
 st.markdown("---")
 
 # =========================
