@@ -168,98 +168,62 @@ import pandas as pd
 meta_abril = 882036.00
 faturado_abril = 28169.00
 digitado_abril = 151573.00
+
 # --- CÁLCULOS DE CALENDÁRIO ---
 hoje = datetime.now()
 inicio_mes = datetime(2026, 4, 1)
 fim_mes = datetime(2026, 4, 30)
 
-# Total de dias úteis no mês (Seg-Sex)
 dias_uteis_totais = len(pd.date_range(inicio_mes, fim_mes, freq='B'))
-# Dias úteis que JÁ PASSARAM (incluindo o dia de hoje na contagem de esforço realizado)
 dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
-# Dias úteis RESTANTES para bater a meta
 dias_uteis_restantes = max(0, dias_uteis_totais - dias_uteis_passados)
 
 # --- CÁLCULOS DE PERFORMANCE ---
 total_geral = faturado_abril + digitado_abril
 percentual_atual = (total_geral / meta_abril) * 100
-
-# ONDE DEVERÍAMOS ESTAR? (Meta Linear baseada nos dias passados)
 percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
 gap_vs_linear = percentual_atual - percentual_esperado
-
 falta_r_cifra = meta_abril - total_geral
-# Ritmo diário considera apenas os dias que faltam a partir de amanhã
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
 
 # --- EXIBIÇÃO NO TOPO ---
 st.subheader("📊 Resultado - Inside Sales (D -1)")
 
-# Lógica de cor para o Atingimento: Se negativo (atrás da meta do dia) -> Vermelho
-cor_atingimento = "normal" if gap_vs_linear >= 0 else "inverse"
-
-# Alerta crítico visual no topo se o gap for preocupante
 if gap_vs_linear < -2 and falta_r_cifra > 0:
     st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o dia {hoje.day}.")
 elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
-# Aumentamos para 7 colunas
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 with col1:
     st.metric("🎯 Meta", f"R$ {meta_abril:,.0f}".replace(",", "."))
-
 with col2:
     st.metric("✅ Faturado", f"R$ {faturado_abril:,.0f}".replace(",", "."))
-
 with col3:
     st.metric("📝 Digitado", f"R$ {digitado_abril:,.0f}".replace(",", "."))
-
-# NOVA COLUNA: TOTAL GERAL
 with col_total:
-    st.metric("💰 Faturado + Digitado", f"R$ {total_geral:,.0f}".replace(",", "."))
-
+    st.metric("💰 Faturado + digitadol", f"R$ {total_geral:,.0f}".replace(",", "."))
 with col4:
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
     st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), delta_color="inverse")
-
 with col5:
-    st.metric(
-        "🔥 Atingimento", 
-        f"{percentual_atual:.1f}%", 
-        delta=f"{gap_vs_linear:.1f}% vs Ideal",
-        delta_color="normal"
-    )
-
+    st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 with col6:
-    st.metric(
-        "📅 Ritmo Diário", 
-        f"{dias_uteis_restantes} d.ú. rest.", 
-        delta=f"R$ {ritmo_final:,.0f}/dia", 
-        delta_color="inverse"
-    )
+    st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú. rest.", delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
 
-# Cálculo do valor proporcional em R$ (Usando o nome correto da variável: meta_abril)
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
+valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Formatação para o padrão brasileiro: R$ 1.234,56
-valor_formatado_br = f"{valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-# Exibição com os dois indicadores
-st.markdown(f"""
-    **Análise de Ciclo:** Hoje é dia {hoje.day}. 
-    Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **R$ {valor_formatado_br}**) da meta atingida.
-""")
+st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).")
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (LAYOUT CORRIGIDO)
+# 📈 PERFORMANCE POR VENDEDOR (LAYOUT FINAL)
 # ==========================================
 st.subheader("👥 Performance Individual - Abril")
 
-# Dados Atualizados
 dados_vendedores = [
     {"Vendedor": "Ana", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
     {"Vendedor": "Pedro", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 18365.75},
@@ -268,18 +232,17 @@ dados_vendedores = [
     {"Vendedor": "Bernardo", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
 ]
 
-# Função para formatar moeda: 150000.00 -> R$ 150.000,00
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Construção do HTML
-html_ranking = """
+# Começo do HTML
+html_vendedores = """
 <style>
-    .tab-performance { width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; }
-    .tab-performance th { background-color: #f0f2f6; padding: 15px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
-    .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; font-size: 15px; }
-    .progress-container { background-color: #ddd; border-radius: 10px; width: 80px; height: 10px; display: inline-block; margin-right: 5px; }
-    .progress-bar { background-color: #E74C3C; height: 10px; border-radius: 10px; }
+    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+    .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
+    .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+    .prog-bg { background-color: #ddd; border-radius: 10px; width: 70px; height: 8px; display: inline-block; margin-right: 5px; }
+    .prog-bar { background-color: #E74C3C; height: 8px; border-radius: 10px; }
 </style>
 <table class="tab-performance">
     <thead>
@@ -298,9 +261,9 @@ html_ranking = """
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
     ating = (total / v["Meta"]) * 100
-    largura_barra = min(ating, 100) # Para a barra não sair do limite
+    largura = min(ating, 100)
     
-    html_ranking += f"""
+    html_vendedores += f"""
     <tr>
         <td><b>{v['Vendedor']}</b></td>
         <td>{fmt_br(v['Meta'])}</td>
@@ -308,16 +271,17 @@ for v in dados_vendedores:
         <td style="color: #1565C0;">{fmt_br(v['Digitado'])}</td>
         <td><b>{fmt_br(total)}</b></td>
         <td>
-            <div class="progress-container"><div class="progress-bar" style="width: {largura_barra}%"></div></div>
+            <div class="prog-bg"><div class="prog-bar" style="width: {largura}%"></div></div>
             {ating:.1f}%
         </td>
     </tr>
     """
 
-html_ranking += "</tbody></table>"
+html_vendedores += "</tbody></table>"
 
-# O COMANDO QUE FAZ A MÁGICA:
-st.markdown(html_ranking, unsafe_allow_html=True)
+# Renderização Final
+st.markdown(html_vendedores, unsafe_allow_html=True)
+st.markdown("---")
 
 # =========================
 # ARQUIVO BASE
