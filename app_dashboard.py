@@ -220,7 +220,7 @@ st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado 
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (RANKING ORDENADO)
+# 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
 # ==========================================
 st.subheader("👥 Ranking de Performance - Abril")
 
@@ -233,20 +233,20 @@ dados_vendedores = [
     {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 1411.76, "Digitado": 4797.28},
 ]
 
-# 1. Primeiro, calculamos o atingimento para poder ordenar
+# 1. Cálculos de apoio
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
     v["total"] = total
     v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
     v["falta"] = max(0, v["Meta"] - total)
 
-# 2. ORDENAÇÃO: Ordena a lista do maior atingimento para o menor
+# 2. Ordenação por atingimento (Do maior para o menor)
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Estrutura base do HTML
+# Estrutura do HTML (Sem emojis)
 html_vendedores = """
 <style>
     .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
@@ -254,7 +254,6 @@ html_vendedores = """
     .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
     .prog-bar { background-color: #E74C3C; height: 8px; border-radius: 10px; }
-    .medalha { font-size: 18px; }
 </style>
 <table class="tab-performance">
     <thead>
@@ -272,8 +271,12 @@ html_vendedores = """
     <tbody>
 """
 
+for i, v in enumerate(dados_vendedores):
+    pos = i + 1
+    largura = min(v["ating"], 100)
+
     html_vendedores += f"<tr>"
-    html_vendedores += f"<td>{medalha}{pos}º</td>"
+    html_vendedores += f"<td>{pos}º</td>"
     html_vendedores += f"<td><b>{v['Vendedor']}</b></td>"
     html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
     html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
@@ -285,14 +288,14 @@ html_vendedores = """
 
 html_vendedores += "</tbody></table>"
 
+# Renderização
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
-# O destaque agora é sempre quem ficou em primeiro no ranking
+# Mensagem de destaque (Mantendo apenas o texto limpo)
 if dados_vendedores[0]["ating"] > 0:
-    st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta! 🔥")
+    st.success(f"Destaque do Mês: {dados_vendedores[0]['Vendedor']} com {dados_vendedores[0]['ating']:.1f}% da meta atingida.")
 
 st.markdown("---")
-
 # =========================
 # ARQUIVO BASE
 # =========================
