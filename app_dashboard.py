@@ -255,11 +255,11 @@ st.markdown(f"""
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (LAYOUT PREMIUM)
+# 📈 PERFORMANCE POR VENDEDOR (LAYOUT CORRIGIDO)
 # ==========================================
 st.subheader("👥 Performance Individual - Abril")
 
-# Dados
+# Dados Atualizados
 dados_vendedores = [
     {"Vendedor": "Ana", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
     {"Vendedor": "Pedro", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 18365.75},
@@ -268,29 +268,28 @@ dados_vendedores = [
     {"Vendedor": "Bernardo", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
 ]
 
-# Função para formatar moeda no padrão BR: R$ 150.000,00
+# Função para formatar moeda: 150000.00 -> R$ 150.000,00
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Construção da Tabela em HTML para controle total de layout
-html_table = """
+# Construção do HTML
+html_ranking = """
 <style>
-    .performance-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
-    .performance-table th { background-color: #f0f2f6; color: #31333F; padding: 12px; text-align: center; border-bottom: 2px solid #ddd; }
-    .performance-table td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
-    .performance-table tr:hover { background-color: #f9f9f9; }
-    .progress-bg { background-color: #e0e0e0; border-radius: 10px; width: 100px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 8px; }
-    .progress-fill { background-color: #E74C3C; height: 12px; border-radius: 10px; }
+    .tab-performance { width: 100%; border-collapse: collapse; font-family: 'Source Sans Pro', sans-serif; }
+    .tab-performance th { background-color: #f0f2f6; padding: 15px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
+    .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; font-size: 15px; }
+    .progress-container { background-color: #ddd; border-radius: 10px; width: 80px; height: 10px; display: inline-block; margin-right: 5px; }
+    .progress-bar { background-color: #E74C3C; height: 10px; border-radius: 10px; }
 </style>
-<table class="performance-table">
+<table class="tab-performance">
     <thead>
         <tr>
             <th>Vendedor</th>
             <th>Meta</th>
             <th>Faturado</th>
             <th>Digitado</th>
-            <th>Total Geral</th>
-            <th>Atingimento (%)</th>
+            <th>Total</th>
+            <th>Atingimento</th>
         </tr>
     </thead>
     <tbody>
@@ -298,29 +297,27 @@ html_table = """
 
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
-    ating_perc = (total / v["Meta"]) * 100
-    # Limita a barra em 100% visualmente
-    bar_width = min(ating_perc, 100)
+    ating = (total / v["Meta"]) * 100
+    largura_barra = min(ating, 100) # Para a barra não sair do limite
     
-    html_table += f"""
-        <tr>
-            <td><b>{v['Vendedor']}</b></td>
-            <td>{fmt_br(v['Meta'])}</td>
-            <td style="color: #2E7D32;">{fmt_br(v['Faturado'])}</td>
-            <td style="color: #1565C0;">{fmt_br(v['Digitado'])}</td>
-            <td><b>{fmt_br(total)}</b></td>
-            <td>
-                <div class="progress-bg"><div class="progress-fill" style="width: {bar_width}%"></div></div>
-                {ating_perc:.1f}%
-            </td>
-        </tr>
+    html_ranking += f"""
+    <tr>
+        <td><b>{v['Vendedor']}</b></td>
+        <td>{fmt_br(v['Meta'])}</td>
+        <td style="color: #2E7D32;">{fmt_br(v['Faturado'])}</td>
+        <td style="color: #1565C0;">{fmt_br(v['Digitado'])}</td>
+        <td><b>{fmt_br(total)}</b></td>
+        <td>
+            <div class="progress-container"><div class="progress-bar" style="width: {largura_barra}%"></div></div>
+            {ating:.1f}%
+        </td>
+    </tr>
     """
 
-html_table += "</tbody></table>"
+html_ranking += "</tbody></table>"
 
-# Renderiza a tabela
-st.markdown(html_table, unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
+# O COMANDO QUE FAZ A MÁGICA:
+st.markdown(html_ranking, unsafe_allow_html=True)
 
 # =========================
 # ARQUIVO BASE
