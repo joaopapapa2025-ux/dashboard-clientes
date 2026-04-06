@@ -254,6 +254,53 @@ st.markdown(f"""
 """)
 st.markdown("---")
 
+# ==========================================
+# 📈 PERFORMANCE POR VENDEDOR (ABRIL 2026)
+# ==========================================
+st.subheader("👥 Performance Individual - Abril")
+
+# Dados fornecidos
+dados_vendedores = [
+    {"Vendedor": "Ana", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
+    {"Vendedor": "Pedro", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 18365.75},
+    {"Vendedor": "João Paulo", "Meta": 122000.00, "Faturado": 8703.42, "Digitado": 15574.26},
+    {"Vendedor": "Thiago", "Meta": 111000.00, "Faturado": 7466.79, "Digitado": 7727.83},
+    {"Vendedor": "Bernardo", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
+]
+
+df_perf = pd.DataFrame(dados_vendedores)
+
+# Cálculos
+df_perf["Total"] = df_perf["Faturado"] + df_perf["Digitado"]
+df_perf["% Ating."] = (df_perf["Total"] / df_perf["Meta"]) # Deixamos em decimal para a barra de progresso
+df_perf["Falta"] = df_perf["Meta"] - df_perf["Total"]
+
+# Exibição da Tabela com Formatação Profissional
+st.dataframe(
+    df_perf,
+    column_config={
+        "Vendedor": st.column_config.TextColumn("Vendedor"),
+        "Meta": st.column_config.NumberColumn("Meta", format="R$ %.2f"),
+        "Faturado": st.column_config.NumberColumn("Faturado", format="R$ %.2f"),
+        "Digitado": st.column_config.NumberColumn("Digitado", format="R$ %.2f"),
+        "Total": st.column_config.NumberColumn("Total Geral", format="R$ %.2f"),
+        "% Ating.": st.column_config.ProgressColumn(
+            "% Atingimento",
+            help="Percentual da meta atingida (Faturado + Digitado)",
+            format="%.1f%%",
+            min_value=0,
+            max_value=1, # 1 é 100%
+        ),
+        "Falta": st.column_config.NumberColumn("Falta", format="R$ %.2f"),
+    },
+    use_container_width=True,
+    hide_index=True
+)
+
+# Resumo visual rápido
+melhor_atingimento = df_perf.loc[df_perf['% Ating.'].idxmax()]
+st.info(f"🚀 O destaque atual é **{melhor_atingimento['Vendedor']}** com **{melhor_atingimento['% Ating.']*100:.1f}%** da meta concluída!")
+
 # =========================
 # ARQUIVO BASE
 # =========================
