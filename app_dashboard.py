@@ -220,9 +220,9 @@ st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado 
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (CORRIGIDO)
+# 📈 PERFORMANCE POR VENDEDOR (RANKING ORDENADO)
 # ==========================================
-st.subheader("👥 Performance Individual - Abril")
+st.subheader("👥 Ranking de Performance - Abril")
 
 dados_vendedores = [
     {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
@@ -232,6 +232,16 @@ dados_vendedores = [
     {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
     {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 1411.76, "Digitado": 4797.28},
 ]
+
+# 1. Primeiro, calculamos o atingimento para poder ordenar
+for v in dados_vendedores:
+    total = v["Faturado"] + v["Digitado"]
+    v["total"] = total
+    v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
+    v["falta"] = max(0, v["Meta"] - total)
+
+# 2. ORDENAÇÃO: Ordena a lista do maior atingimento para o menor
+dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -244,10 +254,12 @@ html_vendedores = """
     .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
     .prog-bar { background-color: #E74C3C; height: 8px; border-radius: 10px; }
+    .medalha { font-size: 18px; }
 </style>
 <table class="tab-performance">
     <thead>
         <tr>
+            <th>Pos.</th>
             <th>Vendedor</th>
             <th>Meta</th>
             <th>Faturado</th>
@@ -260,39 +272,34 @@ html_vendedores = """
     <tbody>
 """
 
-vendedor_destaque = ""
-maior_ating = -1
-
-for v in dados_vendedores:
-    total = v["Faturado"] + v["Digitado"]
+for i, v in enumerate(dados_vendedores):
+    # Definindo medalhas para o top 3
+    pos = i + 1
+    medalha = ""
+    if pos == 1: medalha = "🥇 "
+    elif pos == 2: medalha = "🥈 "
+    elif pos == 3: medalha = "🥉 "
     
-    # --- TRAVA ANTI-ERRO: Se a meta for 0, o atingimento vira 0 para não dar erro de divisão ---
-    ating = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
-    
-    falta = max(0, v["Meta"] - total)
-    largura = min(ating, 100)
-    
-    if ating > maior_ating:
-        maior_ating = ating
-        vendedor_destaque = v["Vendedor"]
+    largura = min(v["ating"], 100)
 
     html_vendedores += f"<tr>"
+    html_vendedores += f"<td>{medalha}{pos}º</td>"
     html_vendedores += f"<td><b>{v['Vendedor']}</b></td>"
     html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
     html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
     html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
-    html_vendedores += f"<td><b>{fmt_br(total)}</b></td>"
-    html_vendedores += f"<td style='color: #757575;'>{fmt_br(falta)}</td>"
-    html_vendedores += f"<td><div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> {ating:.1f}%</td>"
+    html_vendedores += f"<td><b>{fmt_br(v['total'])}</b></td>"
+    html_vendedores += f"<td style='color: #757575;'>{fmt_br(v['falta'])}</td>"
+    html_vendedores += f"<td><div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> {v['ating']:.1f}%</td>"
     html_vendedores += f"</tr>"
 
 html_vendedores += "</tbody></table>"
 
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
-# Só mostra o destaque se alguém tiver meta e atingimento real
-if maior_ating > 0:
-    st.success(f"🚀 **Destaque do Mês:** Atualmente **{vendedor_destaque}** lidera o time com **{maior_ating:.1f}%** da meta atingida! 🔥")
+# O destaque agora é sempre quem ficou em primeiro no ranking
+if dados_vendedores[0]["ating"] > 0:
+    st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta! 🔥")
 
 st.markdown("---")
 
