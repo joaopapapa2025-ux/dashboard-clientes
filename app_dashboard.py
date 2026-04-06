@@ -239,7 +239,7 @@ with col6:
         delta_color="inverse"
     )
 
-st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Para estar no ritmo correto, deveríamos estar com **{percentual_esperado:.1f}%** da meta atingida.")
+st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado para o dia de hoje: **{percentual_esperado:.1f}%** da meta atingida.")
 st.markdown("---")
 
 # =========================
