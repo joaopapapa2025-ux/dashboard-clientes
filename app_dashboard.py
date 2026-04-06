@@ -222,7 +222,7 @@ st.markdown("---")
 # ==========================================
 # 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
 # ==========================================
-st.subheader("👥 Ranking de Performance - Abril")
+st.subheader("👥 Ranking de Performance Individual - Abril")
 
 dados_vendedores = [
     {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
@@ -296,6 +296,7 @@ if dados_vendedores[0]["ating"] > 0:
     st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta! 🔥")
 
 st.markdown("---")
+
 # =========================
 # ARQUIVO BASE
 # =========================
