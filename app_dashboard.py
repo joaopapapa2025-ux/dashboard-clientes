@@ -239,7 +239,14 @@ with col6:
         delta_color="inverse"
     )
 
-st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado para o dia de hoje: **{percentual_esperado:.1f}%** da meta atingida.")
+# Cálculo do valor proporcional em R$
+valor_esperado_reais = (percentual_esperado / 100) * meta_total
+
+# Exibição com os dois indicadores
+st.markdown(f"""
+    **Análise de Ciclo:** Hoje é dia {hoje.day}. 
+    Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **R$ {valor_esperado_reais:,.2f}**) da meta atingida.
+""")
 st.markdown("---")
 
 # =========================
