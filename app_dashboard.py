@@ -219,7 +219,7 @@ with col3:
 
 # NOVA COLUNA: TOTAL GERAL
 with col_total:
-    st.metric("💰 Total Geral", f"R$ {total_geral:,.0f}".replace(",", "."))
+    st.metric("💰 Faturado + Digitado", f"R$ {total_geral:,.0f}".replace(",", "."))
 
 with col4:
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
