@@ -220,7 +220,7 @@ st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado 
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (COMPLETO)
+# 📈 PERFORMANCE POR VENDEDOR (CORRIGIDO)
 # ==========================================
 st.subheader("👥 Performance Individual - Abril")
 
@@ -230,13 +230,13 @@ dados_vendedores = [
     {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 8703.42, "Digitado": 15574.26},
     {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 7466.79, "Digitado": 7727.83},
     {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
-    {"Vendedor": "OUTROS (João Tadra)", "Meta": 00.00, "Faturado": 1411.76, "Digitado": 4797.28},
+    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 1411.76, "Digitado": 4797.28},
 ]
 
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Criando a estrutura base do HTML
+# Estrutura base do HTML
 html_vendedores = """
 <style>
     .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
@@ -265,11 +265,13 @@ maior_ating = -1
 
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
-    ating = (total / v["Meta"]) * 100
+    
+    # --- TRAVA ANTI-ERRO: Se a meta for 0, o atingimento vira 0 para não dar erro de divisão ---
+    ating = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
+    
     falta = max(0, v["Meta"] - total)
     largura = min(ating, 100)
     
-    # Lógica para descobrir quem é o destaque
     if ating > maior_ating:
         maior_ating = ating
         vendedor_destaque = v["Vendedor"]
@@ -286,11 +288,12 @@ for v in dados_vendedores:
 
 html_vendedores += "</tbody></table>"
 
-# Renderiza a Tabela
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
-# Mensagem de Destaque
-st.success(f"🚀 **Destaque do Mês:** Atualmente **{vendedor_destaque}** lidera o time com **{maior_ating:.1f}%** da meta atingida! Vamos pra cima! 🔥")
+# Só mostra o destaque se alguém tiver meta e atingimento real
+if maior_ating > 0:
+    st.success(f"🚀 **Destaque do Mês:** Atualmente **{vendedor_destaque}** lidera o time com **{maior_ating:.1f}%** da meta atingida! 🔥")
+
 st.markdown("---")
 
 # =========================
