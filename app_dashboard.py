@@ -204,7 +204,7 @@ with col2:
 with col3:
     st.metric("📝 Digitado", f"R$ {digitado_abril:,.0f}".replace(",", "."))
 with col_total:
-    st.metric("💰 Faturado + digitadol", f"R$ {total_geral:,.0f}".replace(",", "."))
+    st.metric("💰 Faturado + digitado", f"R$ {total_geral:,.0f}".replace(",", "."))
 with col4:
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
     st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), delta_color="inverse")
@@ -217,70 +217,6 @@ valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).")
-st.markdown("---")
-
-# ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (LAYOUT FINAL)
-# ==========================================
-st.subheader("👥 Performance Individual - Abril")
-
-dados_vendedores = [
-    {"Vendedor": "Ana", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
-    {"Vendedor": "Pedro", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 18365.75},
-    {"Vendedor": "João Paulo", "Meta": 122000.00, "Faturado": 8703.42, "Digitado": 15574.26},
-    {"Vendedor": "Thiago", "Meta": 111000.00, "Faturado": 7466.79, "Digitado": 7727.83},
-    {"Vendedor": "Bernardo", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
-]
-
-def fmt_br(valor):
-    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-# Começo do HTML
-html_vendedores = """
-<style>
-    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
-    .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
-    .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
-    .prog-bg { background-color: #ddd; border-radius: 10px; width: 70px; height: 8px; display: inline-block; margin-right: 5px; }
-    .prog-bar { background-color: #E74C3C; height: 8px; border-radius: 10px; }
-</style>
-<table class="tab-performance">
-    <thead>
-        <tr>
-            <th>Vendedor</th>
-            <th>Meta</th>
-            <th>Faturado</th>
-            <th>Digitado</th>
-            <th>Total</th>
-            <th>Atingimento</th>
-        </tr>
-    </thead>
-    <tbody>
-"""
-
-for v in dados_vendedores:
-    total = v["Faturado"] + v["Digitado"]
-    ating = (total / v["Meta"]) * 100
-    largura = min(ating, 100)
-    
-    html_vendedores += f"""
-    <tr>
-        <td><b>{v['Vendedor']}</b></td>
-        <td>{fmt_br(v['Meta'])}</td>
-        <td style="color: #2E7D32;">{fmt_br(v['Faturado'])}</td>
-        <td style="color: #1565C0;">{fmt_br(v['Digitado'])}</td>
-        <td><b>{fmt_br(total)}</b></td>
-        <td>
-            <div class="prog-bg"><div class="prog-bar" style="width: {largura}%"></div></div>
-            {ating:.1f}%
-        </td>
-    </tr>
-    """
-
-html_vendedores += "</tbody></table>"
-
-# Renderização Final
-st.markdown(html_vendedores, unsafe_allow_html=True)
 st.markdown("---")
 
 # =========================
