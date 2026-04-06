@@ -258,7 +258,7 @@ st.markdown("---")
 # ARQUIVO BASE
 # =========================
 
-ARQUIVO_BASE = "Base Dashboard Inside Sales.xls"
+ARQUIVO_BASE = "Base Dashboard Inside Sales.xlsx"
 
 # =========================
 # MAPEAMENTO DA NOVA PLANILHA (Constantes)
