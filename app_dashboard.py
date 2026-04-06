@@ -289,11 +289,10 @@ COL_MES_ANT   = "JAN/26"
 # CARREGAR BASE CLIENTES
 # =========================
 
-@st.cache_data
+@st.cache_data(ttl=60) # O cache "morre" a cada 60 segundos
 def carregar_dados():
-    # Carrega a aba correta 'BASE COMPLETA'
     df = pd.read_excel(ARQUIVO_BASE, sheet_name="BASE COMPLETA")
-    df.columns = df.columns.str.strip() # Limpa espaços nos nomes das colunas
+    df.columns = df.columns.str.strip() 
     return df
 
 df = carregar_dados()
