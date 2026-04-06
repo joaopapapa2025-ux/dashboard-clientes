@@ -255,11 +255,11 @@ st.markdown(f"""
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (ABRIL 2026)
+# 📈 PERFORMANCE POR VENDEDOR (LAYOUT PREMIUM)
 # ==========================================
 st.subheader("👥 Performance Individual - Abril")
 
-# Dados fornecidos
+# Dados
 dados_vendedores = [
     {"Vendedor": "Ana", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
     {"Vendedor": "Pedro", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 18365.75},
@@ -268,38 +268,59 @@ dados_vendedores = [
     {"Vendedor": "Bernardo", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
 ]
 
-df_perf = pd.DataFrame(dados_vendedores)
+# Função para formatar moeda no padrão BR: R$ 150.000,00
+def fmt_br(valor):
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Cálculos
-df_perf["Total"] = df_perf["Faturado"] + df_perf["Digitado"]
-df_perf["% Ating."] = (df_perf["Total"] / df_perf["Meta"]) # Deixamos em decimal para a barra de progresso
-df_perf["Falta"] = df_perf["Meta"] - df_perf["Total"]
+# Construção da Tabela em HTML para controle total de layout
+html_table = """
+<style>
+    .performance-table { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+    .performance-table th { background-color: #f0f2f6; color: #31333F; padding: 12px; text-align: center; border-bottom: 2px solid #ddd; }
+    .performance-table td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+    .performance-table tr:hover { background-color: #f9f9f9; }
+    .progress-bg { background-color: #e0e0e0; border-radius: 10px; width: 100px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 8px; }
+    .progress-fill { background-color: #E74C3C; height: 12px; border-radius: 10px; }
+</style>
+<table class="performance-table">
+    <thead>
+        <tr>
+            <th>Vendedor</th>
+            <th>Meta</th>
+            <th>Faturado</th>
+            <th>Digitado</th>
+            <th>Total Geral</th>
+            <th>Atingimento (%)</th>
+        </tr>
+    </thead>
+    <tbody>
+"""
 
-# Exibição da Tabela com Formatação Profissional
-st.dataframe(
-    df_perf,
-    column_config={
-        "Vendedor": st.column_config.TextColumn("Vendedor"),
-        "Meta": st.column_config.NumberColumn("Meta", format="R$ %.2f"),
-        "Faturado": st.column_config.NumberColumn("Faturado", format="R$ %.2f"),
-        "Digitado": st.column_config.NumberColumn("Digitado", format="R$ %.2f"),
-        "Total": st.column_config.NumberColumn("Total Geral", format="R$ %.2f"),
-        "% Ating.": st.column_config.ProgressColumn(
-            "% Atingimento",
-            help="Percentual da meta atingida (Faturado + Digitado)",
-            format="%.1f%%",
-            min_value=0,
-            max_value=1, # 1 é 100%
-        ),
-        "Falta": st.column_config.NumberColumn("Falta", format="R$ %.2f"),
-    },
-    use_container_width=True,
-    hide_index=True
-)
+for v in dados_vendedores:
+    total = v["Faturado"] + v["Digitado"]
+    ating_perc = (total / v["Meta"]) * 100
+    # Limita a barra em 100% visualmente
+    bar_width = min(ating_perc, 100)
+    
+    html_table += f"""
+        <tr>
+            <td><b>{v['Vendedor']}</b></td>
+            <td>{fmt_br(v['Meta'])}</td>
+            <td style="color: #2E7D32;">{fmt_br(v['Faturado'])}</td>
+            <td style="color: #1565C0;">{fmt_br(v['Digitado'])}</td>
+            <td><b>{fmt_br(total)}</b></td>
+            <td>
+                <div class="progress-bg"><div class="progress-fill" style="width: {bar_width}%"></div></div>
+                {ating_perc:.1f}%
+            </td>
+        </tr>
+    """
 
-# Resumo visual rápido
-melhor_atingimento = df_perf.loc[df_perf['% Ating.'].idxmax()]
-st.info(f"🚀 O destaque atual é **{melhor_atingimento['Vendedor']}** com **{melhor_atingimento['% Ating.']*100:.1f}%** da meta concluída!")
+html_table += "</tbody></table>"
+
+# Renderiza a tabela
+st.markdown(html_table, unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # =========================
 # ARQUIVO BASE
