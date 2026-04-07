@@ -167,7 +167,7 @@ import pandas as pd
 
 meta_abril = 882036.00
 faturado_abril = 28169.00
-digitado_abril = 151573.00
+digitado_abril = 170063.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
 hoje = datetime.now()
@@ -225,8 +225,8 @@ st.markdown("---")
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
 dados_vendedores = [
-    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 22888.68},
-    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 18365.75},
+    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 27842.40},
+    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 21662.27},
     {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 8703.42, "Digitado": 15574.26},
     {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 7466.79, "Digitado": 7727.83},
     {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
