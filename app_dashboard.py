@@ -224,39 +224,50 @@ st.markdown("---")
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
-# 1. Cálculos de apoio (garantindo que percentual_esperado exista)
+# 1. DEFINIÇÃO DOS DADOS (Necessário para não dar NameError)
+dados_vendedores = [
+    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 5207.67, "Digitado": 40912.44},
+    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 13219.21, "Digitado": 38349.44},
+    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 17266.13, "Digitado": 30930.45},
+    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 8483.91, "Digitado": 10353.19},
+    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 5076.49, "Digitado": 8662.00},
+    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 1411.76, "Digitado": 4797.28},
+]
+
+# 2. CÁLCULOS DE APOIO
+# Nota: A variável 'percentual_esperado' deve ter sido calculada no bloco anterior do seu código
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
     v["total"] = total
     v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
-    v["falta"] = max(0, v["Meta"] - total)
-    # Cálculo do valor em R$ que esse vendedor deveria ter hoje
     v["valor_esperado"] = (percentual_esperado / 100) * v["Meta"]
 
-# 2. Ordenação
+# 3. ORDENAÇÃO POR ATINGIMENTO
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
-def fmt_br(valor):
-    return f"R$ {valor:,.0f}".replace(",", ".") # Tirei os centavos para ganhar espaço
+# Função de formatação para R$ sem centavos (ganha espaço)
+def fmt_br_slim(valor):
+    return f"R$ {valor:,.0f}".replace(",", ".")
 
-# Estrutura do HTML com CSS para controlar as larguras
+# 4. ESTRUTURA VISUAL (CSS + HTML)
 html_vendedores = f"""
 <style>
     .tab-performance {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: fixed; }}
-    .tab-performance th {{ background-color: #f0f2f6; padding: 8px 4px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; font-size: 12px; }}
-    .tab-performance td {{ padding: 8px 4px; text-align: center; border-bottom: 1px solid #eee; font-size: 12px; overflow: hidden; }}
+    .tab-performance th {{ background-color: #f0f2f6; padding: 8px 4px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; font-size: 11px; }}
+    .tab-performance td {{ padding: 8px 4px; text-align: center; border-bottom: 1px solid #eee; font-size: 11px; overflow: hidden; }}
     
-    /* Controle de largura das colunas */
-    .col-pos {{ width: 35px; }}
-    .col-vend {{ width: 150px; text-align: left !important; }}
-    .col-num {{ width: 90px; }}
-    .col-ating {{ width: 100px; }}
-    .col-ideal {{ width: 110px; background-color: #fafafa; }}
+    /* Ajuste fino das larguras */
+    .col-pos {{ width: 30px; }}
+    .col-vend {{ width: 130px; text-align: left !important; }}
+    .col-num {{ width: 85px; }}
+    .col-ating {{ width: 95px; }}
+    .col-ideal {{ width: 100px; background-color: #fcfcfc; }}
 
-    .prog-bg {{ background-color: #ddd; border-radius: 10px; width: 40px; height: 6px; display: inline-block; margin-right: 3px; }}
+    .prog-bg {{ background-color: #ddd; border-radius: 10px; width: 35px; height: 6px; display: inline-block; margin-right: 3px; }}
     .prog-bar {{ background-color: #29b5e8; height: 6px; border-radius: 10px; }}
-    .val-ideal {{ font-size: 10px; color: #757575; display: block; }}
+    .val-ideal {{ font-size: 10px; color: #757575; display: block; margin-top: 2px; }}
 </style>
+
 <table class="tab-performance">
     <thead>
         <tr>
@@ -276,23 +287,36 @@ html_vendedores = f"""
 for i, v in enumerate(dados_vendedores):
     pos = i + 1
     largura_barra = min(v["ating"], 100)
+    
+    # Lógica de cor baseada no ideal do dia
     cor_status = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
     if v["Meta"] == 0: cor_status = "#31333F"
 
+    # Nome curto (Primeiro + Último)
+    nome_lista = v['Vendedor'].split()
+    nome_curto = f"{nome_lista[0]} {nome_lista[-1]}" if len(nome_lista) > 1 else v['Vendedor']
+
     html_vendedores += f"<tr>"
     html_vendedores += f"<td class='col-pos'>{pos}º</td>"
-    html_vendedores += f"<td class='col-vend'><b>{v['Vendedor'].split()[0]} {v['Vendedor'].split()[-1]}</b></td>" # Mostra primeiro e último nome
-    html_vendedores += f"<td class='col-num'>{fmt_br(v['Meta'])}</td>"
-    html_vendedores += f"<td class='col-num' style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
-    html_vendedores += f"<td class='col-num' style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
-    html_vendedores += f"<td class='col-num'><b>{fmt_br(v['total'])}</b></td>"
+    html_vendedores += f"<td class='col-vend'><b>{nome_curto}</b></td>"
+    html_vendedores += f"<td class='col-num'>{fmt_br_slim(v['Meta'])}</td>"
+    html_vendedores += f"<td class='col-num' style='color: #2E7D32;'>{fmt_br_slim(v['Faturado'])}</td>"
+    html_vendedores += f"<td class='col-num' style='color: #1565C0;'>{fmt_br_slim(v['Digitado'])}</td>"
+    html_vendedores += f"<td class='col-num'><b>{fmt_br_slim(v['total'])}</b></td>"
     html_vendedores += f"<td class='col-ating'><div class='prog-bg'><div class='prog-bar' style='width: {largura_barra}%'></div></div> <span style='color: {cor_status}; font-weight: bold;'>{v['ating']:.1f}%</span></td>"
-    html_vendedores += f"<td class='col-ideal'><b>{percentual_esperado:.1f}%</b> <span class='val-ideal'>{fmt_br(v['valor_esperado'])}</span></td>"
+    html_vendedores += f"<td class='col-ideal'><b>{percentual_esperado:.1f}%</b> <span class='val-ideal'>{fmt_br_slim(v['valor_esperado'])}</span></td>"
     html_vendedores += f"</tr>"
 
 html_vendedores += "</tbody></table>"
 
+# Renderiza a tabela
 st.markdown(html_vendedores, unsafe_allow_html=True)
+
+# Mensagem de destaque
+if dados_vendedores[0]["ating"] > 0:
+    st.success(f"🚀 **Destaque:** **{dados_vendedores[0]['Vendedor']}** lidera com **{dados_vendedores[0]['ating']:.1f}%**!")
+
+st.markdown("---")
 
 # =========================
 # ARQUIVO BASE
