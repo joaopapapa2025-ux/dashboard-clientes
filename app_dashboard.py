@@ -220,52 +220,54 @@ st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado 
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
+# 📈 PERFORMANCE POR VENDEDOR (RANKING OTIMIZADO)
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
-dados_vendedores = [
-    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 5207.67, "Digitado": 40912.44},
-    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 13219.21, "Digitado": 38349.44},
-    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 17266.13, "Digitado": 30930.45},
-    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 8483.91, "Digitado": 10353.19},
-    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 5076.49, "Digitado": 8662.00},
-    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 1411.76, "Digitado": 4797.28},
-]
-
-# 1. Cálculos de apoio
+# 1. Cálculos de apoio (garantindo que percentual_esperado exista)
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
     v["total"] = total
     v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
     v["falta"] = max(0, v["Meta"] - total)
+    # Cálculo do valor em R$ que esse vendedor deveria ter hoje
+    v["valor_esperado"] = (percentual_esperado / 100) * v["Meta"]
 
-# 2. Ordenação por atingimento
+# 2. Ordenação
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
 def fmt_br(valor):
-    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {valor:,.0f}".replace(",", ".") # Tirei os centavos para ganhar espaço
 
-# Estrutura do HTML
+# Estrutura do HTML com CSS para controlar as larguras
 html_vendedores = f"""
 <style>
-    .tab-performance {{ width: 100%; border-collapse: collapse; font-family: sans-serif; }}
-    .tab-performance th {{ background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; font-size: 13px; }}
-    .tab-performance td {{ padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-size: 13px; }}
-    .prog-bg {{ background-color: #ddd; border-radius: 10px; width: 50px; height: 8px; display: inline-block; margin-right: 5px; }}
-    .prog-bar {{ background-color: #29b5e8; height: 8px; border-radius: 10px; }}
+    .tab-performance {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: fixed; }}
+    .tab-performance th {{ background-color: #f0f2f6; padding: 8px 4px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; font-size: 12px; }}
+    .tab-performance td {{ padding: 8px 4px; text-align: center; border-bottom: 1px solid #eee; font-size: 12px; overflow: hidden; }}
+    
+    /* Controle de largura das colunas */
+    .col-pos {{ width: 35px; }}
+    .col-vend {{ width: 150px; text-align: left !important; }}
+    .col-num {{ width: 90px; }}
+    .col-ating {{ width: 100px; }}
+    .col-ideal {{ width: 110px; background-color: #fafafa; }}
+
+    .prog-bg {{ background-color: #ddd; border-radius: 10px; width: 40px; height: 6px; display: inline-block; margin-right: 3px; }}
+    .prog-bar {{ background-color: #29b5e8; height: 6px; border-radius: 10px; }}
+    .val-ideal {{ font-size: 10px; color: #757575; display: block; }}
 </style>
 <table class="tab-performance">
     <thead>
         <tr>
-            <th>Pos.</th>
-            <th>Vendedor</th>
-            <th>Meta</th>
-            <th>Faturado</th>
-            <th>Digitado</th>
-            <th>Total</th>
-            <th>Ating. Atual</th>
-            <th>Ideal Hoje</th>
+            <th class="col-pos">Pos.</th>
+            <th class="col-vend">Vendedor</th>
+            <th class="col-num">Meta</th>
+            <th class="col-num">Faturado</th>
+            <th class="col-num">Digitado</th>
+            <th class="col-num">Total</th>
+            <th class="col-ating">Ating. Atual</th>
+            <th class="col-ideal">Ideal Hoje (%) / R$</th>
         </tr>
     </thead>
     <tbody>
@@ -273,34 +275,24 @@ html_vendedores = f"""
 
 for i, v in enumerate(dados_vendedores):
     pos = i + 1
-    largura = min(v["ating"], 100)
-    
-    # Define a cor do percentual atual baseado no esperado do dia
-    # Se bater a meta ou estiver acima do linear: Verde. Se não: Vermelho.
+    largura_barra = min(v["ating"], 100)
     cor_status = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
-    
-    # Se não tem meta (caso do Outros), não mostra cor de alerta
     if v["Meta"] == 0: cor_status = "#31333F"
 
     html_vendedores += f"<tr>"
-    html_vendedores += f"<td>{pos}º</td>"
-    html_vendedores += f"<td><b>{v['Vendedor']}</b></td>"
-    html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
-    html_vendedores += f"<td>{fmt_br(v['Faturado'])}</td>"
-    html_vendedores += f"<td>{fmt_br(v['Digitado'])}</td>"
-    html_vendedores += f"<td><b>{fmt_br(v['total'])}</b></td>"
-    html_vendedores += f"<td><div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> <span style='color: {cor_status}; font-weight: bold;'>{v['ating']:.1f}%</span></td>"
-    html_vendedores += f"<td style='color: #757575;'>{percentual_esperado:.1f}%</td>"
+    html_vendedores += f"<td class='col-pos'>{pos}º</td>"
+    html_vendedores += f"<td class='col-vend'><b>{v['Vendedor'].split()[0]} {v['Vendedor'].split()[-1]}</b></td>" # Mostra primeiro e último nome
+    html_vendedores += f"<td class='col-num'>{fmt_br(v['Meta'])}</td>"
+    html_vendedores += f"<td class='col-num' style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
+    html_vendedores += f"<td class='col-num' style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
+    html_vendedores += f"<td class='col-num'><b>{fmt_br(v['total'])}</b></td>"
+    html_vendedores += f"<td class='col-ating'><div class='prog-bg'><div class='prog-bar' style='width: {largura_barra}%'></div></div> <span style='color: {cor_status}; font-weight: bold;'>{v['ating']:.1f}%</span></td>"
+    html_vendedores += f"<td class='col-ideal'><b>{percentual_esperado:.1f}%</b> <span class='val-ideal'>{fmt_br(v['valor_esperado'])}</span></td>"
     html_vendedores += f"</tr>"
 
 html_vendedores += "</tbody></table>"
 
 st.markdown(html_vendedores, unsafe_allow_html=True)
-
-if dados_vendedores[0]["ating"] > 0:
-    st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta!")
-
-st.markdown("---")
 
 # =========================
 # ARQUIVO BASE
