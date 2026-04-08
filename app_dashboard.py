@@ -160,66 +160,6 @@ if st.sidebar.button("Sair (Limpar Sessão)"):
     st.rerun()
 
 # ==========================================
-# 📝 AJUSTE MANUAL DIÁRIO (ABRIL 2026)
-# ==========================================
-from datetime import datetime
-import pandas as pd
-
-meta_abril = 882036.00
-faturado_abril = 50544.00
-digitado_abril = 201586.00
-
-# --- CÁLCULOS DE CALENDÁRIO ---
-hoje = datetime.now()
-inicio_mes = datetime(2026, 4, 1)
-fim_mes = datetime(2026, 4, 30)
-
-dias_uteis_totais = len(pd.date_range(inicio_mes, fim_mes, freq='B'))
-dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
-dias_uteis_restantes = max(0, dias_uteis_totais - dias_uteis_passados)
-
-# --- CÁLCULOS DE PERFORMANCE ---
-total_geral = faturado_abril + digitado_abril
-percentual_atual = (total_geral / meta_abril) * 100
-percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
-gap_vs_linear = percentual_atual - percentual_esperado
-falta_r_cifra = meta_abril - total_geral
-ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
-
-# --- EXIBIÇÃO NO TOPO ---
-st.subheader("📊 Resultado - Inside Sales (D -1)")
-
-if gap_vs_linear < -2 and falta_r_cifra > 0:
-    st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o dia {hoje.day}.")
-elif falta_r_cifra <= 0:
-    st.balloons()
-    st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
-
-col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
-
-with col1:
-    st.metric("🎯 Meta", f"R$ {meta_abril:,.0f}".replace(",", "."))
-with col2:
-    st.metric("✅ Faturado", f"R$ {faturado_abril:,.0f}".replace(",", "."))
-with col3:
-    st.metric("📝 Digitado", f"R$ {digitado_abril:,.0f}".replace(",", "."))
-with col_total:
-    st.metric("💰 Faturado + digitado", f"R$ {total_geral:,.0f}".replace(",", "."))
-with col4:
-    label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
-    st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), delta_color="inverse")
-with col5:
-    st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
-with col6:
-    st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú. rest.", delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
-
-valor_esperado_reais = (percentual_esperado / 100) * meta_abril
-valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).")
-st.markdown("---")
-
-# ==========================================
 # 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
@@ -238,8 +178,6 @@ for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
     v["total"] = total
     v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
-    v["falta"] = max(0, v["Meta"] - total)
-    # Cálculo do valor esperado em R$ para o dia
     v["valor_esperado"] = (percentual_esperado / 100) * v["Meta"]
 
 # 2. Ordenação por atingimento (Do maior para o menor)
@@ -248,14 +186,15 @@ dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=Tr
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Estrutura do HTML original com a nova coluna
+# Estrutura do HTML
 html_vendedores = """
 <style>
     .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
     .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
     .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
     .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
-    .prog-bar { background-color: #E74C3C; height: 8px; border-radius: 10px; }
+    .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; }
+    .val-ideal-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; }
 </style>
 <table class="tab-performance">
     <thead>
@@ -267,7 +206,7 @@ html_vendedores = """
             <th>Digitado</th>
             <th>Total</th>
             <th>Atingimento</th>
-            <th>Ideal Hoje (%) / R$</th>
+            <th>Ideal Hoje</th>
         </tr>
     </thead>
     <tbody>
@@ -276,6 +215,10 @@ html_vendedores = """
 for i, v in enumerate(dados_vendedores):
     pos = i + 1
     largura = min(v["ating"], 100)
+    
+    # Lógica de cor: Verde se estiver em dia/acima, Vermelho se estiver atrás
+    cor_ating = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
+    if v["Meta"] == 0: cor_ating = "#31333F" # Cor neutra para quem não tem meta
 
     html_vendedores += f"<tr>"
     html_vendedores += f"<td>{pos}º</td>"
@@ -284,9 +227,21 @@ for i, v in enumerate(dados_vendedores):
     html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
     html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
     html_vendedores += f"<td><b>{fmt_br(v['total'])}</b></td>"
-    html_vendedores += f"<td><div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> {v['ating']:.1f}%</td>"
-    # Nova Coluna: Percentual esperado / Valor esperado em R$
-    html_vendedores += f"<td style='color: #757575;'>{percentual_esperado:.1f}% / {fmt_br(v['valor_esperado'])}</td>"
+    
+    # Coluna Atingimento com Cor Dinâmica
+    html_vendedores += f"""
+        <td>
+            <div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> 
+            <span style='color: {cor_ating}; font-weight: bold;'>{v['ating']:.1f}%</span>
+        </td>"""
+    
+    # Coluna Ideal Hoje: Percentual e Valor em baixo
+    html_vendedores += f"""
+        <td>
+            <b>{percentual_esperado:.1f}%</b>
+            <span class='val-ideal-sub'>{fmt_br(v['valor_esperado'])}</span>
+        </td>"""
+    
     html_vendedores += f"</tr>"
 
 html_vendedores += "</tbody></table>"
