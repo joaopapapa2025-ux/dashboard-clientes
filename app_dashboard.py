@@ -160,6 +160,66 @@ if st.sidebar.button("Sair (Limpar Sessão)"):
     st.rerun()
 
 # ==========================================
+# 📝 AJUSTE MANUAL DIÁRIO (ABRIL 2026)
+# ==========================================
+from datetime import datetime
+import pandas as pd
+
+meta_abril = 882036.00
+faturado_abril = 28169.00
+digitado_abril = 151573.00
+
+# --- CÁLCULOS DE CALENDÁRIO ---
+hoje = datetime.now()
+inicio_mes = datetime(2026, 4, 1)
+fim_mes = datetime(2026, 4, 30)
+
+dias_uteis_totais = len(pd.date_range(inicio_mes, fim_mes, freq='B'))
+dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
+dias_uteis_restantes = max(0, dias_uteis_totais - dias_uteis_passados)
+
+# --- CÁLCULOS DE PERFORMANCE ---
+total_geral = faturado_abril + digitado_abril
+percentual_atual = (total_geral / meta_abril) * 100
+percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
+gap_vs_linear = percentual_atual - percentual_esperado
+falta_r_cifra = meta_abril - total_geral
+ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
+
+# --- EXIBIÇÃO NO TOPO ---
+st.subheader("📊 Resultado - Inside Sales (D -1)")
+
+if gap_vs_linear < -2 and falta_r_cifra > 0:
+    st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o dia {hoje.day}.")
+elif falta_r_cifra <= 0:
+    st.balloons()
+    st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
+
+col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
+
+with col1:
+    st.metric("🎯 Meta", f"R$ {meta_abril:,.0f}".replace(",", "."))
+with col2:
+    st.metric("✅ Faturado", f"R$ {faturado_abril:,.0f}".replace(",", "."))
+with col3:
+    st.metric("📝 Digitado", f"R$ {digitado_abril:,.0f}".replace(",", "."))
+with col_total:
+    st.metric("💰 Total Geral", f"R$ {total_geral:,.0f}".replace(",", "."))
+with col4:
+    label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
+    st.metric(label_gap, f"R$ {abs(falta_r_cifra):,.0f}".replace(",", "."), delta_color="inverse")
+with col5:
+    st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
+with col6:
+    st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú. rest.", delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
+
+valor_esperado_reais = (percentual_esperado / 100) * meta_abril
+valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).")
+st.markdown("---")
+
+# ==========================================
 # 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
