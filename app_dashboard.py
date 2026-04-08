@@ -240,20 +240,20 @@ for v in dados_vendedores:
     v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
     v["falta"] = max(0, v["Meta"] - total)
 
-# 2. Ordenação por atingimento (Do maior para o menor)
+# 2. Ordenação por atingimento
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Estrutura do HTML (Sem emojis)
-html_vendedores = """
+# Estrutura do HTML
+html_vendedores = f"""
 <style>
-    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
-    .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
-    .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
-    .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
-    .prog-bar { background-color: #E74C3C; height: 8px; border-radius: 10px; }
+    .tab-performance {{ width: 100%; border-collapse: collapse; font-family: sans-serif; }}
+    .tab-performance th {{ background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; font-size: 13px; }}
+    .tab-performance td {{ padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-size: 13px; }}
+    .prog-bg {{ background-color: #ddd; border-radius: 10px; width: 50px; height: 8px; display: inline-block; margin-right: 5px; }}
+    .prog-bar {{ background-color: #29b5e8; height: 8px; border-radius: 10px; }}
 </style>
 <table class="tab-performance">
     <thead>
@@ -264,8 +264,8 @@ html_vendedores = """
             <th>Faturado</th>
             <th>Digitado</th>
             <th>Total</th>
-            <th>Falta (R$)</th>
-            <th>Atingimento</th>
+            <th>Ating. Atual</th>
+            <th>Ideal Hoje</th>
         </tr>
     </thead>
     <tbody>
@@ -274,26 +274,31 @@ html_vendedores = """
 for i, v in enumerate(dados_vendedores):
     pos = i + 1
     largura = min(v["ating"], 100)
+    
+    # Define a cor do percentual atual baseado no esperado do dia
+    # Se bater a meta ou estiver acima do linear: Verde. Se não: Vermelho.
+    cor_status = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
+    
+    # Se não tem meta (caso do Outros), não mostra cor de alerta
+    if v["Meta"] == 0: cor_status = "#31333F"
 
     html_vendedores += f"<tr>"
     html_vendedores += f"<td>{pos}º</td>"
     html_vendedores += f"<td><b>{v['Vendedor']}</b></td>"
     html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
-    html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
-    html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
+    html_vendedores += f"<td>{fmt_br(v['Faturado'])}</td>"
+    html_vendedores += f"<td>{fmt_br(v['Digitado'])}</td>"
     html_vendedores += f"<td><b>{fmt_br(v['total'])}</b></td>"
-    html_vendedores += f"<td style='color: #757575;'>{fmt_br(v['falta'])}</td>"
-    html_vendedores += f"<td><div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> {v['ating']:.1f}%</td>"
+    html_vendedores += f"<td><div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> <span style='color: {cor_status}; font-weight: bold;'>{v['ating']:.1f}%</span></td>"
+    html_vendedores += f"<td style='color: #757575;'>{percentual_esperado:.1f}%</td>"
     html_vendedores += f"</tr>"
 
 html_vendedores += "</tbody></table>"
 
-# Renderização
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
-# Mensagem de destaque (Mantendo apenas o texto limpo)
 if dados_vendedores[0]["ating"] > 0:
-    st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta! 🔥")
+    st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta!")
 
 st.markdown("---")
 
