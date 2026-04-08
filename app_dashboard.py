@@ -220,11 +220,10 @@ st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado 
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (RANKING OTIMIZADO)
+# 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
-# 1. DEFINIÇÃO DOS DADOS (Necessário para não dar NameError)
 dados_vendedores = [
     {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 5207.67, "Digitado": 40912.44},
     {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 13219.21, "Digitado": 38349.44},
@@ -234,51 +233,41 @@ dados_vendedores = [
     {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 1411.76, "Digitado": 4797.28},
 ]
 
-# 2. CÁLCULOS DE APOIO
-# Nota: A variável 'percentual_esperado' deve ter sido calculada no bloco anterior do seu código
+# 1. Cálculos de apoio
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
     v["total"] = total
     v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
+    v["falta"] = max(0, v["Meta"] - total)
+    # Cálculo do valor esperado em R$ para o dia
     v["valor_esperado"] = (percentual_esperado / 100) * v["Meta"]
 
-# 3. ORDENAÇÃO POR ATINGIMENTO
+# 2. Ordenação por atingimento (Do maior para o menor)
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
-# Função de formatação para R$ sem centavos (ganha espaço)
-def fmt_br_slim(valor):
-    return f"R$ {valor:,.0f}".replace(",", ".")
+def fmt_br(valor):
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# 4. ESTRUTURA VISUAL (CSS + HTML)
-html_vendedores = f"""
+# Estrutura do HTML original com a nova coluna
+html_vendedores = """
 <style>
-    .tab-performance {{ width: 100%; border-collapse: collapse; font-family: sans-serif; table-layout: fixed; }}
-    .tab-performance th {{ background-color: #f0f2f6; padding: 8px 4px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; font-size: 11px; }}
-    .tab-performance td {{ padding: 8px 4px; text-align: center; border-bottom: 1px solid #eee; font-size: 11px; overflow: hidden; }}
-    
-    /* Ajuste fino das larguras */
-    .col-pos {{ width: 30px; }}
-    .col-vend {{ width: 130px; text-align: left !important; }}
-    .col-num {{ width: 85px; }}
-    .col-ating {{ width: 95px; }}
-    .col-ideal {{ width: 100px; background-color: #fcfcfc; }}
-
-    .prog-bg {{ background-color: #ddd; border-radius: 10px; width: 35px; height: 6px; display: inline-block; margin-right: 3px; }}
-    .prog-bar {{ background-color: #29b5e8; height: 6px; border-radius: 10px; }}
-    .val-ideal {{ font-size: 10px; color: #757575; display: block; margin-top: 2px; }}
+    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
+    .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
+    .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+    .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
+    .prog-bar { background-color: #E74C3C; height: 8px; border-radius: 10px; }
 </style>
-
 <table class="tab-performance">
     <thead>
         <tr>
-            <th class="col-pos">Pos.</th>
-            <th class="col-vend">Vendedor</th>
-            <th class="col-num">Meta</th>
-            <th class="col-num">Faturado</th>
-            <th class="col-num">Digitado</th>
-            <th class="col-num">Total</th>
-            <th class="col-ating">Ating. Atual</th>
-            <th class="col-ideal">Ideal Hoje (%) / R$</th>
+            <th>Pos.</th>
+            <th>Vendedor</th>
+            <th>Meta</th>
+            <th>Faturado</th>
+            <th>Digitado</th>
+            <th>Total</th>
+            <th>Atingimento</th>
+            <th>Ideal Hoje (%) / R$</th>
         </tr>
     </thead>
     <tbody>
@@ -286,35 +275,28 @@ html_vendedores = f"""
 
 for i, v in enumerate(dados_vendedores):
     pos = i + 1
-    largura_barra = min(v["ating"], 100)
-    
-    # Lógica de cor baseada no ideal do dia
-    cor_status = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
-    if v["Meta"] == 0: cor_status = "#31333F"
-
-    # Nome curto (Primeiro + Último)
-    nome_lista = v['Vendedor'].split()
-    nome_curto = f"{nome_lista[0]} {nome_lista[-1]}" if len(nome_lista) > 1 else v['Vendedor']
+    largura = min(v["ating"], 100)
 
     html_vendedores += f"<tr>"
-    html_vendedores += f"<td class='col-pos'>{pos}º</td>"
-    html_vendedores += f"<td class='col-vend'><b>{nome_curto}</b></td>"
-    html_vendedores += f"<td class='col-num'>{fmt_br_slim(v['Meta'])}</td>"
-    html_vendedores += f"<td class='col-num' style='color: #2E7D32;'>{fmt_br_slim(v['Faturado'])}</td>"
-    html_vendedores += f"<td class='col-num' style='color: #1565C0;'>{fmt_br_slim(v['Digitado'])}</td>"
-    html_vendedores += f"<td class='col-num'><b>{fmt_br_slim(v['total'])}</b></td>"
-    html_vendedores += f"<td class='col-ating'><div class='prog-bg'><div class='prog-bar' style='width: {largura_barra}%'></div></div> <span style='color: {cor_status}; font-weight: bold;'>{v['ating']:.1f}%</span></td>"
-    html_vendedores += f"<td class='col-ideal'><b>{percentual_esperado:.1f}%</b> <span class='val-ideal'>{fmt_br_slim(v['valor_esperado'])}</span></td>"
+    html_vendedores += f"<td>{pos}º</td>"
+    html_vendedores += f"<td><b>{v['Vendedor']}</b></td>"
+    html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
+    html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
+    html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
+    html_vendedores += f"<td><b>{fmt_br(v['total'])}</b></td>"
+    html_vendedores += f"<td><div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> {v['ating']:.1f}%</td>"
+    # Nova Coluna: Percentual esperado / Valor esperado em R$
+    html_vendedores += f"<td style='color: #757575;'>{percentual_esperado:.1f}% / {fmt_br(v['valor_esperado'])}</td>"
     html_vendedores += f"</tr>"
 
 html_vendedores += "</tbody></table>"
 
-# Renderiza a tabela
+# Renderização
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
 # Mensagem de destaque
 if dados_vendedores[0]["ating"] > 0:
-    st.success(f"🚀 **Destaque:** **{dados_vendedores[0]['Vendedor']}** lidera com **{dados_vendedores[0]['ating']:.1f}%**!")
+    st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta! 🔥")
 
 st.markdown("---")
 
