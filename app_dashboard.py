@@ -164,6 +164,17 @@ if st.sidebar.button("Sair (Limpar Sessão)"):
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
+# Re-calculando datas para evitar o NameError e garantir o funcionamento
+from datetime import datetime
+import pandas as pd
+
+hoje = datetime.now()
+inicio_mes = datetime(2026, 4, 1)
+fim_mes = datetime(2026, 4, 30)
+dias_uteis_totais = len(pd.date_range(inicio_mes, fim_mes, freq='B'))
+dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
+percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
+
 dados_vendedores = [
     {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 5207.67, "Digitado": 40912.44},
     {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 13219.21, "Digitado": 38349.44},
@@ -186,7 +197,7 @@ dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=Tr
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# Estrutura do HTML
+# 3. Estrutura do HTML e CSS
 html_vendedores = """
 <style>
     .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
@@ -216,9 +227,9 @@ for i, v in enumerate(dados_vendedores):
     pos = i + 1
     largura = min(v["ating"], 100)
     
-    # Lógica de cor: Verde se estiver em dia/acima, Vermelho se estiver atrás
+    # Regra de Cores: Verde se estiver batendo o ritmo do dia, Vermelho se estiver abaixo
     cor_ating = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
-    if v["Meta"] == 0: cor_ating = "#31333F" # Cor neutra para quem não tem meta
+    if v["Meta"] == 0: cor_ating = "#31333F" # Neutro para "Outros"
 
     html_vendedores += f"<tr>"
     html_vendedores += f"<td>{pos}º</td>"
@@ -228,14 +239,14 @@ for i, v in enumerate(dados_vendedores):
     html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
     html_vendedores += f"<td><b>{fmt_br(v['total'])}</b></td>"
     
-    # Coluna Atingimento com Cor Dinâmica
+    # Coluna Atingimento com Barra e Cor na Porcentagem
     html_vendedores += f"""
         <td>
             <div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> 
             <span style='color: {cor_ating}; font-weight: bold;'>{v['ating']:.1f}%</span>
         </td>"""
     
-    # Coluna Ideal Hoje: Percentual e Valor em baixo
+    # Coluna Ideal Hoje: Percentual e Valor embaixo
     html_vendedores += f"""
         <td>
             <b>{percentual_esperado:.1f}%</b>
@@ -246,7 +257,6 @@ for i, v in enumerate(dados_vendedores):
 
 html_vendedores += "</tbody></table>"
 
-# Renderização
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
 # Mensagem de destaque
