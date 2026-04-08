@@ -166,8 +166,8 @@ from datetime import datetime
 import pandas as pd
 
 meta_abril = 882036.00
-faturado_abril = 28169.00
-digitado_abril = 170063.00
+faturado_abril = 50544.00
+digitado_abril = 201586.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
 hoje = datetime.now()
@@ -225,11 +225,11 @@ st.markdown("---")
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
 dados_vendedores = [
-    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 2825.88, "Digitado": 27842.40},
-    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 6758.74, "Digitado": 21662.27},
-    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 8703.42, "Digitado": 15574.26},
-    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 7466.79, "Digitado": 7727.83},
-    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 1123.57, "Digitado": 2565.64},
+    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 5207.67, "Digitado": 40912.44},
+    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 13219.21, "Digitado": 38349.44},
+    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 17266.13, "Digitado": 30930.45},
+    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 8483.91, "Digitado": 10353.19},
+    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 5076.49, "Digitado": 8662.00},
     {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 1411.76, "Digitado": 4797.28},
 ]
 
