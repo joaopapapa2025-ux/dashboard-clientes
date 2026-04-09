@@ -267,7 +267,7 @@ valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 st.markdown(f"""
-> **Análise de Ciclo Papapá:**
+> **Análise de Ciclo:**
 > * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com hoje e feriados): **{dias_uteis_restantes}**.
@@ -283,29 +283,41 @@ st.subheader("👥 Ranking de Performance Individual - Abril")
 from datetime import datetime, timedelta
 import pandas as pd
 
-# --- LÓGICA DE DATAS PAPAPÁ ---
-hoje = datetime.now()
+# --- LÓGICA DE DATAS (SINCRONIZADA COM BLOCO 1) ---
+hoje_dt = datetime.now()
+hoje = hoje_dt.date()
 ontem = hoje - timedelta(days=1)
-inicio_mes = datetime(2026, 4, 1)
-fim_mes_civil = datetime(2026, 4, 30)
+inicio_mes = datetime(2026, 4, 1).date()
+fim_mes_civil = datetime(2026, 4, 30).date()
 
-todos_dias_uteis = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
-data_limite_faturamento = todos_dias_uteis[-4] # Regra -3 dias úteis
+# Reutilizando a lista de feriados (Certifique-se que a lista_feriados foi definida no bloco anterior)
+# Caso não tenha sido, a linha abaixo define os de Abril para segurança:
+lista_feriados_ranking = [datetime(2026, 4, 21).date()] 
 
-dias_uteis_comerciais_totais = len(pd.date_range(inicio_mes, data_limite_faturamento, freq='B'))
-dias_uteis_passados = len(pd.date_range(inicio_mes, ontem, freq='B'))
+# 1. Identificar dias úteis REAIS
+dias_uteis_reais = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
+dias_uteis_reais = [d.date() for d in dias_uteis_reais if d.date() not in lista_feriados_ranking]
+
+# 2. Data Limite de Faturamento (Regra -3 dias úteis)
+data_limite_faturamento = dias_uteis_reais[-4] 
+
+# 3. Dias úteis comerciais totais
+dias_uteis_totais_list = [d for d in dias_uteis_reais if d <= data_limite_faturamento]
+dias_uteis_comerciais_totais = len(dias_uteis_totais_list)
+
+# 4. Dias úteis que já passaram (Até ontem)
+dias_uteis_passados_list = [d for d in dias_uteis_totais_list if d <= ontem]
+dias_uteis_passados = len(dias_uteis_passados_list)
+
+# 5. Dias úteis restantes incluindo HOJE
+dias_restantes_list = [d for d in dias_uteis_totais_list if d >= hoje]
+dias_uteis_restantes = len(dias_restantes_list)
 
 # Percentual esperado baseado na regra comercial
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 
 # Texto informativo logo abaixo do título
 st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.1f}%]")
-
-# Dias restantes para ritmo
-if ontem < data_limite_faturamento:
-    dias_restantes = len(pd.date_range(ontem + timedelta(days=1), data_limite_faturamento, freq='B'))
-else:
-    dias_restantes = 0
 
 # --- DADOS COM PEDIDOS ---
 dados_vendedores = [
@@ -317,7 +329,7 @@ dados_vendedores = [
     {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 8416.72, "Fat_Ped": 5, "Digitado": 2721.60, "Dig_Ped": 1},
 ]
 
-# 1. Cálculos de apoio
+# 1. Cálculos de apoio individuais
 for v in dados_vendedores:
     total = v["Faturado"] + v["Digitado"]
     v["total"] = total
@@ -326,7 +338,8 @@ for v in dados_vendedores:
     total_pedidos = v["Fat_Ped"] + v["Dig_Ped"]
     v["tm"] = total / total_pedidos if total_pedidos > 0 else 0
     falta = max(0, v["Meta"] - total)
-    v["ritmo_v"] = falta / dias_restantes if dias_restantes > 0 else falta
+    # RITMO DIÁRIO: Agora usando a contagem correta de dias úteis restantes (12 dias)
+    v["ritmo_v"] = falta / dias_uteis_restantes if dias_uteis_restantes > 0 else falta
 
 # 2. Ordenação
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
@@ -334,7 +347,7 @@ dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=Tr
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# 3. Estrutura do HTML e CSS (Mantendo seu padrão de concatenação)
+# 3. Estrutura do HTML e CSS
 html_vendedores = """
 <style>
     .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; }
@@ -383,7 +396,7 @@ for i, v in enumerate(dados_vendedores):
         </td>"""
     
     html_vendedores += f"<td><b>{fmt_br(v['valor_esperado'])}</b></td>"
-    html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span></td>"
+    html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span><span class='val-sub'>p/ dia</span></td>"
     html_vendedores += f"</tr>"
 
 html_vendedores += "</tbody></table>"
