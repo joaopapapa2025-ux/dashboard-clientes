@@ -184,9 +184,10 @@ class FeriadosBrasil(AbstractHolidayCalendar):
         Holiday('Natal', month=12, day=25),
     ]
 
-# Inicializa o calendário e converte para uma lista de datas (evita o ValueError)
+# 1. Gerar feriados e CONVERTER para lista de datas simples (Crucial para evitar ValueError)
 cal = FeriadosBrasil()
-feriados_2026 = cal.holidays(start='2026-01-01', end='2026-12-31').to_pydatetime().tolist()
+feriados_pandas = cal.holidays(start='2026-01-01', end='2026-12-31')
+lista_feriados = [d.date() for d in feriados_pandas] # Converte para date pura
 
 # Dados Manuais Gerais
 meta_abril = 882036.00
@@ -194,29 +195,32 @@ faturado_abril = 112287.00
 digitado_abril = 170125.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
-hoje = datetime.now() 
+# Forçamos as datas para .date() para alinhar com a lista de feriados
+hoje_dt = datetime.now()
+hoje = hoje_dt.date()
 ontem = hoje - timedelta(days=1)
-inicio_mes = datetime(2026, 4, 1)
-fim_mes_civil = datetime(2026, 4, 30)
+inicio_mes = datetime(2026, 4, 1).date()
+fim_mes_civil = datetime(2026, 4, 30).date()
 
-# 1. Identificar dias úteis REAIS (Exclui FDS e Feriados)
-dias_uteis_reais = pd.bdate_range(inicio_mes, fim_mes_civil, holidays=feriados_2026)
+# 2. Identificar dias úteis REAIS (freq='C' usa feriados customizados de forma mais estável)
+# Usamos pd.date_range com freq='B' e depois filtramos os feriados manualmente para evitar bugs do bdate_range
+dias_uteis_reais = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
+dias_uteis_reais = [d.date() for d in dias_uteis_reais if d.date() not in lista_feriados]
 
-# 2. Data Limite de Faturamento (3 dias úteis antes do fim)
+# 3. Data Limite de Faturamento (3 dias úteis antes do fim da lista de úteis)
 data_limite_faturamento = dias_uteis_reais[-4] 
 
-# 3. Dias úteis comerciais totais
-dias_uteis_comerciais_totais = len(pd.bdate_range(inicio_mes, data_limite_faturamento, holidays=feriados_2026))
+# 4. Dias úteis comerciais totais (do início até a data limite)
+dias_uteis_totais_list = [d for d in dias_uteis_reais if d <= data_limite_faturamento]
+dias_uteis_comerciais_totais = len(dias_uteis_totais_list)
 
-# 4. Dias úteis que já passaram (Até ontem, pois o dado é D-1)
-dias_uteis_passados = len(pd.bdate_range(inicio_mes, ontem, holidays=feriados_2026))
+# 5. Dias úteis que já passaram (Até ontem)
+dias_uteis_passados_list = [d for d in dias_uteis_totais_list if d <= ontem]
+dias_uteis_passados = len(dias_uteis_passados_list)
 
-# 5. Dias úteis restantes incluindo HOJE
-# Convertendo para .date() para garantir comparação correta
-if hoje.date() <= data_limite_faturamento.date():
-    dias_uteis_restantes = len(pd.bdate_range(hoje, data_limite_faturamento, holidays=feriados_2026))
-else:
-    dias_uteis_restantes = 0
+# 6. Dias úteis restantes incluindo HOJE
+dias_restantes_list = [d for d in dias_uteis_totais_list if d >= hoje]
+dias_uteis_restantes = len(dias_restantes_list)
 
 # --- CÁLCULOS DE PERFORMANCE GERAL ---
 total_geral = faturado_abril + digitado_abril
@@ -237,7 +241,6 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
-# Colunas de métricas
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 def fmt_metric(valor):
