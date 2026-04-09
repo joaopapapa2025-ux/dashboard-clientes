@@ -262,18 +262,6 @@ with col5:
 with col6:
     # Formatação do valor do ritmo
     ritmo_fmt = f"R$ {ritmo_final:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    
-    # HTML ajustado para alinhamento vertical perfeito com os st.metric
-    st.markdown(f"""
-        <div style="font-family: 'Source Sans Pro', sans-serif; line-height: 1.2;">
-            <p style="color: rgb(49, 51, 63); font-size: 14px; margin-bottom: 4px; opacity: 0.9;">📅 Ritmo Diário</p>
-            <div style="display: flex; align-items: baseline;">
-                <span style="color: rgb(49, 51, 63); font-size: 28px; font-weight: 600;">{ritmo_fmt}</span>
-                <span style="color: rgb(49, 51, 63); font-size: 14px; margin-left: 4px; opacity: 0.7;">/dia</span>
-            </div>
-            <p style="color: #29b5e8; font-size: 14px; margin-top: 4px; font-weight: 500;">{dias_uteis_restantes} d.ú. rest.</p>
-        </div>
-    """, unsafe_allow_html=True)
 
 # Rodapé de análise
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
