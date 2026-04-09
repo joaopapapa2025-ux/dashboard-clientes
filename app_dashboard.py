@@ -235,6 +235,10 @@ ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restant
 # --- EXIBIÇÃO NO TOPO ---
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 
+# Você pode alterar a data/hora manualmente aqui sempre que atualizar os números
+data_atualizacao = "09/04/2026 às 08:30" 
+st.markdown(f"🕒 *Última atualização manual: {data_atualizacao}*")
+
 if gap_vs_linear < -2 and falta_r_cifra > 0:
     st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de ontem.")
 elif falta_r_cifra <= 0:
