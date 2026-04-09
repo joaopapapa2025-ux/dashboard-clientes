@@ -377,7 +377,7 @@ for i, v in enumerate(dados_vendedores):
     # Lógica de cor e label para a diferença do ideal
     if v["diff_ideal"] >= 0:
         cor_diff = "#2E7D32"
-        label_diff = "Saldo"
+        label_diff = "Overperformance"
     else:
         cor_diff = "#C62828"
         label_diff = "Gap"
