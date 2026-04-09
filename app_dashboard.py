@@ -228,7 +228,18 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
-# Grid de métricas - Usando st.metric em todas para alinhamento perfeito
+# CSS para tirar a flecha e deixar o delta azul
+st.markdown("""
+    <style>
+    [data-testid="stMetricDelta"] > div:first-child > svg {
+        display: none !important;
+    }
+    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div {
+        color: #29b5e8 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 def fmt_metric(valor):
@@ -248,10 +259,10 @@ with col4:
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 
-# AQUI ESTÁ A MUDANÇA: Usando o componente nativo para garantir o alinhamento
+# Ritmo Diário: Valor Grande e Dias Úteis no Delta (sem flecha e em azul via CSS acima)
 with col6:
     ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
-    st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.", delta_color="off")
+    st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
 
 # Rodapé de análise
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
