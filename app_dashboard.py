@@ -237,7 +237,7 @@ st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 
 # Você pode alterar a data/hora manualmente aqui sempre que atualizar os números
 data_atualizacao = "09/04/2026 às 08:30" 
-st.markdown(f"🕒 *Última atualização manual: {data_atualizacao}*")
+st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
 
 if gap_vs_linear < -2 and falta_r_cifra > 0:
     st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de ontem.")
@@ -283,6 +283,10 @@ st.markdown("---")
 # 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
+
+# Você pode alterar a data/hora manualmente aqui sempre que atualizar os números
+data_atualizacao = "09/04/2026 às 08:30" 
+st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
 
 from datetime import datetime, timedelta
 import pandas as pd
