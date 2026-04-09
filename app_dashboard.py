@@ -228,12 +228,15 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
-# CSS para tirar a flecha e deixar o delta azul
+# --- AJUSTE VISUAL (CSS) ---
+# Remove a flecha e deixa o texto do delta azul apenas na coluna do Ritmo Diário
 st.markdown("""
     <style>
-    [data-testid="stMetricDelta"] > div:first-child > svg {
+    /* Remove o ícone da flecha de todos os deltas */
+    [data-testid="stMetricDelta"] svg {
         display: none !important;
     }
+    /* Força a cor azul no delta da sétima coluna */
     [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div {
         color: #29b5e8 !important;
     }
@@ -259,7 +262,7 @@ with col4:
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 
-# Ritmo Diário: Valor Grande e Dias Úteis no Delta (sem flecha e em azul via CSS acima)
+# Ritmo Diário: Valor no corpo, dias úteis no delta (flecha oculta e cor azul via CSS)
 with col6:
     ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
     st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
