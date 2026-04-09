@@ -160,37 +160,58 @@ if st.sidebar.button("Sair (Limpar Sessão)"):
     st.rerun()
 
 # ==========================================
-# 📝 AJUSTE MANUAL DIÁRIO (ABRIL 2026)
+# 📝 AJUSTE MANUAL DIÁRIO (ABRIL 2026 - REGRA PAPAPÁ)
 # ==========================================
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 
+# Dados Manuais
 meta_abril = 882036.00
 faturado_abril = 112287.00
 digitado_abril = 170125.00
 
-# --- CÁLCULOS DE CALENDÁRIO ---
+# --- CÁLCULOS DE CALENDÁRIO (D-1 e Regra dos -3 dias úteis) ---
 hoje = datetime.now()
+ontem = hoje - timedelta(days=1) # Referência D-1
 inicio_mes = datetime(2026, 4, 1)
-fim_mes = datetime(2026, 4, 30)
+fim_mes_civil = datetime(2026, 4, 30)
 
-dias_uteis_totais = len(pd.date_range(inicio_mes, fim_mes, freq='B'))
-dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
-dias_uteis_restantes = max(0, dias_uteis_totais - dias_uteis_passados)
+# 1. Identificar todos os dias úteis do mês
+todos_dias_uteis = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
+
+# 2. Definir a Data Limite de Faturamento (3 dias úteis antes do fim)
+# O índice -1 é o último dia útil, então o -4 é o 3º dia útil antes do fim.
+data_limite_faturamento = todos_dias_uteis[-4] 
+
+# 3. Dias úteis comerciais totais (A meta deve ser batida até aqui)
+dias_uteis_comerciais_totais = len(pd.date_range(inicio_mes, data_limite_faturamento, freq='B'))
+
+# 4. Dias úteis que já passaram (considerando até ontem)
+dias_uteis_passados = len(pd.date_range(inicio_mes, ontem, freq='B'))
+
+# 5. Dias úteis restantes para bater a meta (de ontem até o limite de faturamento)
+if ontem < data_limite_faturamento:
+    dias_uteis_restantes = len(pd.date_range(ontem + timedelta(days=1), data_limite_faturamento, freq='B'))
+else:
+    dias_uteis_restantes = 0
 
 # --- CÁLCULOS DE PERFORMANCE ---
 total_geral = faturado_abril + digitado_abril
 percentual_atual = (total_geral / meta_abril) * 100
-percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
+
+# O percentual esperado agora é sobre os dias úteis comerciais (os -3 dias)
+percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 gap_vs_linear = percentual_atual - percentual_esperado
+
 falta_r_cifra = meta_abril - total_geral
+# Ritmo divide o que falta pelos dias restantes REAIS de faturamento
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
 
 # --- EXIBIÇÃO NO TOPO ---
-st.subheader("📊 Resultado - Inside Sales (D -1)")
+st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 
 if gap_vs_linear < -2 and falta_r_cifra > 0:
-    st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o dia {hoje.day}.")
+    st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de ontem.")
 elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
@@ -213,10 +234,15 @@ with col5:
 with col6:
     st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú. rest.", delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
 
+# Cálculo do valor esperado para exibição no texto explicativo
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-st.markdown(f"**Análise de Ciclo:** Hoje é dia {hoje.day}. Resultado esperado para hoje: **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).")
+st.markdown(f"""
+> **Análise de Ciclo Papapá:** > * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
+> * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}** (3 dias úteis antes do fim do mês).
+> * O esperado para ontem era **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
+""")
 st.markdown("---")
 
 # ==========================================
