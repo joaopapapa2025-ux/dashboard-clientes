@@ -159,20 +159,22 @@ if st.sidebar.button("Sair (Limpar Sessão)"):
     st.query_params.clear()
     st.rerun()
 
-# ==========================================
-# 📝 AJUSTE MANUAL DIÁRIO (ABRIL 2026 - REGRA PAPAPÁ)
-# ==========================================
+import streamlit as st
 from datetime import datetime, timedelta
 import pandas as pd
 
-# Dados Manuais
+# ==========================================
+# 📝 BLOCO 1: PERFORMANCE GERAL (INSIDE SALES)
+# ==========================================
+
+# Dados Manuais Gerais
 meta_abril = 882036.00
 faturado_abril = 112287.00
 digitado_abril = 170125.00
 
 # --- CÁLCULOS DE CALENDÁRIO (D-1 e Regra dos -3 dias úteis) ---
 hoje = datetime.now()
-ontem = hoje - timedelta(days=1) # Referência D-1
+ontem = hoje - timedelta(days=1)
 inicio_mes = datetime(2026, 4, 1)
 fim_mes_civil = datetime(2026, 4, 30)
 
@@ -180,31 +182,26 @@ fim_mes_civil = datetime(2026, 4, 30)
 todos_dias_uteis = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
 
 # 2. Definir a Data Limite de Faturamento (3 dias úteis antes do fim)
-# O índice -1 é o último dia útil, então o -4 é o 3º dia útil antes do fim.
 data_limite_faturamento = todos_dias_uteis[-4] 
 
-# 3. Dias úteis comerciais totais (A meta deve ser batida até aqui)
+# 3. Dias úteis comerciais totais
 dias_uteis_comerciais_totais = len(pd.date_range(inicio_mes, data_limite_faturamento, freq='B'))
 
-# 4. Dias úteis que já passaram (considerando até ontem)
+# 4. Dias úteis que já passaram (até ontem)
 dias_uteis_passados = len(pd.date_range(inicio_mes, ontem, freq='B'))
 
-# 5. Dias úteis restantes para bater a meta (de ontem até o limite de faturamento)
+# 5. Dias úteis restantes para bater a meta
 if ontem < data_limite_faturamento:
     dias_uteis_restantes = len(pd.date_range(ontem + timedelta(days=1), data_limite_faturamento, freq='B'))
 else:
     dias_uteis_restantes = 0
 
-# --- CÁLCULOS DE PERFORMANCE ---
+# --- CÁLCULOS DE PERFORMANCE GERAL ---
 total_geral = faturado_abril + digitado_abril
 percentual_atual = (total_geral / meta_abril) * 100
-
-# O percentual esperado agora é sobre os dias úteis comerciais (os -3 dias)
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 gap_vs_linear = percentual_atual - percentual_esperado
-
 falta_r_cifra = meta_abril - total_geral
-# Ritmo divide o que falta pelos dias restantes REAIS de faturamento
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
 
 # --- EXIBIÇÃO NO TOPO ---
@@ -234,7 +231,6 @@ with col5:
 with col6:
     st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú. rest.", delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
 
-# Cálculo do valor esperado para exibição no texto explicativo
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -246,64 +242,37 @@ st.markdown(f"""
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (RANKING COMPLETO)
+# 📈 BLOCO 2: RANKING INDIVIDUAL
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
-from datetime import datetime, timedelta
-import pandas as pd
-
-# 1. Configuração de Calendário (Regra Papapá)
-hoje = datetime.now()
-ontem = hoje - timedelta(days=1)
-inicio_mes = datetime(2026, 4, 1)
-fim_mes_civil = datetime(2026, 4, 30)
-
-todos_dias_uteis = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
-data_limite_faturamento = todos_dias_uteis[-4] # 3 dias úteis antes do fim
-dias_uteis_comerciais_totais = len(pd.date_range(inicio_mes, data_limite_faturamento, freq='B'))
-dias_uteis_passados = len(pd.date_range(inicio_mes, ontem, freq='B'))
-
-# Percentual esperado baseado no calendário comercial
-percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
-
-# Dias restantes para o cálculo do ritmo individual
-if ontem < data_limite_faturamento:
-    dias_restantes = len(pd.date_range(ontem + timedelta(days=1), data_limite_faturamento, freq='B'))
-else:
-    dias_restantes = 0
-
-# 2. Dados com Pedidos incluídos
+# Dados com Pedidos incluídos
 dados_vendedores = [
     {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 52983.63, "Fat_Ped": 13, "Digitado": 21125.22, "Dig_Ped": 6},
     {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 38201.10, "Fat_Ped": 20, "Digitado": 47584.24, "Dig_Ped": 26},
     {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 25716.20, "Fat_Ped": 17, "Digitado": 32747.15, "Dig_Ped": 20},
     {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 10679.16, "Fat_Ped": 9, "Digitado": 9922.38, "Dig_Ped": 8},
     {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 8082.33, "Fat_Ped": 7, "Digitado": 10909.68, "Dig_Ped": 8},
-    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 8416.72, "Fat_Ped": 5, "Digitado": 2721.60, "Dig_Ped": 1},
+    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.0, "Faturado": 8416.72, "Fat_Ped": 5, "Digitado": 2721.60, "Dig_Ped": 1},
 ]
 
-# 3. Cálculos de apoio individuais
+def fmt_br(valor):
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# Cálculos de apoio individuais
 for v in dados_vendedores:
     v["total_rs"] = v["Faturado"] + v["Digitado"]
     v["total_ped"] = v["Fat_Ped"] + v["Dig_Ped"]
     v["ating"] = (v["total_rs"] / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
     v["valor_esperado"] = (percentual_esperado / 100) * v["Meta"]
-    
-    # Ticket Médio (Total R$ / Total Pedidos)
     v["tm"] = v["total_rs"] / v["total_ped"] if v["total_ped"] > 0 else 0.0
-    
-    # Ritmo Individual (Quanto falta / dias restantes)
-    falta = max(0, v["Meta"] - v["total_rs"])
-    v["ritmo_ind"] = falta / dias_restantes if dias_restantes > 0 else falta
+    falta_ind = max(0, v["Meta"] - v["total_rs"])
+    v["ritmo_ind"] = falta_ind / dias_uteis_restantes if dias_uteis_restantes > 0 else falta_ind
 
-# Ordenação
+# Ordenação por atingimento
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
-def fmt_br(valor):
-    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-# 4. Estrutura HTML/CSS
+# Estrutura HTML/CSS
 html_vendedores = """
 <style>
     .tab-perf { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; }
