@@ -242,7 +242,7 @@ st.markdown(f"""
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (FINAL COMPLETO)
+# 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
@@ -273,7 +273,7 @@ if ontem < data_limite_faturamento:
 else:
     dias_restantes = 0
 
-# --- DADOS ---
+# --- DADOS COM PEDIDOS ---
 dados_vendedores = [
     {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 52983.63, "Fat_Ped": 13, "Digitado": 21125.22, "Dig_Ped": 6},
     {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 38201.10, "Fat_Ped": 20, "Digitado": 47584.24, "Dig_Ped": 26},
@@ -300,44 +300,17 @@ dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=Tr
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# 3. Estrutura do HTML e CSS (Ajustado para não ficar minúsculo)
+# 3. Estrutura do HTML e CSS (Mantendo seu padrão de concatenação)
 html_vendedores = """
 <style>
-    .scroll-container {
-        width: 100%;
-        overflow-x: auto;
-    }
-    .tab-performance { 
-        width: 100%; 
-        min-width: 1100px; /* Impede que a tabela esmague as colunas */
-        border-collapse: collapse; 
-        font-family: sans-serif; 
-        font-size: 15px; /* Fonte em tamanho legível */
-    }
-    .tab-performance th { 
-        background-color: #f0f2f6; 
-        padding: 12px 8px; 
-        text-align: center; 
-        color: #31333F; 
-        border-bottom: 2px solid #ccc; 
-    }
-    .tab-performance td { 
-        padding: 12px 8px; 
-        text-align: center; 
-        border-bottom: 1px solid #eee; 
-        vertical-align: middle;
-    }
-    .col-vendedor { 
-        text-align: left !important; 
-        width: 280px !important; 
-        white-space: nowrap !important; 
-        font-weight: bold;
-    }
+    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; }
+    .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
+    .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
     .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
     .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; }
-    .val-sub { font-size: 12px; color: #757575; display: block; margin-top: 2px; }
+    .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; }
+    .col-vendedor { width: 250px !important; text-align: left !important; white-space: nowrap !important; }
 </style>
-<div class="scroll-container">
 <table class="tab-performance">
     <thead>
         <tr>
@@ -361,23 +334,25 @@ for i, v in enumerate(dados_vendedores):
     cor_ating = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
     if v["Meta"] == 0: cor_ating = "#31333F"
 
+    html_vendedores += f"<tr>"
+    html_vendedores += f"<td>{pos}º</td>"
+    html_vendedores += f"<td class='col-vendedor'><b>{v['Vendedor']}</b></td>"
+    html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
+    html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}<span class='val-sub'>{v['Fat_Ped']} pedidos</span></td>"
+    html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}<span class='val-sub'>{v['Dig_Ped']} pedidos</span></td>"
+    html_vendedores += f"<td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td>"
+    
     html_vendedores += f"""
-    <tr>
-        <td>{pos}º</td>
-        <td class='col-vendedor'>{v['Vendedor']}</td>
-        <td>{fmt_br(v['Meta'])}</td>
-        <td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}<span class='val-sub'>{v['Fat_Ped']} pedidos</span></td>
-        <td style='color: #1565C0;'>{fmt_br(v['Digitado'])}<span class='val-sub'>{v['Dig_Ped']} pedidos</span></td>
-        <td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td>
         <td>
             <div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> 
             <span style='color: {cor_ating}; font-weight: bold;'>{v['ating']:.1f}%</span>
-        </td>
-        <td><b>{fmt_br(v['valor_esperado'])}</b></td>
-        <td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span><span class='val-sub'>p/ dia</span></td>
-    </tr>"""
+        </td>"""
+    
+    html_vendedores += f"<td><b>{fmt_br(v['valor_esperado'])}</b></td>"
+    html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span></td>"
+    html_vendedores += f"</tr>"
 
-html_vendedores += "</tbody></table></div>"
+html_vendedores += "</tbody></table>"
 
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
