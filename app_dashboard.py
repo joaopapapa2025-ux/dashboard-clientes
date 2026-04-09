@@ -214,7 +214,7 @@ percentual_atual = (total_geral / meta_abril) * 100
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 gap_vs_linear = percentual_atual - percentual_esperado
 falta_r_cifra = meta_abril - total_geral
-ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
+ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 # --- EXIBIÇÃO NO TOPO ---
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
@@ -228,15 +228,20 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
-# --- AJUSTE VISUAL (CSS) ---
-# Remove a flecha e deixa o texto do delta azul apenas na coluna do Ritmo Diário
+# --- O AJUSTE DEFINITIVO (CSS) ---
 st.markdown("""
     <style>
-    /* Remove o ícone da flecha de todos os deltas */
+    /* 1. Esconde a flecha (ícone SVG) de todos os componentes de métrica */
     [data-testid="stMetricDelta"] svg {
         display: none !important;
     }
-    /* Força a cor azul no delta da sétima coluna */
+    
+    /* 2. Remove o fundo verde/vermelho (pílula) para deixar o texto limpo */
+    [data-testid="stMetricDelta"] > div {
+        background-color: transparent !important;
+    }
+
+    /* 3. Força a cor AZUL apenas no delta da 7ª coluna (Ritmo Diário) */
     [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div {
         color: #29b5e8 !important;
     }
@@ -262,7 +267,7 @@ with col4:
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 
-# Ritmo Diário: Valor no corpo, dias úteis no delta (flecha oculta e cor azul via CSS)
+# Aqui os dias úteis aparecerão sem flecha e em azul
 with col6:
     ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
     st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
