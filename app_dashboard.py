@@ -170,6 +170,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday
 import streamlit as st
+import streamlit.components.v1 as components
 
 # --- CONFIGURAÇÃO DE FERIADOS NACIONAIS ---
 class FeriadosBrasil(AbstractHolidayCalendar):
@@ -218,37 +219,19 @@ gap_vs_linear = percentual_atual - percentual_esperado
 falta_r_cifra = meta_abril - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
-# Formatação para o rodapé
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # --- EXIBIÇÃO ---
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
+st.markdown(f"🕒 *Última atualização: 09/04/2026 às 08:30*")
 
-data_atualizacao = "09/04/2026 às 08:30" 
-st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
-
-# --- CSS "ULTRA" ESPECÍFICO ---
+# CSS para esconder a flecha e preparar o terreno
 st.markdown("""
     <style>
-    /* 1. Esconde a flecha de todos os deltas */
-    [data-testid="stMetricDelta"] svg {
-        display: none !important;
-    }
-    
-    /* 2. Sétima coluna: Remove o fundo e força o azul em QUALQUER elemento interno (*) */
-    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] {
+    [data-testid="stMetricDelta"] svg { display: none !important; }
+    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div {
         background-color: transparent !important;
-    }
-    
-    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] * {
-        color: #29b5e8 !important;
-        background: transparent !important;
-    }
-
-    /* 3. Garante que as cores de sucesso/erro originais não sobrescrevam o azul */
-    [data-testid="column"]:nth-of-type(7) div[data-testid="stMetricStat"] + div {
-        color: #29b5e8 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -259,32 +242,47 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
-# Layout das Colunas
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 def fmt_metric(valor):
     return f"R$ {valor:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-with col1:
-    st.metric("🎯 Meta", fmt_metric(meta_abril))
-with col2:
-    st.metric("✅ Faturado", fmt_metric(faturado_abril))
-with col3:
-    st.metric("📝 Digitado", fmt_metric(digitado_abril))
-with col_total:
-    st.metric("💰 Total Geral", fmt_metric(total_geral))
+with col1: st.metric("🎯 Meta", fmt_metric(meta_abril))
+with col2: st.metric("✅ Faturado", fmt_metric(faturado_abril))
+with col3: st.metric("📝 Digitado", fmt_metric(digitado_abril))
+with col_total: st.metric("💰 Total Geral", fmt_metric(total_geral))
 with col4:
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
     st.metric(label_gap, fmt_metric(abs(falta_r_cifra)))
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
-
-# COLUNA 7: Ritmo Diário
 with col6:
     ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
     st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
 
-# Rodapé de análise
+# --- O TRUQUE FINAL: JAVASCRIPT PARA FORÇAR O AZUL ---
+components.html("""
+    <script>
+    const forceBlue = () => {
+        // Seleciona todos os deltas
+        const deltas = window.parent.document.querySelectorAll('[data-testid="stMetricDelta"]');
+        if (deltas.length >= 2) {
+            // O segundo delta visível (Atingimento tem um, Ritmo tem outro)
+            // No seu caso, queremos o último (Ritmo Diário)
+            const ritmoDelta = deltas[deltas.length - 1];
+            const textElement = ritmoDelta.querySelector('div');
+            if (textElement) {
+                textElement.style.color = '#29b5e8';
+                textElement.style.setProperty('color', '#29b5e8', 'important');
+            }
+        }
+    };
+    // Executa agora e daqui a 1 segundo para garantir que o Streamlit terminou de renderizar
+    forceBlue();
+    setTimeout(forceBlue, 1000);
+    </script>
+""", height=0)
+
 st.markdown(f"""
 > **Análise de Ciclo:**
 > * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
@@ -292,7 +290,6 @@ st.markdown(f"""
 > * Dias úteis restantes (contando com hoje): **{dias_uteis_restantes}**.
 > * O atingimento ideal para ontem era **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
 """)
-st.markdown("---")
 
 # ==========================================
 # 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
