@@ -184,10 +184,10 @@ class FeriadosBrasil(AbstractHolidayCalendar):
         Holiday('Natal', month=12, day=25),
     ]
 
-# 1. Gerar feriados e CONVERTER para lista de datas simples (Crucial para evitar ValueError)
+# 1. Gerar feriados
 cal = FeriadosBrasil()
 feriados_pandas = cal.holidays(start='2026-01-01', end='2026-12-31')
-lista_feriados = [d.date() for d in feriados_pandas] # Converte para date pura
+lista_feriados = [d.date() for d in feriados_pandas]
 
 # Dados Manuais Gerais
 meta_abril = 882036.00
@@ -195,26 +195,24 @@ faturado_abril = 112287.00
 digitado_abril = 170125.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
-# Forçamos as datas para .date() para alinhar com a lista de feriados
 hoje_dt = datetime.now()
 hoje = hoje_dt.date()
 ontem = hoje - timedelta(days=1)
 inicio_mes = datetime(2026, 4, 1).date()
 fim_mes_civil = datetime(2026, 4, 30).date()
 
-# 2. Identificar dias úteis REAIS (freq='C' usa feriados customizados de forma mais estável)
-# Usamos pd.date_range com freq='B' e depois filtramos os feriados manualmente para evitar bugs do bdate_range
+# 2. Identificar dias úteis REAIS
 dias_uteis_reais = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
 dias_uteis_reais = [d.date() for d in dias_uteis_reais if d.date() not in lista_feriados]
 
-# 3. Data Limite de Faturamento (3 dias úteis antes do fim da lista de úteis)
+# 3. Data Limite de Faturamento
 data_limite_faturamento = dias_uteis_reais[-4] 
 
-# 4. Dias úteis comerciais totais (do início até a data limite)
+# 4. Dias úteis comerciais totais
 dias_uteis_totais_list = [d for d in dias_uteis_reais if d <= data_limite_faturamento]
 dias_uteis_comerciais_totais = len(dias_uteis_totais_list)
 
-# 5. Dias úteis que já passaram (Até ontem)
+# 5. Dias úteis que já passaram (D-1)
 dias_uteis_passados_list = [d for d in dias_uteis_totais_list if d <= ontem]
 dias_uteis_passados = len(dias_uteis_passados_list)
 
@@ -228,14 +226,11 @@ percentual_atual = (total_geral / meta_abril) * 100
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 gap_vs_linear = percentual_atual - percentual_esperado
 falta_r_cifra = meta_abril - total_geral
-
-# Ritmo diário
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
 
 # --- EXIBIÇÃO NO TOPO ---
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 
-# Você pode alterar a data/hora manualmente aqui sempre que atualizar os números
 data_atualizacao = "09/04/2026 às 08:30" 
 st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
 
@@ -245,6 +240,7 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
+# Grid de métricas
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 def fmt_metric(valor):
@@ -267,15 +263,15 @@ with col6:
     # Formatação do valor do ritmo
     ritmo_fmt = f"R$ {ritmo_final:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
-    # HTML para mimetizar o padrão estético do st.metric
+    # HTML ajustado para alinhamento vertical perfeito com os st.metric
     st.markdown(f"""
-        <div style="display: flex; flex-direction: column; align-items: flex-start;">
-            <p style="color: rgb(49, 51, 63); font-size: 14px; margin-bottom: 0px; opacity: 0.8;">📅 Ritmo Diário</p>
-            <div style="display: flex; align-items: baseline; margin-top: -5px;">
-                <p style="color: rgb(49, 51, 63); font-size: 28px; font-weight: 600; margin-bottom: 0px;">{ritmo_fmt}</p>
-                <span style="color: rgb(49, 51, 63); font-size: 16px; margin-left: 4px; opacity: 0.8;">/dia</span>
+        <div style="font-family: 'Source Sans Pro', sans-serif; line-height: 1.2;">
+            <p style="color: rgb(49, 51, 63); font-size: 14px; margin-bottom: 4px; opacity: 0.9;">📅 Ritmo Diário</p>
+            <div style="display: flex; align-items: baseline;">
+                <span style="color: rgb(49, 51, 63); font-size: 28px; font-weight: 600;">{ritmo_fmt}</span>
+                <span style="color: rgb(49, 51, 63); font-size: 14px; margin-left: 4px; opacity: 0.7;">/dia</span>
             </div>
-            <p style="color: #29b5e8; font-size: 15px; margin-top: -2px; font-weight: 500;">{dias_uteis_restantes} d.ú. rest.</p>
+            <p style="color: #29b5e8; font-size: 14px; margin-top: 4px; font-weight: 500;">{dias_uteis_restantes} d.ú. rest.</p>
         </div>
     """, unsafe_allow_html=True)
 
