@@ -264,7 +264,7 @@ dias_uteis_passados = len(pd.date_range(inicio_mes, ontem, freq='B'))
 # Percentual esperado baseado na regra comercial
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 
-# Texto informativo logo abaixo do título (Removido da tabela para limpar o visual)
+# Texto informativo logo abaixo do título
 st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.1f}%]")
 
 # Dias restantes para ritmo
@@ -273,7 +273,7 @@ if ontem < data_limite_faturamento:
 else:
     dias_restantes = 0
 
-# --- DADOS COM PEDIDOS ---
+# --- DADOS ---
 dados_vendedores = [
     {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 52983.63, "Fat_Ped": 13, "Digitado": 21125.22, "Dig_Ped": 6},
     {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 38201.10, "Fat_Ped": 20, "Digitado": 47584.24, "Dig_Ped": 26},
@@ -289,10 +289,8 @@ for v in dados_vendedores:
     v["total"] = total
     v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
     v["valor_esperado"] = (percentual_esperado / 100) * v["Meta"]
-    # Ticket Médio
     total_pedidos = v["Fat_Ped"] + v["Dig_Ped"]
     v["tm"] = total / total_pedidos if total_pedidos > 0 else 0
-    # Ritmo Individual
     falta = max(0, v["Meta"] - total)
     v["ritmo_v"] = falta / dias_restantes if dias_restantes > 0 else falta
 
@@ -302,21 +300,44 @@ dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=Tr
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# 3. Estrutura do HTML e CSS
+# 3. Estrutura do HTML e CSS (Ajustado para não ficar minúsculo)
 html_vendedores = """
 <style>
-    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; }
-    .tab-performance th { background-color: #f0f2f6; padding: 10px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
-    .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
-    .prog-bg { background-color: #ddd; border-radius: 10px; width: 50px; height: 7px; display: inline-block; margin-right: 5px; }
-    .prog-bar { background-color: #29b5e8; height: 7px; border-radius: 10px; }
-    .val-sub { font-size: 10px; color: #757575; display: block; margin-top: 2px; }
+    .scroll-container {
+        width: 100%;
+        overflow-x: auto;
+    }
+    .tab-performance { 
+        width: 100%; 
+        min-width: 1100px; /* Impede que a tabela esmague as colunas */
+        border-collapse: collapse; 
+        font-family: sans-serif; 
+        font-size: 15px; /* Fonte em tamanho legível */
+    }
+    .tab-performance th { 
+        background-color: #f0f2f6; 
+        padding: 12px 8px; 
+        text-align: center; 
+        color: #31333F; 
+        border-bottom: 2px solid #ccc; 
+    }
+    .tab-performance td { 
+        padding: 12px 8px; 
+        text-align: center; 
+        border-bottom: 1px solid #eee; 
+        vertical-align: middle;
+    }
     .col-vendedor { 
         text-align: left !important; 
-        min-width: 220px !important; 
+        width: 280px !important; 
         white-space: nowrap !important; 
+        font-weight: bold;
     }
+    .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
+    .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; }
+    .val-sub { font-size: 12px; color: #757575; display: block; margin-top: 2px; }
 </style>
+<div class="scroll-container">
 <table class="tab-performance">
     <thead>
         <tr>
@@ -340,30 +361,23 @@ for i, v in enumerate(dados_vendedores):
     cor_ating = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
     if v["Meta"] == 0: cor_ating = "#31333F"
 
-    html_vendedores += f"<tr>"
-    html_vendedores += f"<td>{pos}º</td>"
-    html_vendedores += f"<td class='col-vendedor'><b>{v['Vendedor']}</b></td>"
-    html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
-    html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}<span class='val-sub'>{v['Fat_Ped']} pedidos</span></td>"
-    html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}<span class='val-sub'>{v['Dig_Ped']} pedidos</span></td>"
-    html_vendedores += f"<td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td>"
-    
-    # Atingimento
     html_vendedores += f"""
+    <tr>
+        <td>{pos}º</td>
+        <td class='col-vendedor'>{v['Vendedor']}</td>
+        <td>{fmt_br(v['Meta'])}</td>
+        <td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}<span class='val-sub'>{v['Fat_Ped']} pedidos</span></td>
+        <td style='color: #1565C0;'>{fmt_br(v['Digitado'])}<span class='val-sub'>{v['Dig_Ped']} pedidos</span></td>
+        <td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td>
         <td>
             <div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> 
             <span style='color: {cor_ating}; font-weight: bold;'>{v['ating']:.1f}%</span>
-        </td>"""
-    
-    # Ideal Hoje (Apenas R$)
-    html_vendedores += f"<td><b>{fmt_br(v['valor_esperado'])}</b></td>"
+        </td>
+        <td><b>{fmt_br(v['valor_esperado'])}</b></td>
+        <td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span><span class='val-sub'>p/ dia</span></td>
+    </tr>"""
 
-    # Ritmo Diário
-    html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span><span class='val-sub'>p/ dia</span></td>"
-    
-    html_vendedores += f"</tr>"
-
-html_vendedores += "</tbody></table>"
+html_vendedores += "</tbody></table></div>"
 
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
