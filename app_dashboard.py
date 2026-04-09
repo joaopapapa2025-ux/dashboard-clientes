@@ -283,6 +283,10 @@ components.html("""
     </script>
 """, height=0)
 
+# Rodapé de análise
+valor_esperado_reais = (percentual_esperado / 100) * meta_abril
+valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 st.markdown(f"""
 > **Análise de Ciclo:**
 > * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
@@ -290,6 +294,7 @@ st.markdown(f"""
 > * Dias úteis restantes (contando com hoje): **{dias_uteis_restantes}**.
 > * O atingimento ideal para ontem era **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
 """)
+st.markdown("---")
 
 # ==========================================
 # 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
