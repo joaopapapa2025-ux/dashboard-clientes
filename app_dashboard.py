@@ -212,7 +212,7 @@ data_limite_faturamento = dias_uteis_reais[-4]
 dias_uteis_totais_list = [d for d in dias_uteis_reais if d <= data_limite_faturamento]
 dias_uteis_comerciais_totais = len(dias_uteis_totais_list)
 
-# 5. Dias úteis que já passaram (D-1)
+# 5. Dias úteis que já passaram
 dias_uteis_passados_list = [d for d in dias_uteis_totais_list if d <= ontem]
 dias_uteis_passados = len(dias_uteis_passados_list)
 
@@ -232,7 +232,7 @@ ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restant
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 
 data_atualizacao = "09/04/2026 às 08:30" 
-st.markdown(f"<p style='color: gray; font-size: 14px; margin-top: -15px;'>🕒 Última atualização: {data_atualizacao}</p>", unsafe_allow_html=True)
+st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
 
 if gap_vs_linear < -2 and falta_r_cifra > 0:
     st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de ontem.")
@@ -240,7 +240,6 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
-# Grid de métricas
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 def fmt_metric(valor):
@@ -260,22 +259,17 @@ with col4:
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 with col6:
-    # Formatação do valor do ritmo
     ritmo_fmt = f"R$ {ritmo_final:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
-    # HTML para mimetizar o padrão estético do st.metric EXATAMENTE
+    # HTML mantendo a ordem pedida: Nome -> Valor Grande -> Dias Úteis em Azul
     st.markdown(f"""
-        <div style="font-family: 'Source Sans Pro', sans-serif; vertical-align: top;">
-            <label style="color: rgb(49, 51, 63); font-size: 14px; opacity: 0.8; margin-bottom: 0px;">📅 Ritmo Diário</p>
-            <div style="display: flex; align-items: baseline; margin-top: 2px;">
-                <span style="color: rgb(49, 51, 63); font-size: 28px; font-weight: 600;">{ritmo_fmt}</span>
+        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+            <p style="color: rgb(49, 51, 63); font-size: 14px; margin-bottom: 0px; opacity: 0.8;">📅 Ritmo Diário</p>
+            <div style="display: flex; align-items: baseline; margin-top: -5px;">
+                <p style="color: rgb(49, 51, 63); font-size: 28px; font-weight: 600; margin-bottom: 0px;">{ritmo_fmt}</p>
                 <span style="color: rgb(49, 51, 63); font-size: 16px; margin-left: 4px; opacity: 0.8;">/dia</span>
             </div>
-            <div style="color: #29b5e8; font-size: 14px; font-weight: 500; margin-top: 4px;">
-                <span style="background-color: rgba(41, 181, 232, 0.1); padding: 2px 6px; border-radius: 4px;">
-                    ↑ {dias_uteis_restantes} d.ú. rest.
-                </span>
-            </div>
+            <p style="color: #29b5e8; font-size: 15px; margin-top: -2px; font-weight: 500;">{dias_uteis_restantes} d.ú. rest.</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -284,11 +278,11 @@ valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 st.markdown(f"""
-> **Análise de Ciclo:**
-> * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
-> * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
-> * Dias úteis restantes (contando com hoje e feriados): **{dias_uteis_restantes}**.
-> * O atingimento ideal para ontem era **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
+**Análise de Ciclo:**
+* Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
+* Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
+* Dias úteis restantes (contando com hoje): **{dias_uteis_restantes}**.
+* O atingimento ideal para ontem era **31.6%** (equivalente a **{valor_formatado_br}**).
 """)
 st.markdown("---")
 
