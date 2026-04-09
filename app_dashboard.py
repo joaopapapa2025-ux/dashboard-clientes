@@ -232,7 +232,7 @@ ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restant
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 
 data_atualizacao = "09/04/2026 às 08:30" 
-st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
+st.markdown(f"<p style='color: gray; font-size: 14px; margin-top: -15px;'>🕒 Última atualização: {data_atualizacao}</p>", unsafe_allow_html=True)
 
 if gap_vs_linear < -2 and falta_r_cifra > 0:
     st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de ontem.")
@@ -262,6 +262,22 @@ with col5:
 with col6:
     # Formatação do valor do ritmo
     ritmo_fmt = f"R$ {ritmo_final:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    
+    # HTML para mimetizar o padrão estético do st.metric EXATAMENTE
+    st.markdown(f"""
+        <div style="font-family: 'Source Sans Pro', sans-serif; vertical-align: top;">
+            <label style="color: rgb(49, 51, 63); font-size: 14px; opacity: 0.8; margin-bottom: 0px;">📅 Ritmo Diário</p>
+            <div style="display: flex; align-items: baseline; margin-top: 2px;">
+                <span style="color: rgb(49, 51, 63); font-size: 28px; font-weight: 600;">{ritmo_fmt}</span>
+                <span style="color: rgb(49, 51, 63); font-size: 16px; margin-left: 4px; opacity: 0.8;">/dia</span>
+            </div>
+            <div style="color: #29b5e8; font-size: 14px; font-weight: 500; margin-top: 4px;">
+                <span style="background-color: rgba(41, 181, 232, 0.1); padding: 2px 6px; border-radius: 4px;">
+                    ↑ {dias_uteis_restantes} d.ú. rest.
+                </span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
 # Rodapé de análise
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
