@@ -264,7 +264,17 @@ with col4:
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 with col6:
-    st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú. rest.", delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
+    # Formatação do valor do ritmo
+    ritmo_fmt = f"R$ {ritmo_final:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    
+    # Criando o visual personalizado
+    st.markdown(f"""
+        <div style="line-height: 1.2;">
+            <p style="color: #31333F; font-size: 14px; margin-bottom: 0px;">📅 Ritmo Diário</p>
+            <p style="color: #31333F; font-size: 24px; font-weight: bold; margin-bottom: 0px;">{ritmo_fmt}<span style="font-size: 14px; font-weight: normal;"> /dia</span></p>
+            <p style="color: #29b5e8; font-size: 13px; font-weight: bold;">{dias_uteis_restantes} d.ú. rest.</p>
+        </div>
+    """, unsafe_allow_html=True)
 
 # Rodapé de análise
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
