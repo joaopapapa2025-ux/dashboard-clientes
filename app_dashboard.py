@@ -288,7 +288,7 @@ valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 st.markdown(f"""
-> **Análise de Ciclo:**
+> **Análise de ciclo:**
 > * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com hoje): **{dias_uteis_restantes}**.
