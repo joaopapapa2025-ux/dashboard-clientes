@@ -242,7 +242,7 @@ st.markdown(f"""
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
+# 📈 PERFORMANCE POR VENDEDOR (FINAL COMPLETO)
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
@@ -264,7 +264,7 @@ dias_uteis_passados = len(pd.date_range(inicio_mes, ontem, freq='B'))
 # Percentual esperado baseado na regra comercial
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 
-# Texto informativo logo abaixo do título
+# Texto informativo logo abaixo do título (Removido da tabela para limpar o visual)
 st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.1f}%]")
 
 # Dias restantes para ritmo
@@ -305,13 +305,17 @@ def fmt_br(valor):
 # 3. Estrutura do HTML e CSS
 html_vendedores = """
 <style>
-    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; }
-    .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
-    .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
-    .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
-    .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; }
-    .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; }
-    .col-vendedor { width: 180px !important; text-align: left !important; }
+    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; }
+    .tab-performance th { background-color: #f0f2f6; padding: 10px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
+    .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+    .prog-bg { background-color: #ddd; border-radius: 10px; width: 50px; height: 7px; display: inline-block; margin-right: 5px; }
+    .prog-bar { background-color: #29b5e8; height: 7px; border-radius: 10px; }
+    .val-sub { font-size: 10px; color: #757575; display: block; margin-top: 2px; }
+    .col-vendedor { 
+        text-align: left !important; 
+        min-width: 220px !important; 
+        white-space: nowrap !important; 
+    }
 </style>
 <table class="tab-performance">
     <thead>
@@ -355,7 +359,7 @@ for i, v in enumerate(dados_vendedores):
     html_vendedores += f"<td><b>{fmt_br(v['valor_esperado'])}</b></td>"
 
     # Ritmo Diário
-    html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span></td>"
+    html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span><span class='val-sub'>p/ dia</span></td>"
     
     html_vendedores += f"</tr>"
 
