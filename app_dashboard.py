@@ -264,6 +264,9 @@ dias_uteis_passados = len(pd.date_range(inicio_mes, ontem, freq='B'))
 # Percentual esperado baseado na regra comercial
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 
+# Texto informativo logo abaixo do título
+st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.1f}%]")
+
 # Dias restantes para ritmo
 if ontem < data_limite_faturamento:
     dias_restantes = len(pd.date_range(ontem + timedelta(days=1), data_limite_faturamento, freq='B'))
@@ -302,25 +305,26 @@ def fmt_br(valor):
 # 3. Estrutura do HTML e CSS
 html_vendedores = """
 <style>
-    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; }
+    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; }
     .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
-    .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
+    .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
     .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
     .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; }
-    .val-ideal-sub { font-size: 10px; color: #757575; display: block; margin-top: 2px; }
+    .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; }
+    .col-vendedor { width: 180px !important; text-align: left !important; }
 </style>
 <table class="tab-performance">
     <thead>
         <tr>
             <th>Pos.</th>
-            <th>Vendedor</th>
+            <th class="col-vendedor">Vendedor</th>
             <th>Meta</th>
             <th>Faturado</th>
             <th>Digitado</th>
             <th>Total (TM)</th>
             <th>Atingimento</th>
+            <th>Ideal Hoje (R$)</th>
             <th>Ritmo Diário</th>
-            <th>Ideal Hoje</th>
         </tr>
     </thead>
     <tbody>
@@ -334,25 +338,24 @@ for i, v in enumerate(dados_vendedores):
 
     html_vendedores += f"<tr>"
     html_vendedores += f"<td>{pos}º</td>"
-    html_vendedores += f"<td style='text-align: left;'><b>{v['Vendedor']}</b></td>"
+    html_vendedores += f"<td class='col-vendedor'><b>{v['Vendedor']}</b></td>"
     html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
-    html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}<span class='val-ideal-sub'>{v['Fat_Ped']} pedidos</span></td>"
-    html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}<span class='val-ideal-sub'>{v['Dig_Ped']} pedidos</span></td>"
-    html_vendedores += f"<td><b>{fmt_br(v['total'])}</b><span class='val-ideal-sub'>TM: {fmt_br(v['tm'])}</span></td>"
+    html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}<span class='val-sub'>{v['Fat_Ped']} pedidos</span></td>"
+    html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}<span class='val-sub'>{v['Dig_Ped']} pedidos</span></td>"
+    html_vendedores += f"<td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td>"
     
+    # Atingimento
     html_vendedores += f"""
         <td>
             <div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> 
             <span style='color: {cor_ating}; font-weight: bold;'>{v['ating']:.1f}%</span>
         </td>"""
     
-    html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span></td>"
+    # Ideal Hoje (Apenas R$)
+    html_vendedores += f"<td><b>{fmt_br(v['valor_esperado'])}</b></td>"
 
-    html_vendedores += f"""
-        <td>
-            <b>{percentual_esperado:.1f}%</b>
-            <span class='val-ideal-sub'>{fmt_br(v['valor_esperado'])}</span>
-        </td>"""
+    # Ritmo Diário
+    html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span></td>"
     
     html_vendedores += f"</tr>"
 
