@@ -267,12 +267,15 @@ with col6:
     # Formatação do valor do ritmo
     ritmo_fmt = f"R$ {ritmo_final:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
-    # Criando o visual personalizado
+    # HTML para mimetizar o padrão estético do st.metric
     st.markdown(f"""
-        <div style="line-height: 1.2;">
-            <p style="color: #31333F; font-size: 14px; margin-bottom: 0px;">📅 Ritmo Diário</p>
-            <p style="color: #31333F; font-size: 24px; font-weight: bold; margin-bottom: 0px;">{ritmo_fmt}<span style="font-size: 14px; font-weight: normal;"> /dia</span></p>
-            <p style="color: #29b5e8; font-size: 13px; font-weight: bold;">{dias_uteis_restantes} d.ú. rest.</p>
+        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+            <p style="color: rgb(49, 51, 63); font-size: 14px; margin-bottom: 0px; opacity: 0.8;">📅 Ritmo Diário</p>
+            <div style="display: flex; align-items: baseline; margin-top: -5px;">
+                <p style="color: rgb(49, 51, 63); font-size: 28px; font-weight: 600; margin-bottom: 0px;">{ritmo_fmt}</p>
+                <span style="color: rgb(49, 51, 63); font-size: 16px; margin-left: 4px; opacity: 0.8;">/dia</span>
+            </div>
+            <p style="color: #29b5e8; font-size: 15px; margin-top: -2px; font-weight: 500;">{dias_uteis_restantes} d.ú. rest.</p>
         </div>
     """, unsafe_allow_html=True)
 
