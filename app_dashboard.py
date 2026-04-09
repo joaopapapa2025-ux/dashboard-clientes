@@ -222,23 +222,23 @@ st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 data_atualizacao = "09/04/2026 às 08:30" 
 st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
 
-# CSS AGRESSIVO PARA O RITMO DIÁRIO
+# --- CSS DEFINITIVO PARA O RITMO ---
 st.markdown("""
     <style>
-    /* 1. Esconde a flecha em TODOS os componentes de métrica */
+    /* 1. Esconde a flecha */
     [data-testid="stMetricDelta"] svg {
         display: none !important;
     }
     
-    /* 2. Força a cor azul e tira o fundo verde/vermelho especificamente na coluna 7 */
-    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] div {
+    /* 2. Força o texto em AZUL e remove o fundo pílula na coluna do Ritmo (coluna 7) */
+    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div {
         color: #29b5e8 !important;
-        background: transparent !important;
+        background-color: transparent !important;
     }
-    
-    /* Ajuste de margem para o delta não ficar colado */
-    [data-testid="stMetricDelta"] {
-        margin-left: 0px !important;
+
+    /* 3. Garante que o texto dentro da div também herde a cor azul */
+    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] div span {
+        color: #29b5e8 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -268,10 +268,9 @@ with col4:
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 
-# COLUNA 7: Ritmo Diário
+# A coluna 7 é onde aplicamos o estilo azul via CSS
 with col6:
     ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
-    # O delta agora aparecerá sem flecha e em azul por causa do CSS acima
     st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
 
 # Rodapé de análise
@@ -279,7 +278,7 @@ valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 st.markdown(f"""
-Análise de Ciclo Papapá:
+Análise de Ciclo:
 * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
 * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 * Dias úteis restantes (contando com hoje): **{dias_uteis_restantes}**.
