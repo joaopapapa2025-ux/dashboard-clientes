@@ -222,31 +222,32 @@ st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 data_atualizacao = "09/04/2026 às 08:30" 
 st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
 
+# CSS AGRESSIVO PARA O RITMO DIÁRIO
+st.markdown("""
+    <style>
+    /* 1. Esconde a flecha em TODOS os componentes de métrica */
+    [data-testid="stMetricDelta"] svg {
+        display: none !important;
+    }
+    
+    /* 2. Força a cor azul e tira o fundo verde/vermelho especificamente na coluna 7 */
+    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] div {
+        color: #29b5e8 !important;
+        background: transparent !important;
+    }
+    
+    /* Ajuste de margem para o delta não ficar colado */
+    [data-testid="stMetricDelta"] {
+        margin-left: 0px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 if gap_vs_linear < -2 and falta_r_cifra > 0:
     st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de ontem.")
 elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
-
-# --- O AJUSTE DEFINITIVO (CSS) ---
-st.markdown("""
-    <style>
-    /* 1. Esconde a flecha (ícone SVG) de todos os componentes de métrica */
-    [data-testid="stMetricDelta"] svg {
-        display: none !important;
-    }
-    
-    /* 2. Remove o fundo verde/vermelho (pílula) para deixar o texto limpo */
-    [data-testid="stMetricDelta"] > div {
-        background-color: transparent !important;
-    }
-
-    /* 3. Força a cor AZUL apenas no delta da 7ª coluna (Ritmo Diário) */
-    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div {
-        color: #29b5e8 !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
@@ -267,9 +268,10 @@ with col4:
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 
-# Aqui os dias úteis aparecerão sem flecha e em azul
+# COLUNA 7: Ritmo Diário
 with col6:
     ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
+    # O delta agora aparecerá sem flecha e em azul por causa do CSS acima
     st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
 
 # Rodapé de análise
