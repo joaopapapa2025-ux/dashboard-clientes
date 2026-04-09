@@ -169,6 +169,7 @@ import pandas as pd
 import pandas as pd
 from datetime import datetime, timedelta
 from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday
+import streamlit as st
 
 # --- CONFIGURAÇÃO DE FERIADOS NACIONAIS ---
 class FeriadosBrasil(AbstractHolidayCalendar):
@@ -183,9 +184,9 @@ class FeriadosBrasil(AbstractHolidayCalendar):
         Holiday('Natal', month=12, day=25),
     ]
 
-# Inicializa o calendário para 2026
+# Inicializa o calendário e converte para uma lista de datas (evita o ValueError)
 cal = FeriadosBrasil()
-feriados_2026 = cal.holidays(start='2026-01-01', end='2026-12-31')
+feriados_2026 = cal.holidays(start='2026-01-01', end='2026-12-31').to_pydatetime().tolist()
 
 # Dados Manuais Gerais
 meta_abril = 882036.00
@@ -193,7 +194,7 @@ faturado_abril = 112287.00
 digitado_abril = 170125.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
-hoje = datetime.now() # Ref: 09/04
+hoje = datetime.now() 
 ontem = hoje - timedelta(days=1)
 inicio_mes = datetime(2026, 4, 1)
 fim_mes_civil = datetime(2026, 4, 30)
@@ -202,7 +203,7 @@ fim_mes_civil = datetime(2026, 4, 30)
 dias_uteis_reais = pd.bdate_range(inicio_mes, fim_mes_civil, holidays=feriados_2026)
 
 # 2. Data Limite de Faturamento (3 dias úteis antes do fim)
-data_limite_faturamento = dias_uteis_reais[-4] # Ref: 27/04
+data_limite_faturamento = dias_uteis_reais[-4] 
 
 # 3. Dias úteis comerciais totais
 dias_uteis_comerciais_totais = len(pd.bdate_range(inicio_mes, data_limite_faturamento, holidays=feriados_2026))
@@ -211,6 +212,7 @@ dias_uteis_comerciais_totais = len(pd.bdate_range(inicio_mes, data_limite_fatura
 dias_uteis_passados = len(pd.bdate_range(inicio_mes, ontem, holidays=feriados_2026))
 
 # 5. Dias úteis restantes incluindo HOJE
+# Convertendo para .date() para garantir comparação correta
 if hoje.date() <= data_limite_faturamento.date():
     dias_uteis_restantes = len(pd.bdate_range(hoje, data_limite_faturamento, holidays=feriados_2026))
 else:
@@ -223,7 +225,7 @@ percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
 gap_vs_linear = percentual_atual - percentual_esperado
 falta_r_cifra = meta_abril - total_geral
 
-# Ritmo diário com base nos 12 d.ú. restantes (incluindo feriado 21/04)
+# Ritmo diário
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else falta_r_cifra
 
 # --- EXIBIÇÃO NO TOPO ---
@@ -253,10 +255,8 @@ with col4:
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
     st.metric(label_gap, fmt_metric(abs(falta_r_cifra)), delta_color="inverse")
 with col5:
-    # Mostra o atingimento atual de 32.0% vs ideal de 31.6%
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 with col6:
-    # Exibe 12 d.ú. rest. e ritmo de ~R$ 49.969/dia
     st.metric("📅 Ritmo Diário", f"{dias_uteis_restantes} d.ú. rest.", delta=f"R$ {ritmo_final:,.0f}/dia", delta_color="inverse")
 
 # Rodapé de análise
@@ -267,6 +267,7 @@ st.markdown(f"""
 > **Análise de Ciclo Papapá:**
 > * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
+> * Dias úteis restantes (contando com hoje e feriados): **{dias_uteis_restantes}**.
 > * O atingimento ideal para ontem era **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
 """)
 st.markdown("---")
