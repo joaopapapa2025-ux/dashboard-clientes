@@ -246,54 +246,74 @@ st.markdown(f"""
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR (RANKING LIMPO)
+# 📈 PERFORMANCE POR VENDEDOR (RANKING COMPLETO)
 # ==========================================
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
-# Re-calculando datas para evitar o NameError e garantir o funcionamento
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 
+# 1. Configuração de Calendário (Regra Papapá)
 hoje = datetime.now()
+ontem = hoje - timedelta(days=1)
 inicio_mes = datetime(2026, 4, 1)
-fim_mes = datetime(2026, 4, 30)
-dias_uteis_totais = len(pd.date_range(inicio_mes, fim_mes, freq='B'))
-dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
-percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
+fim_mes_civil = datetime(2026, 4, 30)
 
+todos_dias_uteis = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
+data_limite_faturamento = todos_dias_uteis[-4] # 3 dias úteis antes do fim
+dias_uteis_comerciais_totais = len(pd.date_range(inicio_mes, data_limite_faturamento, freq='B'))
+dias_uteis_passados = len(pd.date_range(inicio_mes, ontem, freq='B'))
+
+# Percentual esperado baseado no calendário comercial
+percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
+
+# Dias restantes para o cálculo do ritmo individual
+if ontem < data_limite_faturamento:
+    dias_restantes = len(pd.date_range(ontem + timedelta(days=1), data_limite_faturamento, freq='B'))
+else:
+    dias_restantes = 0
+
+# 2. Dados com Pedidos incluídos
 dados_vendedores = [
-    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 52983.63, "Digitado": 21125.22},
-    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 38201.10, "Digitado": 47584.24},
-    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 25716.20, "Digitado": 32747.15},
-    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 10679.16, "Digitado": 9922.38},
-    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 8082.33, "Digitado": 10909.68},
-    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 8416.72, "Digitado": 2721.60},
+    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 52983.63, "Fat_Ped": 13, "Digitado": 21125.22, "Dig_Ped": 6},
+    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 38201.10, "Fat_Ped": 20, "Digitado": 47584.24, "Dig_Ped": 26},
+    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 25716.20, "Fat_Ped": 17, "Digitado": 32747.15, "Dig_Ped": 20},
+    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 10679.16, "Fat_Ped": 9, "Digitado": 9922.38, "Dig_Ped": 8},
+    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 8082.33, "Fat_Ped": 7, "Digitado": 10909.68, "Dig_Ped": 8},
+    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 8416.72, "Fat_Ped": 5, "Digitado": 2721.60, "Dig_Ped": 1},
 ]
 
-# 1. Cálculos de apoio
+# 3. Cálculos de apoio individuais
 for v in dados_vendedores:
-    total = v["Faturado"] + v["Digitado"]
-    v["total"] = total
-    v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
+    v["total_rs"] = v["Faturado"] + v["Digitado"]
+    v["total_ped"] = v["Fat_Ped"] + v["Dig_Ped"]
+    v["ating"] = (v["total_rs"] / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
     v["valor_esperado"] = (percentual_esperado / 100) * v["Meta"]
+    
+    # Ticket Médio (Total R$ / Total Pedidos)
+    v["tm"] = v["total_rs"] / v["total_ped"] if v["total_ped"] > 0 else 0.0
+    
+    # Ritmo Individual (Quanto falta / dias restantes)
+    falta = max(0, v["Meta"] - v["total_rs"])
+    v["ritmo_ind"] = falta / dias_restantes if dias_restantes > 0 else falta
 
-# 2. Ordenação por atingimento (Do maior para o menor)
+# Ordenação
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
 def fmt_br(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# 3. Estrutura do HTML e CSS
+# 4. Estrutura HTML/CSS
 html_vendedores = """
 <style>
-    .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; }
-    .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
-    .tab-performance td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
-    .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
-    .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; }
-    .val-ideal-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; }
+    .tab-perf { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; }
+    .tab-perf th { background-color: #f0f2f6; padding: 10px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; }
+    .tab-perf td { padding: 8px; text-align: center; border-bottom: 1px solid #eee; }
+    .sub-info { font-size: 10px; color: #757575; display: block; margin-top: 2px; }
+    .prog-bg { background-color: #ddd; border-radius: 10px; width: 50px; height: 7px; display: inline-block; margin-right: 5px; }
+    .prog-bar { background-color: #29b5e8; height: 7px; border-radius: 10px; }
 </style>
-<table class="tab-performance">
+<table class='tab-perf'>
     <thead>
         <tr>
             <th>Pos.</th>
@@ -301,8 +321,9 @@ html_vendedores = """
             <th>Meta</th>
             <th>Faturado</th>
             <th>Digitado</th>
-            <th>Total</th>
+            <th>Total (TM)</th>
             <th>Atingimento</th>
+            <th>Ritmo Diário</th>
             <th>Ideal Hoje</th>
         </tr>
     </thead>
@@ -311,43 +332,31 @@ html_vendedores = """
 
 for i, v in enumerate(dados_vendedores):
     pos = i + 1
-    largura = min(v["ating"], 100)
-    
-    # Regra de Cores: Verde se estiver batendo o ritmo do dia, Vermelho se estiver abaixo
-    cor_ating = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
-    if v["Meta"] == 0: cor_ating = "#31333F" # Neutro para "Outros"
+    cor_at = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
+    if v["Meta"] == 0: cor_at = "#31333F"
 
-    html_vendedores += f"<tr>"
-    html_vendedores += f"<td>{pos}º</td>"
-    html_vendedores += f"<td><b>{v['Vendedor']}</b></td>"
-    html_vendedores += f"<td>{fmt_br(v['Meta'])}</td>"
-    html_vendedores += f"<td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}</td>"
-    html_vendedores += f"<td style='color: #1565C0;'>{fmt_br(v['Digitado'])}</td>"
-    html_vendedores += f"<td><b>{fmt_br(v['total'])}</b></td>"
-    
-    # Coluna Atingimento com Barra e Cor na Porcentagem
     html_vendedores += f"""
+    <tr>
+        <td>{pos}º</td>
+        <td style='text-align:left;'><b>{v['Vendedor']}</b></td>
+        <td>{fmt_br(v['Meta'])}</td>
+        <td style='color: #2E7D32;'>{fmt_br(v['Faturado'])}<span class='sub-info'>{v['Fat_Ped']} pedidos</span></td>
+        <td style='color: #1565C0;'>{fmt_br(v['Digitado'])}<span class='sub-info'>{v['Dig_Ped']} pedidos</span></td>
+        <td><b>{fmt_br(v['total_rs'])}</b><span class='sub-info'>TM: {fmt_br(v['tm'])}</span></td>
         <td>
-            <div class='prog-bg'><div class='prog-bar' style='width: {largura}%'></div></div> 
-            <span style='color: {cor_ating}; font-weight: bold;'>{v['ating']:.1f}%</span>
-        </td>"""
-    
-    # Coluna Ideal Hoje: Percentual e Valor embaixo
-    html_vendedores += f"""
-        <td>
-            <b>{percentual_esperado:.1f}%</b>
-            <span class='val-ideal-sub'>{fmt_br(v['valor_esperado'])}</span>
-        </td>"""
-    
-    html_vendedores += f"</tr>"
+            <div class='prog-bg'><div class='prog-bar' style='width: {min(v['ating'], 100)}%'></div></div>
+            <span style='color: {cor_at}; font-weight: bold;'>{v['ating']:.1f}%</span>
+        </td>
+        <td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_ind'])}</span><span class='sub-info'>p/ dia</span></td>
+        <td><b>{percentual_esperado:.1f}%</b><span class='sub-info'>{fmt_br(v['valor_esperado'])}</span></td>
+    </tr>"""
 
 html_vendedores += "</tbody></table>"
 
 st.markdown(html_vendedores, unsafe_allow_html=True)
 
-# Mensagem de destaque
 if dados_vendedores[0]["ating"] > 0:
-    st.success(f"🚀 **Destaque do Mês:** Atualmente **{dados_vendedores[0]['Vendedor']}** lidera o ranking com **{dados_vendedores[0]['ating']:.1f}%** da meta! 🔥")
+    st.success(f"🚀 **Destaque:** **{dados_vendedores[0]['Vendedor']}** lidera com **{dados_vendedores[0]['ating']:.1f}%**!")
 
 st.markdown("---")
 
