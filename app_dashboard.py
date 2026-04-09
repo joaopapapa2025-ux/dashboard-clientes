@@ -199,6 +199,7 @@ ontem = hoje - timedelta(days=1)
 inicio_mes = datetime(2026, 4, 1).date()
 fim_mes_civil = datetime(2026, 4, 30).date()
 
+# Cálculos de Dias Úteis
 dias_uteis_reais = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
 dias_uteis_reais = [d.date() for d in dias_uteis_reais if d.date() not in lista_feriados]
 data_limite_faturamento = dias_uteis_reais[-4] 
@@ -209,6 +210,7 @@ dias_uteis_passados = len(dias_uteis_passados_list)
 dias_restantes_list = [d for d in dias_uteis_totais_list if d >= hoje]
 dias_uteis_restantes = len(dias_restantes_list)
 
+# Métricas de Performance
 total_geral = faturado_abril + digitado_abril
 percentual_atual = (total_geral / meta_abril) * 100
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
@@ -216,37 +218,37 @@ gap_vs_linear = percentual_atual - percentual_esperado
 falta_r_cifra = meta_abril - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
-# --- EXIBIÇÃO NO TOPO ---
+# Formatação para o rodapé
+valor_esperado_reais = (percentual_esperado / 100) * meta_abril
+valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# --- EXIBIÇÃO ---
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
 
 data_atualizacao = "09/04/2026 às 08:30" 
 st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
 
-# --- CSS "BLINDADO" ---
+# --- CSS "ULTRA" ESPECÍFICO ---
 st.markdown("""
     <style>
-    /* 1. Esconde a flecha (ícone SVG) de todos os lugares */
+    /* 1. Esconde a flecha de todos os deltas */
     [data-testid="stMetricDelta"] svg {
         display: none !important;
     }
     
-    /* 2. Alvo específico: Coluna 7 (Ritmo), remove fundo e força azul em todos os níveis */
+    /* 2. Sétima coluna: Remove o fundo e força o azul em QUALQUER elemento interno (*) */
     [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] {
         background-color: transparent !important;
     }
     
-    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] div {
+    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] * {
         color: #29b5e8 !important;
         background: transparent !important;
     }
 
-    [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] span {
+    /* 3. Garante que as cores de sucesso/erro originais não sobrescrevam o azul */
+    [data-testid="column"]:nth-of-type(7) div[data-testid="stMetricStat"] + div {
         color: #29b5e8 !important;
-    }
-    
-    /* 3. Ajuste para garantir que a cor verde/vermelha original não vença */
-    div[data-testid="stMetricDelta"] > div {
-        color: inherit;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -257,6 +259,7 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
+# Layout das Colunas
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 def fmt_metric(valor):
@@ -276,12 +279,19 @@ with col4:
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 
-# COLUNA 7: Ritmo Diário (Azul e sem flecha pelo CSS acima)
+# COLUNA 7: Ritmo Diário
 with col6:
     ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
     st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
 
-# Rodapé
+# Rodapé de análise
+st.markdown(f"""
+> **Análise de Ciclo:**
+> * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
+> * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
+> * Dias úteis restantes (contando com hoje): **{dias_uteis_restantes}**.
+> * O atingimento ideal para ontem era **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
+""")
 st.markdown("---")
 
 # ==========================================
