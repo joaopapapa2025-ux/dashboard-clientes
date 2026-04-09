@@ -290,36 +290,27 @@ ontem = hoje - timedelta(days=1)
 inicio_mes = datetime(2026, 4, 1).date()
 fim_mes_civil = datetime(2026, 4, 30).date()
 
-# Reutilizando a lista de feriados (Certifique-se que a lista_feriados foi definida no bloco anterior)
-# Caso não tenha sido, a linha abaixo define os de Abril para segurança:
 lista_feriados_ranking = [datetime(2026, 4, 21).date()] 
 
-# 1. Identificar dias úteis REAIS
 dias_uteis_reais = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
 dias_uteis_reais = [d.date() for d in dias_uteis_reais if d.date() not in lista_feriados_ranking]
 
-# 2. Data Limite de Faturamento (Regra -3 dias úteis)
 data_limite_faturamento = dias_uteis_reais[-4] 
 
-# 3. Dias úteis comerciais totais
 dias_uteis_totais_list = [d for d in dias_uteis_reais if d <= data_limite_faturamento]
 dias_uteis_comerciais_totais = len(dias_uteis_totais_list)
 
-# 4. Dias úteis que já passaram (Até ontem)
 dias_uteis_passados_list = [d for d in dias_uteis_totais_list if d <= ontem]
 dias_uteis_passados = len(dias_uteis_passados_list)
 
-# 5. Dias úteis restantes incluindo HOJE
 dias_restantes_list = [d for d in dias_uteis_totais_list if d >= hoje]
 dias_uteis_restantes = len(dias_restantes_list)
 
-# Percentual esperado baseado na regra comercial
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 
-# Texto informativo logo abaixo do título
 st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.1f}%]")
 
-# --- DADOS COM PEDIDOS ---
+# --- DADOS ---
 dados_vendedores = [
     {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 52983.63, "Fat_Ped": 13, "Digitado": 21125.22, "Dig_Ped": 6},
     {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 38201.10, "Fat_Ped": 20, "Digitado": 47584.24, "Dig_Ped": 26},
@@ -335,13 +326,15 @@ for v in dados_vendedores:
     v["total"] = total
     v["ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
     v["valor_esperado"] = (percentual_esperado / 100) * v["Meta"]
+    
+    # NOVA LÓGICA: Diferença vs Ideal
+    v["diff_ideal"] = total - v["valor_esperado"]
+    
     total_pedidos = v["Fat_Ped"] + v["Dig_Ped"]
     v["tm"] = total / total_pedidos if total_pedidos > 0 else 0
     falta = max(0, v["Meta"] - total)
-    # RITMO DIÁRIO: Agora usando a contagem correta de dias úteis restantes (12 dias)
     v["ritmo_v"] = falta / dias_uteis_restantes if dias_uteis_restantes > 0 else falta
 
-# 2. Ordenação
 dados_vendedores = sorted(dados_vendedores, key=lambda x: x["ating"], reverse=True)
 
 def fmt_br(valor):
@@ -381,6 +374,14 @@ for i, v in enumerate(dados_vendedores):
     cor_ating = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
     if v["Meta"] == 0: cor_ating = "#31333F"
 
+    # Lógica de cor e label para a diferença do ideal
+    if v["diff_ideal"] >= 0:
+        cor_diff = "#2E7D32"
+        label_diff = "Saldo"
+    else:
+        cor_diff = "#C62828"
+        label_diff = "Gap"
+
     html_vendedores += f"<tr>"
     html_vendedores += f"<td>{pos}º</td>"
     html_vendedores += f"<td class='col-vendedor'><b>{v['Vendedor']}</b></td>"
@@ -395,7 +396,15 @@ for i, v in enumerate(dados_vendedores):
             <span style='color: {cor_ating}; font-weight: bold;'>{v['ating']:.1f}%</span>
         </td>"""
     
-    html_vendedores += f"<td><b>{fmt_br(v['valor_esperado'])}</b></td>"
+    # Coluna Ideal Hoje com a diferença em baixo
+    html_vendedores += f"""
+        <td>
+            <b>{fmt_br(v['valor_esperado'])}</b>
+            <span class='val-sub' style='color: {cor_diff}; font-weight: bold;'>
+                {label_diff}: {fmt_br(abs(v['diff_ideal']))}
+            </span>
+        </td>"""
+    
     html_vendedores += f"<td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo_v'])}</span><span class='val-sub'>p/ dia</span></td>"
     html_vendedores += f"</tr>"
 
