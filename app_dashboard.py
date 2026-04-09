@@ -184,7 +184,6 @@ class FeriadosBrasil(AbstractHolidayCalendar):
         Holiday('Natal', month=12, day=25),
     ]
 
-# 1. Gerar feriados
 cal = FeriadosBrasil()
 feriados_pandas = cal.holidays(start='2026-01-01', end='2026-12-31')
 lista_feriados = [d.date() for d in feriados_pandas]
@@ -194,33 +193,22 @@ meta_abril = 882036.00
 faturado_abril = 112287.00
 digitado_abril = 170125.00
 
-# --- CÁLCULOS DE CALENDÁRIO ---
 hoje_dt = datetime.now()
 hoje = hoje_dt.date()
 ontem = hoje - timedelta(days=1)
 inicio_mes = datetime(2026, 4, 1).date()
 fim_mes_civil = datetime(2026, 4, 30).date()
 
-# 2. Identificar dias úteis REAIS
 dias_uteis_reais = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
 dias_uteis_reais = [d.date() for d in dias_uteis_reais if d.date() not in lista_feriados]
-
-# 3. Data Limite de Faturamento
 data_limite_faturamento = dias_uteis_reais[-4] 
-
-# 4. Dias úteis comerciais totais
 dias_uteis_totais_list = [d for d in dias_uteis_reais if d <= data_limite_faturamento]
 dias_uteis_comerciais_totais = len(dias_uteis_totais_list)
-
-# 5. Dias úteis que já passaram
 dias_uteis_passados_list = [d for d in dias_uteis_totais_list if d <= ontem]
 dias_uteis_passados = len(dias_uteis_passados_list)
-
-# 6. Dias úteis restantes incluindo HOJE
 dias_restantes_list = [d for d in dias_uteis_totais_list if d >= hoje]
 dias_uteis_restantes = len(dias_restantes_list)
 
-# --- CÁLCULOS DE PERFORMANCE GERAL ---
 total_geral = faturado_abril + digitado_abril
 percentual_atual = (total_geral / meta_abril) * 100
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
@@ -240,6 +228,7 @@ elif falta_r_cifra <= 0:
     st.balloons()
     st.success("🏆 **META BATIDA!** Parabéns time Papapá!")
 
+# Grid de métricas - Usando st.metric em todas para alinhamento perfeito
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
 def fmt_metric(valor):
@@ -255,34 +244,25 @@ with col_total:
     st.metric("💰 Total Geral", fmt_metric(total_geral))
 with col4:
     label_gap = "🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit"
-    st.metric(label_gap, fmt_metric(abs(falta_r_cifra)), delta_color="inverse")
+    st.metric(label_gap, fmt_metric(abs(falta_r_cifra)))
 with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
+
+# AQUI ESTÁ A MUDANÇA: Usando o componente nativo para garantir o alinhamento
 with col6:
-    ritmo_fmt = f"R$ {ritmo_final:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    
-    # HTML mantendo a ordem pedida: Nome -> Valor Grande -> Dias Úteis em Azul
-    st.markdown(f"""
-        <div style="display: flex; flex-direction: column; align-items: flex-start;">
-            <p style="color: rgb(49, 51, 63); font-size: 14px; margin-bottom: 0px; opacity: 0.8;">📅 Ritmo Diário</p>
-            <div style="display: flex; align-items: baseline; margin-top: -5px;">
-                <p style="color: rgb(49, 51, 63); font-size: 28px; font-weight: 600; margin-bottom: 0px;">{ritmo_fmt}</p>
-                <span style="color: rgb(49, 51, 63); font-size: 16px; margin-left: 4px; opacity: 0.8;">/dia</span>
-            </div>
-            <p style="color: #29b5e8; font-size: 15px; margin-top: -2px; font-weight: 500;">{dias_uteis_restantes} d.ú. rest.</p>
-        </div>
-    """, unsafe_allow_html=True)
+    ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
+    st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.", delta_color="off")
 
 # Rodapé de análise
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 st.markdown(f"""
-**Análise de Ciclo:**
+Análise de Ciclo Papapá:
 * Referência de dados: **{ontem.strftime('%d/%m')}** (D-1).
 * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 * Dias úteis restantes (contando com hoje): **{dias_uteis_restantes}**.
-* O atingimento ideal para ontem era **31.6%** (equivalente a **{valor_formatado_br}**).
+* O atingimento ideal para ontem era **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
 """)
 st.markdown("---")
 
