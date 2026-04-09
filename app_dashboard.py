@@ -166,8 +166,8 @@ from datetime import datetime
 import pandas as pd
 
 meta_abril = 882036.00
-faturado_abril = 50544.00
-digitado_abril = 201586.00
+faturado_abril = 112287.00
+digitado_abril = 170125.00
 
 # --- CÁLCULOS DE CALENDÁRIO ---
 hoje = datetime.now()
@@ -236,12 +236,12 @@ dias_uteis_passados = len(pd.date_range(inicio_mes, hoje, freq='B'))
 percentual_esperado = (dias_uteis_passados / dias_uteis_totais) * 100
 
 dados_vendedores = [
-    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 5207.67, "Digitado": 40912.44},
-    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 13219.21, "Digitado": 38349.44},
-    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 17266.13, "Digitado": 30930.45},
-    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 8483.91, "Digitado": 10353.19},
-    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 5076.49, "Digitado": 8662.00},
-    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 1411.76, "Digitado": 4797.28},
+    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 52983.63, "Digitado": 21125.22},
+    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 38201.10, "Digitado": 47584.24},
+    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 25716.20, "Digitado": 32747.15},
+    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 10679.16, "Digitado": 9922.38},
+    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 8082.33, "Digitado": 10909.68},
+    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 8416.72, "Digitado": 2721.60},
 ]
 
 # 1. Cálculos de apoio
