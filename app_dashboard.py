@@ -386,7 +386,7 @@ html_vendedores = """
             <th>Total (TM)</th>
             <th>Atingimento</th>
             <th>Ideal Hoje (R$)</th>
-            <th>Ritmo Diário</th>
+            <th>Ritmo Diário Necessário</th>
         </tr>
     </thead>
     <tbody>
