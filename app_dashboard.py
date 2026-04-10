@@ -191,8 +191,8 @@ lista_feriados = [d.date() for d in feriados_pandas]
 
 # Dados Manuais Gerais
 meta_abril = 882036.00
-faturado_abril = 112287.00
-digitado_abril = 170125.00
+faturado_abril = 199233.00
+digitado_abril = 90547.00
 
 hoje_dt = datetime.now()
 hoje = hoje_dt.date()
@@ -224,7 +224,7 @@ valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace
 
 # --- EXIBIÇÃO ---
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
-st.markdown(f"🕒 *Última atualização: 09/04/2026 às 08:30*")
+st.markdown(f"🕒 *Última atualização: 10/04/2026 às 08:00*")
 
 # CSS para esconder a flecha e preparar o terreno
 st.markdown("""
@@ -302,8 +302,7 @@ st.markdown("---")
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
 # Você pode alterar a data/hora manualmente aqui sempre que atualizar os números
-data_atualizacao = "09/04/2026 às 08:30" 
-st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
+st.markdown(f"🕒 *Última atualização: 10/04/2026 às 08:00*")
 
 from datetime import datetime, timedelta
 import pandas as pd
@@ -337,12 +336,12 @@ st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.
 
 # --- DADOS ---
 dados_vendedores = [
-    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 52983.63, "Fat_Ped": 13, "Digitado": 21125.22, "Dig_Ped": 6},
-    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 38201.10, "Fat_Ped": 20, "Digitado": 47584.24, "Dig_Ped": 26},
-    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 25716.20, "Fat_Ped": 17, "Digitado": 32747.15, "Dig_Ped": 20},
-    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 10679.16, "Fat_Ped": 9, "Digitado": 9922.38, "Dig_Ped": 8},
-    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 8082.33, "Fat_Ped": 7, "Digitado": 10909.68, "Dig_Ped": 8},
-    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 8416.72, "Fat_Ped": 5, "Digitado": 2721.60, "Dig_Ped": 1},
+    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 74197.02, "Fat_Ped": 18, "Digitado": 6175.32, "Dig_Ped": 2},
+    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 51112.33, "Fat_Ped": 28, "Digitado": 47605.42, "Dig_Ped": 25},
+    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 37470.39, "Fat_Ped": 25, "Digitado": 24299.44, "Dig_Ped": 13},
+    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 16355.21, "Fat_Ped": 14, "Digitado": 5914.83, "Dig_Ped": 5},
+    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 10779.93, "Fat_Ped": 9, "Digitado": 11853.93, "Dig_Ped": 9},
+    {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 11138.32, "Fat_Ped": 6, "Digitado": 0.00, "Dig_Ped": 0},
 ]
 
 # 1. Cálculos de apoio individuais
