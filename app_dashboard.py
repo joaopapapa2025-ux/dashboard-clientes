@@ -258,7 +258,7 @@ with col5:
     st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 with col6:
     ritmo_texto = f"{fmt_metric(ritmo_final)} /dia"
-    st.metric("📅 Ritmo Diário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
+    st.metric("📅 Ritmo Diário Necessário", ritmo_texto, delta=f"{dias_uteis_restantes} d.ú. rest.")
 
 # --- O TRUQUE FINAL: JAVASCRIPT PARA FORÇAR O AZUL ---
 components.html("""
