@@ -191,8 +191,8 @@ lista_feriados = [d.date() for d in feriados_pandas]
 
 # Dados Manuais Gerais
 meta_abril = 882036.00
-faturado_abril = 199233.00
-digitado_abril = 90547.00
+faturado_abril = 241820.00
+digitado_abril = 134511.00
 
 hoje_dt = datetime.now()
 hoje = hoje_dt.date()
@@ -224,7 +224,7 @@ valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace
 
 # --- EXIBIÇÃO ---
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {ontem.strftime('%d/%m')})")
-st.markdown(f"🕒 *Última atualização: 10/04/2026 às 08:00*")
+st.markdown(f"🕒 *Última atualização: 13/04/2026 às 08:30*")
 
 # CSS para esconder a flecha e preparar o terreno
 st.markdown("""
@@ -302,7 +302,7 @@ st.markdown("---")
 st.subheader("👥 Ranking de Performance Individual - Abril")
 
 # Você pode alterar a data/hora manualmente aqui sempre que atualizar os números
-st.markdown(f"🕒 *Última atualização: 10/04/2026 às 08:00*")
+st.markdown(f"🕒 *Última atualização: 13/04/2026 às 08:30*")
 
 from datetime import datetime, timedelta
 import pandas as pd
@@ -336,11 +336,11 @@ st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.
 
 # --- DADOS ---
 dados_vendedores = [
-    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 74197.02, "Fat_Ped": 18, "Digitado": 6175.32, "Dig_Ped": 2},
-    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 51112.33, "Fat_Ped": 28, "Digitado": 47605.42, "Dig_Ped": 25},
-    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 37470.39, "Fat_Ped": 25, "Digitado": 24299.44, "Dig_Ped": 13},
-    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 16355.21, "Fat_Ped": 14, "Digitado": 5914.83, "Dig_Ped": 5},
-    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 10779.93, "Fat_Ped": 9, "Digitado": 11853.93, "Dig_Ped": 9},
+    {"Vendedor": "ANA CHRISTINA RODRIGUES", "Meta": 363500.00, "Faturado": 77098.50, "Fat_Ped": 19, "Digitado": 61522.58, "Dig_Ped": 6},
+    {"Vendedor": "PEDRO HENRIQUE KRUGER BORN", "Meta": 182500.00, "Faturado": 72579.86, "Fat_Ped": 41, "Digitado": 37333.65, "Dig_Ped": 16},
+    {"Vendedor": "JOAO PAULO FERREIRA ALVES", "Meta": 122000.00, "Faturado": 49607.86, "Fat_Ped": 30, "Digitado": 18023.94, "Dig_Ped": 12},
+    {"Vendedor": "THIAGO MARTINS CABRAL", "Meta": 111000.00, "Faturado": 18776.34, "Fat_Ped": 16, "Digitado": 7542.57, "Dig_Ped": 6},
+    {"Vendedor": "BERNARDO OLIVEIRA DALLEGRAVE", "Meta": 103036.00, "Faturado": 16133.01, "Fat_Ped": 13, "Digitado": 9320.01, "Dig_Ped": 7},
     {"Vendedor": "OUTROS (João Tadra)", "Meta": 0.00, "Faturado": 11138.32, "Fat_Ped": 6, "Digitado": 0.00, "Dig_Ped": 0},
 ]
 
