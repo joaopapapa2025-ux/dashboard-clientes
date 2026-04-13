@@ -255,7 +255,7 @@ falta_r_cifra = meta_abril - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
-st.markdown(f"🕒 *Dados visualizados de: {data_selecionada.strftime('%d/%m/%Y')}*")
+st.markdown(f"🕒 *Última atualização: 13/04/2026 às 08:30*")
 
 st.markdown("""<style>[data-testid="stMetricDelta"] svg { display: none !important; } [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div { background-color: transparent !important; }</style>""", unsafe_allow_html=True)
 
@@ -285,7 +285,7 @@ st.markdown(f"""
 > * Referência de dados para meta ideal: **{data_ref_calculo.strftime('%d/%m')}** (Último dia útil completo).
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com a data selecionada): **{dias_uteis_restantes}**.
-> * O atingimento ideal para o fechamento anterior era **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
+> * O atingimento ideal para hoje é de **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
 """)
 st.markdown("---")
 
