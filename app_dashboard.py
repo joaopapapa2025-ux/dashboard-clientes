@@ -170,19 +170,22 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # ==========================================
-# 📊 CONFIGURAÇÃO E CARREGAMENTO
+# 📊 CONFIGURAÇÃO E CARREGAMENTO (COM AUTO-REFRESH)
 # ==========================================
 
-@st.cache_data
+@st.cache_data(ttl=60) # O cache expira e recarrega o Excel a cada 60 segundos
 def carregar_dados():
     try:
+        # Carrega as abas do Excel
         df_g = pd.read_excel("dados_performance.xlsx", sheet_name="Geral")
         df_v = pd.read_excel("dados_performance.xlsx", sheet_name="Vendedores")
+        
+        # Garante que a coluna Data seja tratada como data pura
         df_g['Data'] = pd.to_datetime(df_g['Data']).dt.date
         df_v['Data'] = pd.to_datetime(df_v['Data']).dt.date
         return df_g, df_v
     except Exception as e:
-        st.error(f"Erro ao carregar Excel: {e}")
+        st.error(f"Erro ao carregar 'dados_performance.xlsx': {e}")
         return None, None
 
 df_geral_hist, df_vendedores_hist = carregar_dados()
