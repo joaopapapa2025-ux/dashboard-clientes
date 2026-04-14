@@ -210,7 +210,7 @@ lista_feriados = [d.date() for d in feriados_pandas]
 # --- FILTRO DE DATA ---
 with st.sidebar:
     st.header("⚙️ Filtro")
-    data_selecionada = st.date_input("Data Visualizada:", value=datetime.now().date(), format="DD/MM/YYYY")
+    data_selecionada = st.date_input("Preencha a data de hoje (resultado D -1):", value=datetime.now().date(), format="DD/MM/YYYY")
 
 # ==========================================
 # 📝 LÓGICA DE DATAS (D-1 ÚTIL)
