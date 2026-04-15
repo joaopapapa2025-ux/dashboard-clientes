@@ -289,7 +289,7 @@ valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace
 
 st.markdown(f"""
 > **Análise de ciclo:**
-> * **Valor de devoluções: R$ 4.008,00**
+> * Valor de devoluções: **R$ 4.008,00**
 > * Referência de dados para meta ideal: **{data_ref_calculo.strftime('%d/%m')}** (Último dia útil completo).
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com a data selecionada): **{dias_uteis_restantes}**.
