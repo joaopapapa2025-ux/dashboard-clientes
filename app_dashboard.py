@@ -286,8 +286,9 @@ components.html("""<script>const f = () => { const d = window.parent.document.qu
 
 valor_esperado_reais = (percentual_esperado / 100) * meta_abril
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+dev_txt = f"-R$ {valor_devolucoes:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-st.markdown(f"""
+t.markdown(f"""
 > **Análise de ciclo:**
 > * Valor de devoluções: **{dev_txt}**
 > * Referência de dados para meta ideal: **{data_ref_calculo.strftime('%d/%m')}** (Último dia útil completo).
