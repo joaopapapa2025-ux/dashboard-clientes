@@ -243,6 +243,7 @@ percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
 # 📝 BLOCO 1: PERFORMANCE GERAL
 # ==========================================
 meta_abril, faturado_abril, digitado_abril = 882036.0, 0.0, 0.0
+valor_devolucoes = 4008.00  # Valor fixo conforme solicitado
 
 if df_geral_hist is not None:
     linha = df_geral_hist[df_geral_hist['Data'] == data_selecionada]
@@ -251,7 +252,10 @@ if df_geral_hist is not None:
         faturado_abril = float(linha.iloc[0]['Faturado_Acumulado'])
         digitado_abril = float(linha.iloc[0]['Digitado_Acumulado'])
 
-total_geral = faturado_abril + digitado_abril
+# CÁLCULO AJUSTADO: O Total Geral agora é o faturamento líquido (Bruto - Devoluções)
+total_geral = (faturado_abril + digitado_abril) - valor_devolucoes
+
+# Os cálculos abaixo agora herdam automaticamente o valor já com o desconto
 percentual_atual = (total_geral / meta_abril) * 100 if meta_abril > 0 else 0
 gap_vs_linear = percentual_atual - percentual_esperado
 falta_r_cifra = meta_abril - total_geral
@@ -285,6 +289,7 @@ valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace
 
 st.markdown(f"""
 > **Análise de ciclo:**
+> * **Valor de devoluções: R$ 4.008,00**
 > * Referência de dados para meta ideal: **{data_ref_calculo.strftime('%d/%m')}** (Último dia útil completo).
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com a data selecionada): **{dias_uteis_restantes}**.
