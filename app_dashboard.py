@@ -243,7 +243,7 @@ percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
 # 📝 BLOCO 1: PERFORMANCE GERAL
 # ==========================================
 meta_abril, faturado_abril, digitado_abril = 882036.0, 0.0, 0.0
-valor_devolucoes = 4008.00  # Valor fixo conforme solicitado
+valor_devolucoes = 4379.00  # Valor fixo conforme solicitado
 
 if df_geral_hist is not None:
     linha = df_geral_hist[df_geral_hist['Data'] == data_selecionada]
@@ -262,7 +262,7 @@ falta_r_cifra = meta_abril - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
-st.markdown(f"🕒 *Última atualização: 16/04/2026 às 08:30*")
+st.markdown(f"🕒 *Última atualização: 17/04/2026 às 09:00*")
 
 st.markdown("""<style>[data-testid="stMetricDelta"] svg { display: none !important; } [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div { background-color: transparent !important; }</style>""", unsafe_allow_html=True)
 
