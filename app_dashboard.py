@@ -262,7 +262,7 @@ falta_r_cifra = meta_abril - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
-st.markdown(f"🕒 *Última atualização: 23/04/2026 às 08:00*")
+st.markdown(f"🕒 *Última atualização: 24/04/2026 às 08:30*")
 
 st.markdown("""<style>[data-testid="stMetricDelta"] svg { display: none !important; } [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div { background-color: transparent !important; }</style>""", unsafe_allow_html=True)
 
