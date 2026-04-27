@@ -679,6 +679,8 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
 # --- TRATAMENTO DE DADOS ---
 COL_DATA_ULTIMA_COMPRA = "ÚLTIMA COMPRA"
+COL_GRUPO = "GRUPO ECONÔMICO" # Adicionado para identificar a coluna na planilha
+
 if COL_TELEFONE in df.columns:
     df["TEL_LIMPO"] = df[COL_TELEFONE].astype(str).str.replace(r'\D', '', regex=True)
 else:
@@ -694,7 +696,8 @@ st.sidebar.title("Filtros")
 
 # BOTÃO LIMPAR - Reseta as chaves novas e as antigas (para garantir o ranking)
 if st.sidebar.button("Limpar todos os filtros"):
-    chaves = ["b_cnpj", "b_razao", "b_email", "b_tel", "f_mes", "f_vend", "f_uf", "f_cid", "f_bair", "f_seg", "f_fat", "filtro_mes"]
+    # Adicionado "f_grupo" na lista de chaves para resetar
+    chaves = ["b_cnpj", "b_razao", "b_email", "b_tel", "f_mes", "f_vend", "f_uf", "f_cid", "f_bair", "f_seg", "f_fat", "filtro_mes", "f_grupo"]
     for c in chaves:
         if c in st.session_state:
             st.session_state[c] = [] if isinstance(st.session_state[c], list) else ""
@@ -765,6 +768,13 @@ v_lista = sorted(df_filtrado[COL_VENDEDOR].dropna().unique().tolist())
 vendedor_sel = st.sidebar.multiselect("Vendedor", v_lista, key="f_vend")
 if vendedor_sel:
     df_filtrado = df_filtrado[df_filtrado[COL_VENDEDOR].isin(vendedor_sel)]
+
+# --- NOVO FILTRO: GRUPO ECONÔMICO ---
+if COL_GRUPO in df_filtrado.columns:
+    g_lista = sorted(df_filtrado[COL_GRUPO].dropna().unique().tolist())
+    grupo_sel = st.sidebar.multiselect("Grupo Econômico", g_lista, key="f_grupo")
+    if grupo_sel:
+        df_filtrado = df_filtrado[df_filtrado[COL_GRUPO].isin(grupo_sel)]
 
 # 3. Filtro de Estado (UF)
 u_lista = sorted(df_filtrado[COL_UF].dropna().unique().tolist())
