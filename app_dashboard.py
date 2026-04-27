@@ -1265,7 +1265,7 @@ if 1 <= len(df_filtrado) <= 300:
         ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
 
         catalogo_dna = {
-            "LA CHEF": [LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF]
+            "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"],
             "SOPINHAS": ["SOPINHA"],
             "YOGUZINHO": ["IOGURTE", "YOGU"],
             "PAPINHAS SALGADAS": ["CARNE ARROZ LEGUMES 120G", "FRANGO GRAO VEGETAIS 120G"],
