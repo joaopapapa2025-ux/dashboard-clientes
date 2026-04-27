@@ -1444,91 +1444,105 @@ if not df_vendas.empty and len(df_filtrado) > 0:
 else:
     st.info("Aguardando seleção de filtros para calcular Gap de Mix.")
     
-# ==========================================
-# 🏆 PERFORMANCE POR LINHA (VISÃO DETALHADA - MULTI CLIENTE)
-# ==========================================
+st.subheader("📦 Análise Geral de Mix e Produtos")
 
-# Mudamos de == 1 para >= 1 para aceitar seleções múltiplas
-if len(df_filtrado) >= 1:
+if not df_vendas.empty:
+    # 1. Filtro de Segurança: Analisar apenas vendas dos clientes visíveis na sidebar
+    cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
+    vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
     
-    # 1. Pegamos os CNPJs de todos os clientes que estão no df_filtrado
-    cnpjs_selecionados = df_filtrado[COL_CNPJ].unique()
-    
-    # 2. Filtramos a base de vendas para trazer tudo desses clientes (Soma automática)
-    vendas_clientes_selecionados = df_vendas[df_vendas[COL_CNPJ].isin(cnpjs_selecionados)].copy()
+    # Limpeza de ruído (Blacklist)
+    blacklist_geral = ["CONFERIDO", "AJUSTE", "TESTE", "FRETE"]
+    regex_geral = "|".join(blacklist_geral)
+    vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.upper().str.contains(regex_geral, na=False)]
 
-    if not vendas_clientes_selecionados.empty:
-        st.markdown("---")
-        st.markdown("#### 🏆 Performance Consolidada por Linha de Produto")
+    if not vendas_geral.empty:
+        # 2. MAPEAMENTO INTELIGENTE (Categorização PAPAPÁ)
         
-        # [Mantenha aqui o seu dicionário regras_linhas igual ao original]
-        termos_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"]
-        regras_linhas = {
-            "LA CHEF": termos_la_chef,
-            "SOPINHAS": ["SOPINHA"],
-            "YOGUZINHO": ["IOGURTE", "YOGU"],
-            "PAPINHAS SALGADAS": ["CARNE ARROZ LEGUMES 120G", "FRANGO GRAO VEGETAIS 120G"],
-            "PAPINHAS DE FRUTAS": ["ORG"],
-            "BISCOTTI": ["BISCOTTI"],
-            "PALITINHOS": ["ORGANICO BETERRABA", "ORGANICO CENOURA", "ORGANICO TOMATE/MANJERICAO"],
-            "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
-            "MACARRÃO": ["ELBOW", "FUSILLI"],
-            "CEREAIS": ["CEREAL", "AVEIA"]
-        }
-        
-        linha_selecionada = st.selectbox("Selecione uma linha para análise consolidada:", options=list(regras_linhas.keys()))
-
-        # 3. LÓGICA DE FILTRO (Agora usando a base multicliente)
-        termos = regras_linhas[linha_selecionada]
-        filtro_termos = "|".join(termos)
-        
-        df_detalhe_linha = vendas_clientes_selecionados[
-            vendas_clientes_selecionados["DESC PRODUTO"].str.upper().str.contains(filtro_termos, na=False)
-        ].copy()
-
-        # --- A TRAVA PARA LA CHEF (Permanece igual) ---
-        if linha_selecionada == "SOPINHAS":
-            filtro_trava = "|".join(termos_la_chef)
-            df_detalhe_linha = df_detalhe_linha[
-                ~df_detalhe_linha["DESC PRODUTO"].str.upper().str.contains(filtro_trava, na=False)
-            ]
-        
-        if not df_detalhe_linha.empty:
-            col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_detalhe_linha.columns else "VALOR"
-            col_qtd = "QTD" if "QTD" in df_detalhe_linha.columns else "QTDE"
-
-            # Aqui o groupby já vai somar os valores de todos os clientes filtrados
-            performance_sku = df_detalhe_linha.groupby("DESC PRODUTO")[col_valor].sum().sort_values(ascending=False).reset_index()
+        def mapear_catalogo_detalhado(nome):
+            nome = str(nome).upper()
             
-            c_top, c_vol = st.columns(2)
+            # 1. Trava de Prioridade: Se for Macarrão, já retorna logo para não cair em outras categorias
+            termos_macarrao = ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO", "MASSA", "LETRE"]
+            if any(key in nome for key in termos_macarrao):
+                return "MACARRÃO"
+
+            # 2. Dicionário para as demais linhas
+            catalogo = {
+                "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO"],
+                "SOPINHAS": ["SOPINHA"],
+                "YOGUZINHO": ["IOGURTE", "YOGUZINHO", "YOGU"],
+                "PAPINHAS SALGADAS": ["CARNE", "ARROZ", "120G", "GRAO"],
+                "PAPINHAS DE FRUTAS": ["MACA", "AMEIXA", "BANANA", "MIRTILO", "MANGA", "PERA", "ESPINA", "DOCE", "CENOURA", "MORANGO"],
+                "BISCOTTI": ["LARANJ", "MAC", "CANEL", "CACAU", "GOIAB", "MARACUJ", "BISCOTTI"],
+                "PALITINHOS": ["PALIT"],
+                "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
+                "CEREAIS": ["CEREAL", "AVEIA"]
+            }
             
-            with c_top:
-                st.success(f"⭐ **Top SKUs do Grupo: {linha_selecionada}**")
-                df_top_sku = performance_sku.head(5).copy()
-                df_top_sku[col_valor] = df_top_sku[col_valor].apply(lambda x: f"R$ {x:,.2f}")
-                st.table(df_top_sku.rename(columns={"DESC PRODUTO": "Produto", col_valor: "Total Gasto"}))
-                
-            with c_vol:
-                total_linha = df_detalhe_linha[col_valor].sum()
-                qtd_total = df_detalhe_linha[col_qtd].sum()
-                
-                st.metric(label=f"Investimento Total (Grupo)", value=f"R$ {total_linha:,.2f}")
-                st.metric(label="Volume Total (Unidades)", value=int(qtd_total))
-                
-                # Gráfico também mostrará o somatório
-                fig_bar_linha = px.bar(
-                    performance_sku.head(5), 
-                    x=col_valor, 
-                    y="DESC PRODUTO", 
-                    orientation='h',
-                    title=f"Ranking de Vendas: {linha_selecionada}",
-                    labels={col_valor: "Valor Acumulado (R$)", "DESC PRODUTO": "Produto"},
-                    color_discrete_sequence=["#00CC96"]
-                )
-                fig_bar_linha.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
-                st.plotly_chart(fig_bar_linha, use_container_width=True)
-        else:
-            st.warning(f"Os clientes selecionados não possuem compras na linha '{linha_selecionada}'.")
+            for linha, keywords in catalogo.items():
+                if any(key in nome for key in keywords):
+                    return linha
+            
+
+        def mapear_sabor(nome):
+            nome = str(nome).upper()
+            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA", "IOGURTE", "YOGUZINHO"]
+            return "Doce" if any(x in nome for x in doces) else "Salgado"
+
+        def mapear_idade(nome):
+            nome = str(nome).upper()
+            if "12" in nome or "CEREAL" in nome or "PALIT" in nome: return "12 meses+"
+            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE", "ELBOW", "FUSILLI"]): return "8 meses+"
+            return "6 meses+"
+
+        # Aplicando as novas classificações
+        vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo_detalhado)
+        vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
+        vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
+
+        # 3. LINHA 1 DE GRÁFICOS (Mix por Linha e Sabores)
+        c1, c2 = st.columns(2)
+        with c1:
+            mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
+            fig_mix_cat = px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", 
+                                title="Mix por Linha de Produto", hole=0.4, 
+                                color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_mix_cat.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_mix_cat, use_container_width=True)
+            
+        with c2:
+            mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
+            fig_sabor = px.pie(mix_sabor, names="SABOR", values="VALOR", 
+                               title="Divisão Doce vs Salgado", 
+                               color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"})
+            fig_sabor.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_sabor, use_container_width=True)
+
+        # 4. LINHA 2 DE GRÁFICOS (Idade e Top 10)
+        c3, c4 = st.columns(2)
+        with c3:
+            # Ordenação lógica das idades
+            vendas_geral["IDADE"] = pd.Categorical(vendas_geral["IDADE"], categories=["6 meses+", "8 meses+", "12 meses+"], ordered=True)
+            mix_idade = vendas_geral.groupby("IDADE", observed=True)["VALOR"].sum().reset_index()
+            
+            fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", 
+                               title="Vendas por Faixa Etária",
+                               color_discrete_sequence=px.colors.qualitative.Safe)
+            fig_idade.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_idade, use_container_width=True)
+            
+        with c4:
+            top_10_geral = (vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum()
+                            .reset_index().sort_values("VALOR", ascending=True).tail(10))
+            fig_top_geral = px.bar(top_10_geral, x="VALOR", y="DESC PRODUTO", orientation="h", 
+                                   title="Top 10 Produtos Mais Vendidos",
+                                   color="VALOR", color_continuous_scale="Reds")
+            fig_top_geral.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_top_geral, use_container_width=True)
+
+else:
+    st.warning("Base de vendas não encontrada. Verifique o arquivo de dados.")
         
 # ==========================================
 # 📊 DISTRIBUIÇÃO CADASTRAL (CORREÇÃO COLUNA FATURAMENTO)
