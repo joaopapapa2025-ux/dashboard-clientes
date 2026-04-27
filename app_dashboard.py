@@ -1506,7 +1506,7 @@ if len(df_filtrado) >= 1:
             "BISCOTTI": ["BISCOTTI"],
             "PALITINHOS": ["ORGANICO BETERRABA", "ORGANICO CENOURA", "ORGANICO TOMATE/MANJERICAO"],
             "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
-            "MACARRÃO": ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO"],
+            "MACARRÃO": ["ELBOW", "FUSILLI"],
             "CEREAIS": ["CEREAL", "AVEIA"]
         }
         
