@@ -1501,12 +1501,12 @@ if len(df_filtrado) >= 1:
             "LA CHEF": termos_la_chef,
             "SOPINHAS": ["SOPINHA"],
             "YOGUZINHO": ["IOGURTE", "YOGU"],
-            "PAPINHAS SALGADAS": ["PAPINHA CARNE", "PAPINHA FRANGO", "SALGADA"],
-            "PAPINHAS DE FRUTAS": ["ORG MAÇÃ", "ORG BANANA", "ORG MANGA", "ORG PERA", "ORG MORANGO", "FRUTAS"],
+            "PAPINHAS SALGADAS": ["CARNE ARROZ LEGUMES 120G          ", "FRANGO GRAO VEGETAIS 120G"],
+            "PAPINHAS DE FRUTAS": ["ORG"],
             "BISCOTTI": ["BISCOTTI"],
             "PALITINHOS": ["PALITINHO"],
             "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
-            "MACARRÃO": ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO"],
+            "MACARRÃO": ["ELBOW", "FUSILLI"],
             "CEREAIS": ["CEREAL", "AVEIA"]
         }
         
