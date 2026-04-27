@@ -1266,7 +1266,6 @@ if 1 <= len(df_filtrado) <= 300:
 
             termos_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"]
         catalogo_dna = {
-            termos_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"]
             "LA CHEF": termos_la_chef,
             "SOPINHAS": ["SOPINHA"],
             "YOGUZINHO": ["IOGURTE", "YOGU"],
