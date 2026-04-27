@@ -1245,7 +1245,7 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - AJUSTE LINHA PALITINHOS
+# 🚀 INTELIGÊNCIA DE MERCADO - LÓGICA CORRIGIDA
 # ==========================================
 if 1 <= len(df_filtrado) <= 300:
     cnpjs_no_filtro = df_filtrado["CNPJ_LIMPO"].unique()
@@ -1259,21 +1259,22 @@ if 1 <= len(df_filtrado) <= 300:
         vendas_nomes = [limpar(n) for n in vendas_analise["DESC PRODUTO"].unique()]
 
         # --- PASSO 1: IDENTIFICADORES DE LINHA (DNA) ---
-        # Ajustado para "PALIT" para ser mais abrangente e evitar erros de cadastro
+        # Simplificamos os termos para garantir que a categoria seja reconhecida
         ja_compra_salgada = any(("120G" in n or "SALGADA" in n) and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"]) for n in vendas_nomes)
         ja_compra_palitinho = any("PALIT" in n for n in vendas_nomes)
         ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
 
+        # DNA focado em termos genéricos da linha para evitar que caia no Cross-sell errado
         catalogo_dna = {
             "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"],
-            "SOPINHAS": ["SOPINHA"],
+            "SOPINHAS": ["SOPINHA", "240G"],
             "YOGUZINHO": ["IOGURTE", "YOGU"],
-            "PAPINHAS SALGADAS": ["CARNE ARROZ LEGUMES 120G", "FRANGO GRAO VEGETAIS 120G"],
-            "PAPINHAS DE FRUTAS": ["PAPAPA ORGANICA"],
+            "PAPINHAS SALGADAS": ["120G", "SALGADA"],
+            "PAPINHAS DE FRUTAS": ["100G", "FRUTA"],
             "BISCOTTI": ["BISCOTTI"],
-            "PALITINHOS": ["TOMATE/MANJERICAO 20G", "BETERRABA 20G", "CENOURA 20G"],
+            "PALITINHOS": ["PALIT"], # Termo raiz
             "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
-            "MACARRÃO": ["ELBOW", "FUSILLI"],
+            "MACARRÃO": ["ELBOW", "FUSILLI", "MACARRAO"],
             "CEREAIS": ["CEREAL", "AVEIA"]
         }
 
@@ -1314,9 +1315,9 @@ if 1 <= len(df_filtrado) <= 300:
                 "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJ"] 
             },
             "PALITINHOS": {
-                "Palitinho Org. Beterraba 20g": ["BETERRABA 20G"],
-                "Palitinho Org. Cenoura 20g": ["CENOURA 20G"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["TOMATE/MANJERICAO 20G"]
+                "Palitinho Org. Beterraba 20g": ["BETERRABA"],
+                "Palitinho Org. Cenoura 20g": ["CENOURA"],
+                "Palitinho Org. Tomate/Manjericão 20g": ["TOMATE"]
             },
             "DENTIÇÃO": {
                 "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
@@ -1338,6 +1339,7 @@ if 1 <= len(df_filtrado) <= 300:
 
         # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
         for linha, skus_dict in catalogo_papapa.items():
+            # Define se trabalha a linha
             if linha == "PAPINHAS SALGADAS": trabalha_a_linha = ja_compra_salgada
             elif linha == "PALITINHOS": trabalha_a_linha = ja_compra_palitinho
             elif linha == "PAPINHAS DE FRUTAS": trabalha_a_linha = ja_compra_fruta
@@ -1346,7 +1348,7 @@ if 1 <= len(df_filtrado) <= 300:
                 trabalha_a_linha = any(any(id_dna in n for id_dna in ids_dna) for n in vendas_nomes)
 
             for nome_exibicao, keywords in skus_dict.items():
-                # Verifica se o cliente já tem o SKU usando keywords simplificadas
+                # Validação de SKU
                 ja_tem_sku = any(all(limpar(k) in n for k in keywords) for n in vendas_nomes)
                 
                 if not ja_tem_sku:
@@ -1368,8 +1370,8 @@ if 1 <= len(df_filtrado) <= 300:
             if cross_sell: st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
             else: st.info("💡 Já compra todas as linhas!")
 
-elif len(df_filtrado) > 50:
-    st.info("💡 Filtre um cliente ou uma rede específica para ver sugestões de Gap de Mix e Cross-sell.")
+elif len(df_filtrado) > 300:
+    st.info("💡 Filtre um cliente ou uma rede específica para ver as sugestões de Gap e Cross-sell.")
                 
 # ==========================================
 
