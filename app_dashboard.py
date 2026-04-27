@@ -1245,23 +1245,22 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO FINAL (SEM ERROS DE NOME OU INDENTAÇÃO)
+# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO FINAL (GAP E CROSS PARA UM OU MAIS)
 # ==========================================
-if len(df_filtrado) == 1:
-    cliente = df_filtrado.iloc[0]
-    id_cnpj = cliente["CNPJ_LIMPO"]
-    
-    vendas_cliente_atual = df_vendas[df_vendas["CNPJ_LIMPO"] == str(id_cnpj).strip()].copy()
+if len(df_filtrado) >= 1:
+    # Consolida as vendas de todos os CNPJs que estão no filtro atual
+    cnpjs_no_filtro = df_filtrado["CNPJ_LIMPO"].unique()
+    vendas_analise = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_no_filtro)].copy()
 
-    if not vendas_cliente_atual.empty:
+    if not vendas_analise.empty:
         import unicodedata
         def limpar(t): 
             return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
 
-        vendas_nomes = [limpar(n) for n in vendas_cliente_atual["DESC PRODUTO"].unique()]
+        # Lista de todos os produtos que o cliente (ou grupo) já comprou
+        vendas_nomes = [limpar(n) for n in vendas_analise["DESC PRODUTO"].unique()]
 
         # --- PASSO 1: IDENTIFICADORES DE LINHA (DNA) ---
-        # Definimos quem o cliente REALMENTE já compra para separar Salgada de Fruta
         ja_compra_salgada = any(("120G" in n or "SALGADA" in n) and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"]) for n in vendas_nomes)
         ja_compra_palitinho = any("PALITINHO" in n for n in vendas_nomes)
         ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
@@ -1338,7 +1337,6 @@ if len(df_filtrado) == 1:
 
         # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
         for linha, skus_dict in catalogo_papapa.items():
-            # Define se o cliente já trabalha a linha
             if linha == "PAPINHAS SALGADAS":
                 trabalha_a_linha = ja_compra_salgada
             elif linha == "PALITINHOS":
@@ -1349,7 +1347,6 @@ if len(df_filtrado) == 1:
                 ids_dna = catalogo_dna.get(linha, [])
                 trabalha_a_linha = any(any(id_dna in n for id_dna in ids_dna) for n in vendas_nomes)
 
-            # Valida cada SKU dentro da linha
             for nome_exibicao, keywords in skus_dict.items():
                 ja_tem_sku = any(all(limpar(k) in n for k in keywords) for n in vendas_nomes)
 
