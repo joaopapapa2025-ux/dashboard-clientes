@@ -1245,10 +1245,9 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO FINAL (COM TRAVA DE SEGURANÇA)
+# 🚀 INTELIGÊNCIA DE MERCADO - AJUSTE LINHA PALITINHOS
 # ==========================================
-if 1 <= len(df_filtrado) <= 300:
-    # Consolida as vendas de todos os CNPJs que estão no filtro atual
+if 1 <= len(df_filtrado) <= 50:
     cnpjs_no_filtro = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_analise = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_no_filtro)].copy()
 
@@ -1257,12 +1256,12 @@ if 1 <= len(df_filtrado) <= 300:
         def limpar(t): 
             return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
 
-        # Lista de todos os produtos que o cliente (ou grupo) já comprou
         vendas_nomes = [limpar(n) for n in vendas_analise["DESC PRODUTO"].unique()]
 
         # --- PASSO 1: IDENTIFICADORES DE LINHA (DNA) ---
+        # Ajustado para "PALIT" para ser mais abrangente e evitar erros de cadastro
         ja_compra_salgada = any(("120G" in n or "SALGADA" in n) and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"]) for n in vendas_nomes)
-        ja_compra_palitinho = any("PALITINHO" in n for n in vendas_nomes)
+        ja_compra_palitinho = any("PALIT" in n for n in vendas_nomes)
         ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
         
         catalogo_dna = {
@@ -1312,21 +1311,20 @@ if 1 <= len(df_filtrado) <= 300:
                 "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJ"] 
             },
             "PALITINHOS": {
-                "Palitinho Org. Beterraba 20g": ["PALITINHO", "BETERRABA"],
-                "Palitinho Org. Cenoura 20g": ["PALITINHO", "CENOURA"],
-                "Palitinho Org. Tomate/Manjericão 20g": ["PALITINHO", "TOMATE"]
+                "Palitinho Org. Beterraba 20g": ["PALIT", "BETERRABA"],
+                "Palitinho Org. Cenoura 20g": ["PALIT", "CENOURA"],
+                "Palitinho Org. Tomate/Manjericão 20g": ["PALIT", "TOMATE"]
             },
             "DENTIÇÃO": {
                 "Biscoito de Dentição Maçã e Abóbora": ["DENTICAO", "ABOBORA"],
                 "Biscoito de Dentição Vegetais": ["DENTICAO", "VEGETAIS"]
             },
             "MACARRÃO": {
-                "Macarrão Inf. Elbow Quinoa 200g": ["ELBOW", "QUINOA"],
-                "Macarrão Inf. Fusilli Vegetais 200g": ["FUSILLI", "VEGETAIS"]
+                "Macarrão Inf. Elbow Quinoa 200g": ["ELBOW"],
+                "Macarrão Inf. Fusilli Vegetais 200g": ["FUSILLI"]
             },
             "CEREAIS": {
-                "Cereal Multicereais 170g": ["CEREAL", "MULTI", "170G"],
-                "Cereal Multicereais 500g": ["CEREAL", "MULTI", "500G"],
+                "Cereal Multicereais 170g": ["CEREAL", "MULTI"],
                 "Cereal Aveia Morango e Beterraba 170g": ["AVEIA", "MORANGO"],
                 "Cereal Aveia Banana e Ameixa 170g": ["AVEIA", "BANANA"]
             }
@@ -1345,14 +1343,18 @@ if 1 <= len(df_filtrado) <= 300:
                 trabalha_a_linha = any(any(id_dna in n for id_dna in ids_dna) for n in vendas_nomes)
 
             for nome_exibicao, keywords in skus_dict.items():
+                # Verifica se o cliente já tem o SKU usando keywords simplificadas
                 ja_tem_sku = any(all(limpar(k) in n for k in keywords) for n in vendas_nomes)
+                
                 if not ja_tem_sku:
                     item = {"Linha": linha, "Produto": nome_exibicao}
-                    if trabalha_a_linha: gap_mix.append(item)
-                    else: cross_sell.append(item)
+                    if trabalha_a_linha:
+                        gap_mix.append(item)
+                    else:
+                        cross_sell.append(item)
 
         # --- PASSO 4: EXIBIÇÃO ---
-        st.subheader("📦 Sugestões de Expansão (Filtro Específico)")
+        st.subheader("📦 Sugestões de Expansão")
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("#### 🚨 Gap de Mix")
