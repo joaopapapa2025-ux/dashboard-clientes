@@ -1501,7 +1501,7 @@ if len(df_filtrado) >= 1:
             "LA CHEF": termos_la_chef,
             "SOPINHAS": ["SOPINHA"],
             "YOGUZINHO": ["IOGURTE", "YOGU"],
-            "PAPINHAS SALGADAS": ["CARNE", "FRANGO"],
+            "PAPINHAS SALGADAS": ["CARNE ARROZ LEGUMES 120G", "FRANGO GRAO VEGETAIS 120G"],
             "PAPINHAS DE FRUTAS": ["ORG"],
             "BISCOTTI": ["BISCOTTI"],
             "PALITINHOS": ["PALITINHO"],
