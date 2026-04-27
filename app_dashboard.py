@@ -1504,7 +1504,7 @@ if len(df_filtrado) >= 1:
             "PAPINHAS SALGADAS": ["CARNE ARROZ LEGUMES 120G", "FRANGO GRAO VEGETAIS 120G"],
             "PAPINHAS DE FRUTAS": ["ORG"],
             "BISCOTTI": ["BISCOTTI"],
-            "PALITINHOS": ["PALITINHO"],
+            "PALITINHOS": ["ORGANICO BETERRABA", "ORGANICO CENOURA", "ORGANICO TOMATE/MANJERICAO"],
             "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
             "MACARRÃO": ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO"],
             "CEREAIS": ["CEREAL", "AVEIA"]
