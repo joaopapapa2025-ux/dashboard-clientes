@@ -1477,6 +1477,92 @@ if not df_vendas.empty:
 
 else:
     st.warning("Base de vendas não encontrada. Verifique o arquivo de dados.")
+
+# ==========================================
+# 🏆 PERFORMANCE POR LINHA (VISÃO DETALHADA - MULTI CLIENTE)
+# ==========================================
+
+# Mudamos de == 1 para >= 1 para aceitar seleções múltiplas
+if len(df_filtrado) >= 1:
+    
+    # 1. Pegamos os CNPJs de todos os clientes que estão no df_filtrado
+    cnpjs_selecionados = df_filtrado[COL_CNPJ].unique()
+    
+    # 2. Filtramos a base de vendas para trazer tudo desses clientes (Soma automática)
+    vendas_clientes_selecionados = df_vendas[df_vendas[COL_CNPJ].isin(cnpjs_selecionados)].copy()
+
+    if not vendas_clientes_selecionados.empty:
+        st.markdown("---")
+        st.markdown("#### 🏆 Performance Consolidada por Linha de Produto")
+        
+        # [Mantenha aqui o seu dicionário regras_linhas igual ao original]
+        termos_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"]
+        regras_linhas = {
+            "LA CHEF": termos_la_chef,
+            "SOPINHAS": ["SOPINHA"],
+            "YOGUZINHO": ["IOGURTE", "YOGU"],
+            "PAPINHAS SALGADAS": ["PAPINHA CARNE", "PAPINHA FRANGO", "SALGADA"],
+            "PAPINHAS DE FRUTAS": ["ORG MAÇÃ", "ORG BANANA", "ORG MANGA", "ORG PERA", "ORG MORANGO", "FRUTAS"],
+            "BISCOTTI": ["BISCOTTI"],
+            "PALITINHOS": ["PALITINHO"],
+            "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
+            "MACARRÃO": ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO"],
+            "CEREAIS": ["CEREAL", "AVEIA"]
+        }
+        
+        linha_selecionada = st.selectbox("Selecione uma linha para análise consolidada:", options=list(regras_linhas.keys()))
+
+        # 3. LÓGICA DE FILTRO (Agora usando a base multicliente)
+        termos = regras_linhas[linha_selecionada]
+        filtro_termos = "|".join(termos)
+        
+        df_detalhe_linha = vendas_clientes_selecionados[
+            vendas_clientes_selecionados["DESC PRODUTO"].str.upper().str.contains(filtro_termos, na=False)
+        ].copy()
+
+        # --- A TRAVA PARA LA CHEF (Permanece igual) ---
+        if linha_selecionada == "SOPINHAS":
+            filtro_trava = "|".join(termos_la_chef)
+            df_detalhe_linha = df_detalhe_linha[
+                ~df_detalhe_linha["DESC PRODUTO"].str.upper().str.contains(filtro_trava, na=False)
+            ]
+        
+        if not df_detalhe_linha.empty:
+            col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_detalhe_linha.columns else "VALOR"
+            col_qtd = "QTD" if "QTD" in df_detalhe_linha.columns else "QTDE"
+
+            # Aqui o groupby já vai somar os valores de todos os clientes filtrados
+            performance_sku = df_detalhe_linha.groupby("DESC PRODUTO")[col_valor].sum().sort_values(ascending=False).reset_index()
+            
+            c_top, c_vol = st.columns(2)
+            
+            with c_top:
+                st.success(f"⭐ **Top SKUs do Grupo: {linha_selecionada}**")
+                df_top_sku = performance_sku.head(5).copy()
+                df_top_sku[col_valor] = df_top_sku[col_valor].apply(lambda x: f"R$ {x:,.2f}")
+                st.table(df_top_sku.rename(columns={"DESC PRODUTO": "Produto", col_valor: "Total Gasto"}))
+                
+            with c_vol:
+                total_linha = df_detalhe_linha[col_valor].sum()
+                qtd_total = df_detalhe_linha[col_qtd].sum()
+                
+                st.metric(label=f"Investimento Total (Grupo)", value=f"R$ {total_linha:,.2f}")
+                st.metric(label="Volume Total (Unidades)", value=int(qtd_total))
+                
+                # Gráfico também mostrará o somatório
+                fig_bar_linha = px.bar(
+                    performance_sku.head(5), 
+                    x=col_valor, 
+                    y="DESC PRODUTO", 
+                    orientation='h',
+                    title=f"Ranking de Vendas: {linha_selecionada}",
+                    labels={col_valor: "Valor Acumulado (R$)", "DESC PRODUTO": "Produto"},
+                    color_discrete_sequence=["#00CC96"]
+                )
+                fig_bar_linha.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig_bar_linha, use_container_width=True)
+        else:
+            st.warning(f"Os clientes selecionados não possuem compras na linha '{linha_selecionada}'.")
         
 # ==========================================
 # 📊 DISTRIBUIÇÃO CADASTRAL (CORREÇÃO COLUNA FATURAMENTO)
