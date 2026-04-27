@@ -1245,9 +1245,9 @@ if not vendas_cliente.empty:
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO FINAL (GAP E CROSS PARA UM OU MAIS)
+# 🚀 INTELIGÊNCIA DE MERCADO - VERSÃO FINAL (COM TRAVA DE SEGURANÇA)
 # ==========================================
-if len(df_filtrado) >= 1:
+if 1 <= len(df_filtrado) <= 300:
     # Consolida as vendas de todos os CNPJs que estão no filtro atual
     cnpjs_no_filtro = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_analise = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_no_filtro)].copy()
@@ -1275,7 +1275,7 @@ if len(df_filtrado) >= 1:
             "MACARRÃO": ["MACARRAO", "ELBOW", "FUSILLI"]
         }
 
-        # --- PASSO 2: CATÁLOGO COMPLETO (MANTIDO 100%) ---
+        # --- PASSO 2: CATÁLOGO COMPLETO ---
         catalogo_papapa = {
             "LA CHEF": {
                 "Lentilha Carne Legumes 180g": ["LENTILHA"],
@@ -1337,41 +1337,34 @@ if len(df_filtrado) >= 1:
 
         # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
         for linha, skus_dict in catalogo_papapa.items():
-            if linha == "PAPINHAS SALGADAS":
-                trabalha_a_linha = ja_compra_salgada
-            elif linha == "PALITINHOS":
-                trabalha_a_linha = ja_compra_palitinho
-            elif linha == "PAPINHAS DE FRUTAS":
-                trabalha_a_linha = ja_compra_fruta
+            if linha == "PAPINHAS SALGADAS": trabalha_a_linha = ja_compra_salgada
+            elif linha == "PALITINHOS": trabalha_a_linha = ja_compra_palitinho
+            elif linha == "PAPINHAS DE FRUTAS": trabalha_a_linha = ja_compra_fruta
             else:
                 ids_dna = catalogo_dna.get(linha, [])
                 trabalha_a_linha = any(any(id_dna in n for id_dna in ids_dna) for n in vendas_nomes)
 
             for nome_exibicao, keywords in skus_dict.items():
                 ja_tem_sku = any(all(limpar(k) in n for k in keywords) for n in vendas_nomes)
-
                 if not ja_tem_sku:
                     item = {"Linha": linha, "Produto": nome_exibicao}
-                    if trabalha_a_linha:
-                        gap_mix.append(item)
-                    else:
-                        cross_sell.append(item)
+                    if trabalha_a_linha: gap_mix.append(item)
+                    else: cross_sell.append(item)
 
-        # --- PASSO 4: EXIBIÇÃO NO DASHBOARD ---
-        st.subheader("📦 Análise Geral de Mix e Produtos")
+        # --- PASSO 4: EXIBIÇÃO ---
+        st.subheader("📦 Sugestões de Expansão (Filtro Específico)")
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("#### 🚨 Gap de Mix")
-            if gap_mix:
-                st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
-            else:
-                st.success("✅ Mix completo nas categorias atuais!")
+            if gap_mix: st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+            else: st.success("✅ Mix completo nas categorias atuais!")
         with c2:
             st.markdown("#### 📦 Cross-sell")
-            if cross_sell:
-                st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
-            else:
-                st.info("💡 Já compra todas as linhas!")
+            if cross_sell: st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
+            else: st.info("💡 Já compra todas as linhas!")
+
+elif len(df_filtrado) > 50:
+    st.info("💡 Filtre um cliente ou uma rede específica para ver sugestões de Gap de Mix e Cross-sell.")
                 
 # ==========================================
 
