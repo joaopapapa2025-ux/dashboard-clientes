@@ -1378,105 +1378,71 @@ if len(df_filtrado) == 1:
                 
 # ==========================================
 
-st.subheader("📦 Análise Geral de Mix e Produtos")
+st.subheader("📦 Gap de Mix e Cross-sell (Consolidado)")
 
-if not df_vendas.empty:
-    # 1. Filtro de Segurança: Analisar apenas vendas dos clientes visíveis na sidebar
+if not df_vendas.empty and len(df_filtrado) > 0:
+    # 1. Filtro de Vendas para os clientes selecionados
     cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
     
-    # Limpeza de ruído (Blacklist)
-    blacklist_geral = ["CONFERIDO", "AJUSTE", "TESTE", "FRETE"]
-    regex_geral = "|".join(blacklist_geral)
-    vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.upper().str.contains(regex_geral, na=False)]
+    # Mapeamento de Linhas (usando as regras que funcionam)
+    def mapear_linha_gap(nome):
+        nome = str(nome).upper()
+        if any(x in nome for x in ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO"]): return "MACARRÃO"
+        if "ORG " in nome: return "PAPINHAS DE FRUTAS"
+        if any(x in nome for x in ["CARNE", "FRANGO", "PEIXE"]): return "PAPINHAS SALGADAS"
+        if "SOPINHA" in nome: return "SOPINHAS"
+        if any(x in nome for x in ["LENTILHA", "RISOTINHO", "CASEIRINHO"]): return "LA CHEF"
+        if any(x in nome for x in ["IOGURTE", "YOGU"]): return "YOGUZINHO"
+        if "BISCOTTI" in nome: return "BISCOTTI"
+        if "PALIT" in nome: return "PALITINHOS"
+        if any(x in nome for x in ["DENTICAO", "DENTIÇÃO", "DENT."]): return "DENTIÇÃO"
+        if any(x in nome for x in ["CEREAL", "AVEIA"]): return "CEREAIS"
+        return "OUTROS"
 
-    if not vendas_geral.empty:
-        # 2. MAPEAMENTO INTELIGENTE (Categorização PAPAPÁ)
-        
-        def mapear_catalogo_detalhado(nome):
-            nome = str(nome).upper()
-            
-            # 1. Trava de Prioridade: Se for Macarrão, já retorna logo para não cair em outras categorias
-            termos_macarrao = ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO", "MASSA", "LETRE"]
-            if any(key in nome for key in termos_macarrao):
-                return "MACARRÃO"
+    vendas_geral["LINHA"] = vendas_geral["DESC PRODUTO"].apply(mapear_linha_gap)
+    
+    # 2. LÓGICA DE GAP DE MIX
+    # Quais linhas o catálogo total tem que este cliente/grupo NÃO comprou?
+    linhas_totais = ["LA CHEF", "SOPINHAS", "YOGUZINHO", "PAPINHAS SALGADAS", "PAPINHAS DE FRUTAS", 
+                     "BISCOTTI", "PALITINHOS", "DENTIÇÃO", "MACARRÃO", "CEREAIS"]
+    linhas_compradas = vendas_geral["LINHA"].unique()
+    gaps = [l for l in linhas_totais if l not in linhas_compradas]
 
-            # 2. Dicionário para as demais linhas
-            catalogo = {
-                "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO"],
-                "SOPINHAS": ["SOPINHA"],
-                "YOGUZINHO": ["IOGURTE", "YOGUZINHO", "YOGU"],
-                "PAPINHAS SALGADAS": ["CARNE", "ARROZ", "120G", "GRAO"],
-                "PAPINHAS DE FRUTAS": ["MACA", "AMEIXA", "BANANA", "MIRTILO", "MANGA", "PERA", "ESPINA", "DOCE", "CENOURA", "MORANGO"],
-                "BISCOTTI": ["LARANJ", "MAC", "CANEL", "CACAU", "GOIAB", "MARACUJ", "BISCOTTI"],
-                "PALITINHOS": ["PALIT"],
-                "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
-                "CEREAIS": ["CEREAL", "AVEIA"]
-            }
-            
-            for linha, keywords in catalogo.items():
-                if any(key in nome for key in keywords):
-                    return linha
-            
+    c1, c2 = st.columns(2)
 
-        def mapear_sabor(nome):
-            nome = str(nome).upper()
-            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA", "IOGURTE", "YOGUZINHO"]
-            return "Doce" if any(x in nome for x in doces) else "Salgado"
+    with c1:
+        st.markdown("#### 🚩 Gap de Mix (Linhas não compradas)")
+        if gaps:
+            for g in gaps:
+                st.error(f"❌ **{g}**: Sem vendas para este filtro.")
+        else:
+            st.success("✅ **Mix Completo!** O cliente compra todas as linhas principais.")
 
-        def mapear_idade(nome):
-            nome = str(nome).upper()
-            if "12" in nome or "CEREAL" in nome or "PALIT" in nome: return "12 meses+"
-            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE", "ELBOW", "FUSILLI"]): return "8 meses+"
-            return "6 meses+"
+    with c2:
+        st.markdown("#### 🚀 Oportunidade de Cross-sell")
+        # Lógica simples: Se compra Papinha Salgada mas não compra Fruta, sugere Fruta
+        if "PAPINHAS SALGADAS" in linhas_compradas and "PAPINHAS DE FRUTAS" not in linhas_compradas:
+            st.info("💡 **Dica:** Cliente forte em Salgadas. Oferecer a linha de Frutas Orgânicas para sobremesa.")
+        elif "MACARRÃO" in linhas_compradas and "LA CHEF" not in linhas_compradas:
+            st.info("💡 **Dica:** Cliente compra Macarrão. Oferecer as refeições completas La Chef (12 meses+).")
+        elif "BISCOTTI" in linhas_compradas and "DENTIÇÃO" not in linhas_compradas:
+            st.info("💡 **Dica:** Cliente compra Biscotti. Excelente abertura para a linha de Dentição.")
+        else:
+            st.write("Analise o Gap ao lado para sugerir novos itens.")
 
-        # Aplicando as novas classificações
-        vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo_detalhado)
-        vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
-        vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
-
-        # 3. LINHA 1 DE GRÁFICOS (Mix por Linha e Sabores)
-        c1, c2 = st.columns(2)
-        with c1:
-            mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
-            fig_mix_cat = px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", 
-                                title="Mix por Linha de Produto", hole=0.4, 
-                                color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig_mix_cat.update_layout(margin=dict(t=40, b=0, l=0, r=0))
-            st.plotly_chart(fig_mix_cat, use_container_width=True)
-            
-        with c2:
-            mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
-            fig_sabor = px.pie(mix_sabor, names="SABOR", values="VALOR", 
-                               title="Divisão Doce vs Salgado", 
-                               color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"})
-            fig_sabor.update_layout(margin=dict(t=40, b=0, l=0, r=0))
-            st.plotly_chart(fig_sabor, use_container_width=True)
-
-        # 4. LINHA 2 DE GRÁFICOS (Idade e Top 10)
-        c3, c4 = st.columns(2)
-        with c3:
-            # Ordenação lógica das idades
-            vendas_geral["IDADE"] = pd.Categorical(vendas_geral["IDADE"], categories=["6 meses+", "8 meses+", "12 meses+"], ordered=True)
-            mix_idade = vendas_geral.groupby("IDADE", observed=True)["VALOR"].sum().reset_index()
-            
-            fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", 
-                               title="Vendas por Faixa Etária",
-                               color_discrete_sequence=px.colors.qualitative.Safe)
-            fig_idade.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
-            st.plotly_chart(fig_idade, use_container_width=True)
-            
-        with c4:
-            top_10_geral = (vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum()
-                            .reset_index().sort_values("VALOR", ascending=True).tail(10))
-            fig_top_geral = px.bar(top_10_geral, x="VALOR", y="DESC PRODUTO", orientation="h", 
-                                   title="Top 10 Produtos Mais Vendidos",
-                                   color="VALOR", color_continuous_scale="Reds")
-            fig_top_geral.update_layout(margin=dict(t=40, b=0, l=0, r=0))
-            st.plotly_chart(fig_top_geral, use_container_width=True)
+    # 3. TOP 10 PRODUTOS QUE O GRUPO MAIS CONSOME
+    st.markdown("---")
+    top_10 = vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum().reset_index().sort_values("VALOR", ascending=False).head(10)
+    
+    fig_top = px.bar(top_10, x="VALOR", y="DESC PRODUTO", orientation='h',
+                     title="Itens de Maior Giro (Foco em Reposição)",
+                     color_discrete_sequence=["#00CC96"])
+    fig_top.update_layout(yaxis={'categoryorder':'total ascending'})
+    st.plotly_chart(fig_top, use_container_width=True)
 
 else:
-    st.warning("Base de vendas não encontrada. Verifique o arquivo de dados.")
+    st.info("Aguardando seleção de filtros para calcular Gap de Mix.")
     
 # ==========================================
 # 🏆 PERFORMANCE POR LINHA (VISÃO DETALHADA - MULTI CLIENTE)
