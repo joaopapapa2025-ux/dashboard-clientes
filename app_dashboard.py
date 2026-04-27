@@ -1247,7 +1247,7 @@ if not vendas_cliente.empty:
 # ==========================================
 # 🚀 INTELIGÊNCIA DE MERCADO - AJUSTE LINHA PALITINHOS
 # ==========================================
-if 1 <= len(df_filtrado) <= 50:
+if 1 <= len(df_filtrado) <= 300:
     cnpjs_no_filtro = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_analise = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_no_filtro)].copy()
 
@@ -1263,15 +1263,20 @@ if 1 <= len(df_filtrado) <= 50:
         ja_compra_salgada = any(("120G" in n or "SALGADA" in n) and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"]) for n in vendas_nomes)
         ja_compra_palitinho = any("PALIT" in n for n in vendas_nomes)
         ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
-        
+
+            termos_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"]
         catalogo_dna = {
-            "LA CHEF": ["180G", "LENTILHA", "RISOTINHO", "CASEIRINHO"],
-            "CEREAIS": ["CEREAL", "AVEIA", "MULTICEREAIS"],
-            "SOPINHAS": ["SOPINHA", "240G"],
-            "YOGUZINHO": ["YOGU", "IOGURTE"],
+            termos_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"]
+            "LA CHEF": termos_la_chef,
+            "SOPINHAS": ["SOPINHA"],
+            "YOGUZINHO": ["IOGURTE", "YOGU"],
+            "PAPINHAS SALGADAS": ["CARNE ARROZ LEGUMES 120G", "FRANGO GRAO VEGETAIS 120G"],
+            "PAPINHAS DE FRUTAS": ["PAPAPA ORGANICA"],
             "BISCOTTI": ["BISCOTTI"],
-            "DENTIÇÃO": ["DENTICAO"],
-            "MACARRÃO": ["MACARRAO", "ELBOW", "FUSILLI"]
+            "PALITINHOS": ["TOMATE/MANJERICAO 20G", "BETERRABA 20G", "CENOURA 20G"],
+            "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
+            "MACARRÃO": ["ELBOW", "FUSILLI"],
+            "CEREAIS": ["CEREAL", "AVEIA"]
         }
 
         # --- PASSO 2: CATÁLOGO COMPLETO ---
