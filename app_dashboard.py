@@ -811,12 +811,22 @@ if fat_sel:
     df_filtrado = df_filtrado[df_filtrado["FAIXA_REAL"].isin(fat_sel)]
 
 # ==========================================
-# 3. RAZÃO SOCIAL (CASCATA ATIVA)
+# 3. RAZÃO SOCIAL (CASCATA ATIVA - SELEÇÃO MÚLTIPLA)
 # ==========================================
-lista_clientes = [""] + sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
-cliente_sel = placeholder_razao.selectbox("Buscar Razão Social", options=lista_clientes, key="b_razao")
-if cliente_sel != "":
-    df_filtrado = df_filtrado[df_filtrado[COL_RAZAO] == cliente_sel]
+
+# Criamos a lista de opções (removendo o "" inicial, pois o multiselect já lida com vazio)
+lista_clientes = sorted(df_filtrado[COL_RAZAO].dropna().unique().tolist())
+
+# Trocamos o selectbox pelo multiselect
+cliente_sel = placeholder_razao.multiselect(
+    "Filtrar Razões Sociais", 
+    options=lista_clientes, 
+    key="b_razao"
+)
+
+# Se houver algo selecionado na lista, filtramos usando .isin()
+if cliente_sel:
+    df_filtrado = df_filtrado[df_filtrado[COL_RAZAO].isin(cliente_sel)]
     
 # =========================
 # TÍTULO
