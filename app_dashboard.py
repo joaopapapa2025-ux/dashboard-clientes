@@ -1502,7 +1502,7 @@ if len(df_filtrado) >= 1:
             "SOPINHAS": ["SOPINHA"],
             "YOGUZINHO": ["IOGURTE", "YOGU"],
             "PAPINHAS SALGADAS": ["PAPINHA CARNE", "PAPINHA FRANGO", "SALGADA"],
-            "PAPINHAS DE FRUTAS": ["ORG MAÇÃ", "ORG BANANA", "ORG MANGA", "ORG PERA", "ORG MORANGO", "FRUTAS"],
+            "PAPINHAS DE FRUTAS": ["ORG MAÇÃ", "ORG BANANA", "ORG MANGA", "ORG PERA", "ORG MORANGO"],
             "BISCOTTI": ["BISCOTTI"],
             "PALITINHOS": ["PALITINHO"],
             "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
