@@ -243,7 +243,7 @@ percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
 # 📝 BLOCO 1: PERFORMANCE GERAL
 # ==========================================
 meta_maio, faturado_maio, digitado_maio = 882036.0, 0.0, 0.0
-valor_devolucoes = 8446.00  # Valor fixo conforme solicitado
+valor_devolucoes = 00.00  # Valor fixo conforme solicitado
 
 if df_geral_hist is not None:
     linha = df_geral_hist[df_geral_hist['Data'] == data_selecionada]
