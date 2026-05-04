@@ -242,23 +242,23 @@ percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
 # ==========================================
 # 📝 BLOCO 1: PERFORMANCE GERAL
 # ==========================================
-meta_abril, faturado_abril, digitado_abril = 882036.0, 0.0, 0.0
+meta_maio, faturado_maio, digitado_maio = 882036.0, 0.0, 0.0
 valor_devolucoes = 8446.00  # Valor fixo conforme solicitado
 
 if df_geral_hist is not None:
     linha = df_geral_hist[df_geral_hist['Data'] == data_selecionada]
     if not linha.empty:
-        meta_abril = float(linha.iloc[0]['Meta_Mes'])
-        faturado_abril = float(linha.iloc[0]['Faturado_Acumulado'])
-        digitado_abril = float(linha.iloc[0]['Digitado_Acumulado'])
+        meta_maio = float(linha.iloc[0]['Meta_Mes'])
+        faturado_maio = float(linha.iloc[0]['Faturado_Acumulado'])
+        digitado_maio = float(linha.iloc[0]['Digitado_Acumulado'])
 
 # CÁLCULO AJUSTADO: O Total Geral agora é o faturamento líquido (Bruto - Devoluções)
-total_geral = (faturado_abril + digitado_abril) - valor_devolucoes
+total_geral = (faturado_maio + digitado_maio) - valor_devolucoes
 
 # Os cálculos abaixo agora herdam automaticamente o valor já com o desconto
-percentual_atual = (total_geral / meta_abril) * 100 if meta_abril > 0 else 0
+percentual_atual = (total_geral / meta_maio) * 100 if meta_maio > 0 else 0
 gap_vs_linear = percentual_atual - percentual_esperado
-falta_r_cifra = meta_abril - total_geral
+falta_r_cifra = meta_maio - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
@@ -284,7 +284,7 @@ with col6: st.metric("📅 Ritmo Diário Necessário", f"{fmt_m(ritmo_final)} /d
 
 components.html("""<script>const f = () => { const d = window.parent.document.querySelectorAll('[data-testid="stMetricDelta"]'); if(d.length > 0){ const e = d[d.length-1].querySelector('div'); if(e){ e.style.color = '#29b5e8'; e.style.setProperty('color', '#29b5e8', 'important'); }}}; f(); setTimeout(f, 1000);</script>""", height=0)
 
-valor_esperado_reais = (percentual_esperado / 100) * meta_abril
+valor_esperado_reais = (percentual_esperado / 100) * meta_maio
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 dev_txt = f"-R$ {valor_devolucoes:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
