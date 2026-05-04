@@ -835,7 +835,7 @@ if cliente_sel:
 st.title("Dashboard Inside Sales - PAPAPÁ")
 
 # Você pode alterar a data/hora manualmente aqui sempre que atualizar os números
-data_atualizacao = "15/04/2026" 
+data_atualizacao = "04/05/2026" 
 st.markdown(f"🕒 *Última atualização: {data_atualizacao}*")
 
 # =========================
