@@ -274,9 +274,9 @@ elif falta_r_cifra <= 0:
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 def fmt_m(v): return f"R$ {v:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-with col1: st.metric("🎯 Meta", fmt_m(meta_abril))
-with col2: st.metric("✅ Faturado", fmt_m(faturado_abril))
-with col3: st.metric("📝 Digitado", fmt_m(digitado_abril))
+with col1: st.metric("🎯 Meta", fmt_m(meta_maio))
+with col2: st.metric("✅ Faturado", fmt_m(faturado_maio))
+with col3: st.metric("📝 Digitado", fmt_m(digitado_maio))
 with col_total: st.metric("💰 Total Geral", fmt_m(total_geral))
 with col4: st.metric("🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit", fmt_m(abs(falta_r_cifra)))
 with col5: st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
