@@ -776,7 +776,28 @@ if COL_GRUPO in df_filtrado.columns:
     if grupo_sel:
         df_filtrado = df_filtrado[df_filtrado[COL_GRUPO].isin(grupo_sel)]
 
+# --- NOVO FILTRO: REGIÃO (Inserido aqui) ---
+mapa_regioes = {
+    "Centro-Oeste": ["DF", "GO", "MT", "MS"],
+    "Nordeste": ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"],
+    "Norte": ["AC", "AM", "AP", "PA", "RO", "RR", "TO"],
+    "Sudeste": ["ES", "MG", "RJ", "SP"],
+    "Sul": ["PR", "RS", "SC"]
+}
+
+regioes_disponiveis = sorted(list(mapa_regioes.keys()))
+regiao_sel = st.sidebar.multiselect("Região", regioes_disponiveis, key="f_regiao")
+
+if regiao_sel:
+    # Coleta todos os estados das regiões selecionadas
+    estados_selecionados = []
+    for r in regiao_sel:
+        estados_selecionados.extend(mapa_regioes[r])
+    # Filtra o DataFrame para conter apenas esses estados
+    df_filtrado = df_filtrado[df_filtrado[COL_UF].isin(estados_selecionados)]
+
 # 3. Filtro de Estado (UF)
+# u_lista agora refletirá apenas os estados da região escolhida acima
 u_lista = sorted(df_filtrado[COL_UF].dropna().unique().tolist())
 uf_sel = st.sidebar.multiselect("Estado (UF)", u_lista, key="f_uf")
 if uf_sel:
