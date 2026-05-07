@@ -778,6 +778,18 @@ st.session_state["filtro_mes"] = mes_sel
 if mes_sel:
     df_filtrado = df_filtrado[df_filtrado["MES_REF"].isin(mes_sel)]
 
+# --- NOVO FILTRO: SEMANA DA ÚLTIMA COMPRA ---
+# Definimos a ordem lógica para as semanas aparecerem corretamente no menu
+ordem_semanas = ["Semana 1 (01-07)", "Semana 2 (08-14)", "Semana 3 (15-21)", "Semana 4 (22+)", "Sem Registro"]
+
+# Filtramos a lista para exibir apenas as semanas que existem nos dados filtrados no momento
+s_lista = [s for s in ordem_semanas if s in df_filtrado["SEMANA_REF"].unique()]
+
+semana_sel = st.sidebar.multiselect("Semana da Última Compra", s_lista, key="f_semana")
+
+if semana_sel:
+    df_filtrado = df_filtrado[df_filtrado["SEMANA_REF"].isin(semana_sel)]
+
 # 2. Filtro de Vendedor
 v_lista = sorted(df_filtrado[COL_VENDEDOR].dropna().unique().tolist())
 vendedor_sel = st.sidebar.multiselect("Vendedor", v_lista, key="f_vend")
