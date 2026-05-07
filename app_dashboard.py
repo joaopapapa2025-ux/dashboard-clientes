@@ -861,10 +861,14 @@ if fat_sel:
     df_filtrado = df_filtrado[df_filtrado["FAIXA_REAL"].isin(fat_sel)]
 
 # --- FILTRO: STATUS DO CLIENTE (FAROL) ---
-f_lista = sorted(df_filtrado["STATUS_FAROL"].unique().tolist())
-farol_sel = st.sidebar.multiselect("Status do Cliente (Farol)", f_lista, key="f_farol")
-if farol_sel:
-    df_filtrado = df_filtrado[df_filtrado["STATUS_FAROL"].isin(farol_sel)]
+if "STATUS_FAROL" in df_filtrado.columns:
+    # Definimos a ordem para o filtro ficar bonito: Ativo -> Alerta -> Reativação
+    ordem_farol = ["🟢 ATIVO", "🟡 ALERTA", "🔴 REATIVAÇÃO"]
+    f_lista = [status for status in ordem_farol if status in df_filtrado["STATUS_FAROL"].unique()]
+    
+    farol_sel = st.sidebar.multiselect("Status do Cliente (Farol)", f_lista, key="f_farol")
+    if farol_sel:
+        df_filtrado = df_filtrado[df_filtrado["STATUS_FAROL"].isin(farol_sel)]
 
 # ==========================================
 # 3. RAZÃO SOCIAL (CASCATA ATIVA - SELEÇÃO MÚLTIPLA)
