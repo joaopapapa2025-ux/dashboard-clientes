@@ -707,6 +707,8 @@ else:
     df["MES_REF"] = "Sem Data"
     df["SEMANA_REF"] = "Sem Registro"
 
+    df["STATUS_FAROL"] = df.apply(lambda row: calcular_status_farol(row)[0], axis=1)
+
 st.sidebar.title("Filtros")
 
 # BOTÃO LIMPAR - Reseta as chaves novas e as antigas (para garantir o ranking)
