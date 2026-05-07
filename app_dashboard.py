@@ -679,7 +679,7 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
 # --- TRATAMENTO DE DADOS ---
 COL_DATA_ULTIMA_COMPRA = "ÚLTIMA COMPRA"
-COL_GRUPO = "GRUPO ECONÔMICO" # Adicionado para identificar a coluna na planilha
+COL_GRUPO = "GRUPO ECONÔMICO" 
 
 if COL_TELEFONE in df.columns:
     df["TEL_LIMPO"] = df[COL_TELEFONE].astype(str).str.replace(r'\D', '', regex=True)
@@ -687,10 +687,25 @@ else:
     df["TEL_LIMPO"] = ""
 
 if COL_DATA_ULTIMA_COMPRA in df.columns:
+    # Converte para datetime garantindo o formato de data
     df[COL_DATA_ULTIMA_COMPRA] = pd.to_datetime(df[COL_DATA_ULTIMA_COMPRA], errors='coerce')
+    
+    # Criar mês de referência (Ex: 05/2024)
     df["MES_REF"] = df[COL_DATA_ULTIMA_COMPRA].dt.strftime('%m/%Y')
+    
+    # --- NOVA LÓGICA DE SEMANA ---
+    def categorizar_semana(data):
+        if pd.isna(data): return "Sem Registro"
+        dia = data.day
+        if dia <= 7: return "Semana 1 (01-07)"
+        elif dia <= 14: return "Semana 2 (08-14)"
+        elif dia <= 21: return "Semana 3 (15-21)"
+        else: return "Semana 4 (22+)"
+    
+    df["SEMANA_REF"] = df[COL_DATA_ULTIMA_COMPRA].apply(categorizar_semana)
 else:
     df["MES_REF"] = "Sem Data"
+    df["SEMANA_REF"] = "Sem Registro"
 
 st.sidebar.title("Filtros")
 
