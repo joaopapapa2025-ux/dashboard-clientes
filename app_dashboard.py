@@ -210,7 +210,18 @@ lista_feriados = [d.date() for d in feriados_pandas]
 # --- FILTRO DE DATA ---
 with st.sidebar:
     st.header("⚙️ Filtro")
-    data_selecionada = st.date_input("Preencha a data de hoje (resultado D -1):", value=datetime.now().date(), format="DD/MM/YYYY")
+    
+    # Se o botão "Hoje" for clicado, ele limpa qualquer seleção anterior e volta para a data atual
+    if st.button("📅 Hoje"):
+        st.session_state["data_input_key"] = datetime.now().date()
+
+    # Adicionamos uma 'key' para o date_input ser controlado pelo botão
+    data_selecionada = st.date_input(
+        "Preencha a data de hoje (resultado D -1):", 
+        value=st.session_state.get("data_input_key", datetime.now().date()), 
+        format="DD/MM/YYYY",
+        key="data_input_key"
+    )
 
 # ==========================================
 # 📝 LÓGICA DE DATAS (D-1 ÚTIL)
