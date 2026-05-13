@@ -324,7 +324,7 @@ if df_vendedores_hist is not None:
     faturamento_total_dia = dados_v_dia["Faturado_Acumulado"].sum() if not dados_v_dia.empty else 0
     
     if faturamento_total_dia == 0:
-        st.warning("⚠️ **Aviso:** Os dados de performance de hoje estão sendo processados. A tabela será atualizada em breve com os números mais recentes. Qualquer coisa, chama o João Tadra <3")
+        st.warning("⚠️ **Aviso:** O dashboard está sendo alimentado com os resultados de hoje. Em breve os números estarão na tela. Se o sistema demorar mais que o normal, é só avisar o João Tadra.")
     
     if not dados_v_dia.empty:
         # --- BLINDAGEM: Garante que colunas críticas sejam números e não tenham vazios (NaN) ---
