@@ -318,6 +318,13 @@ st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.
 if df_vendedores_hist is not None:
     # Filtra os dados do dia
     dados_v_dia = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
+
+# --- NOVO AVISO DE ATUALIZAÇÃO ---
+    # Verifica se a soma do faturamento de todos os vendedores é zero
+    faturamento_total_dia = dados_v_dia["Faturado_Acumulado"].sum() if not dados_v_dia.empty else 0
+    
+    if faturamento_total_dia == 0:
+        st.warning("⚠️ **Aviso:** Os dados de performance de hoje ainda estão sendo processados. A planilha será atualizada em breve com os números mais recentes. Por favor, aguarde!")
     
     if not dados_v_dia.empty:
         # --- BLINDAGEM: Garante que colunas críticas sejam números e não tenham vazios (NaN) ---
