@@ -323,7 +323,7 @@ st.markdown(f"""
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com a data selecionada): **{dias_uteis_restantes}**.
 > * O atingimento ideal para hoje é de **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
-> * **Forecast (Previsão de Fechamento):** :orange[**{forecast_txt}**] (baseado no ritmo atual).
+> * **Forecast (previsão de fechamento):** :orange[**{forecast_txt}**] (baseado no ritmo atual).
 """)
 st.markdown("---")
 
