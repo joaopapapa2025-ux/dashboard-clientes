@@ -419,7 +419,7 @@ if df_vendedores_hist is not None:
 st.markdown("---")
 st.subheader("🗓️ Cronograma de Fechamento Maio (Faturamento até 26/05)")
 
-# 1. Definição da Data Limite (Ajustada para o ano atual automaticamente)
+# 1. Definição da Data Limite
 ano_atual = data_selecionada.year
 data_limite_fat = pd.Timestamp(ano_atual, 5, 26)
 
@@ -429,7 +429,7 @@ if not dados_v_dia.empty:
     faturado_total_time = dados_v_dia["total"].sum()
     falta_total_time = max(0, meta_total_time - faturado_total_time)
     
-    # Identifica dias úteis entre a data selecionada e o dia 26
+    # Identifica dias úteis REAIS entre a data selecionada e o dia 26
     hoje = data_selecionada
     if hoje < data_limite_fat:
         datas_restantes = pd.date_range(hoje + pd.Timedelta(days=1), data_limite_fat)
@@ -441,53 +441,72 @@ if not dados_v_dia.empty:
     if qtd_dias_rest > 0:
         ritmo_necessario = falta_total_time / qtd_dias_rest
         tm_geral = faturado_total_time / (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()) if (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()) > 0 else 0
+        peds_totais_necessarios = int(falta_total_time / tm_geral) if tm_geral > 0 else 0
+
+        # --- CABEÇALHO DE IMPACTO (Resumo Executivo) ---
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric("Buraco da Meta (Gap)", fmt_br(falta_total_time))
+        with c2:
+            st.metric("Dias Úteis Restantes", f"{qtd_dias_rest} dias")
+        with c3:
+            st.metric("Esforço p/ Dia", fmt_br(ritmo_necessario), f"{int(ritmo_necessario/tm_geral if tm_geral > 0 else 0)} ped./dia")
 
         # Agrupamento por semanas
         df_sem = pd.DataFrame({'Data': dias_uteis_reais})
         df_sem['Semana'] = df_sem['Data'].dt.isocalendar().week
         semanas_agrupadas = df_sem.groupby('Semana')
 
-        # Estilos CSS
+        # Estilos CSS Aprimorados
         html_p = """<style>
-            .tab-plan { width: 100%; border-collapse: collapse; margin-top: 10px; font-family: sans-serif; }
-            .tab-plan th { background-color: #1E3A8A; color: white; padding: 12px; border: 1px solid #ddd; font-size: 13px; }
-            .tab-plan td { padding: 12px; text-align: center; border: 1px solid #ddd; font-size: 14px; }
-            .col-acao { text-align: left !important; font-size: 12px !important; background-color: #fcfcfc; width: 350px; }
-            .val-meta { font-weight: bold; color: #E64A19; }
-            .ped-sub-plan { font-size: 11px; color: #666; display: block; }
+            .tab-plan { width: 100%; border-collapse: collapse; margin-top: 15px; font-family: 'Segoe UI', sans-serif; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+            .tab-plan th { background-color: #002D62; color: white; padding: 15px; text-align: center; font-size: 14px; text-transform: uppercase; }
+            .tab-plan td { padding: 18px; text-align: center; border-bottom: 1px solid #eee; font-size: 15px; }
+            .col-acao { text-align: left !important; font-size: 13px !important; background-color: #F8F9FB; width: 400px; color: #333; line-height: 1.4; }
+            .val-meta { font-weight: bold; color: #D32F2F; font-size: 16px; }
+            .ped-count { background-color: #E3F2FD; color: #1565C0; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 13px; }
+            .badge-acao { background-color: #E8F5E9; color: #2E7D32; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; margin-right: 5px; }
         </style>"""
         
-        html_p += "<table class='tab-plan'><thead><tr><th>Período</th><th>Dias</th><th>Meta Faturamento</th><th>Pedidos (Est.)</th><th>Ações Estratégicas (Foco no Fechamento)</th></tr></thead><tbody>"
+        html_p += "<table class='tab-plan'><thead><tr><th>📅 Período</th><th>⏳ Dias</th><th>💰 Meta de Faturamento</th><th>📦 Pedidos</th><th>🚀 Ações Estratégicas</th></tr></thead><tbody>"
 
-        # Ações que você definiu
+        # Ações dinâmicas por semana
         acoes_lista = [
-            "📢 <b>CRM:</b> Disparo informando aumento de preços em Junho",
-            "🔄 <b>Reativação:</b> Campanha focada em clientes inativos (30-60 dias)",
-            "🍼 <b>Puericultura:</b> Oferta agressiva da linha para giro de estoque",
-            "🏁 <b>Check-point:</b> Revisão final de pedidos para faturamento"
+            "<b>CRM:</b> Disparo via CRM informando aumento de preços em Junho (Gatilho de Urgência).",
+            "<b>REATIVAÇÃO:</b> Foco total na base de inativos e clientes que não compraram em Maio.",
+            "<b>PUERICULTURA:</b> Oferta de volume da linha de puericultura para acelerar giro.",
+            "<b>FECHAMENTO:</b> Força-tarefa para converter todos os pedidos digitados em faturamento."
         ]
 
         for i, (semana, dados) in enumerate(semanas_agrupadas):
             ini, fim = dados['Data'].min().strftime('%d/%m'), dados['Data'].max().strftime('%d/%m')
             dias_sem = len(dados)
             val_sem = ritmo_necessario * dias_sem
-            peds_sem = val_sem / tm_geral if tm_geral > 0 else 0
-            acao_txt = acoes_lista[i] if i < len(acoes_lista) else "Manutenção de ritmo e fechamento"
+            peds_sem = int(val_sem / tm_geral) if tm_geral > 0 else 0
+            acao_txt = acoes_lista[i] if i < len(acoes_lista) else "Manutenção de ritmo e conferência de pedidos."
 
-            html_p += f"<tr><td style='font-weight: bold;'>{ini} a {fim}</td><td>{dias_sem} d</td><td class='val-meta'>{fmt_br(val_sem)}</td><td><b>{int(peds_sem)}</b></td><td class='col-acao'>{acao_txt}</td></tr>"
+            html_p += f"""<tr>
+                <td style='font-weight: bold; color: #1E3A8A;'>{ini} a {fim}</td>
+                <td>{dias_sem} d</td>
+                <td class='val-meta'>{fmt_br(val_sem)}</td>
+                <td><span class='ped-count'>{peds_sem} ped.</span></td>
+                <td class='col-acao'>{acao_txt}</td>
+            </tr>"""
 
-        # Linha de Totalizador
-        html_p += f"<tr style='background-color: #f8f9fa; font-weight: bold;'><td colspan='2'>TOTAL ATÉ 26/05</td><td style='color: #C62828; font-size: 16px;'>{fmt_br(falta_total_time)}</td><td>{int(falta_total_time/tm_geral if tm_geral > 0 else 0)}</td><td style='text-align: left;'>🎯 Meta: 100% de Atingimento Papapá</td></tr>"
+        # Linha Final de Totalizador
+        html_p += f"""<tr style='background-color: #002D62; color: white; font-weight: bold;'>
+            <td colspan='2'>TOTAL RESTANTE (ATÉ 26/05)</td>
+            <td style='font-size: 18px;'>{fmt_br(falta_total_time)}</td>
+            <td style='font-size: 18px;'>{peds_totais_necessarios}</td>
+            <td style='text-align: left;'>🎯 Objetivo: 100% da Meta Batida</td>
+        </tr></tbody></table>"""
         
-        html_p += "</tbody></table>"
         st.markdown(html_p, unsafe_allow_html=True)
-        st.caption(f"📊 Planejamento baseado no Ticket Médio Geral de {fmt_br(tm_geral)}")
+        st.caption(f"💡 *O planejamento acima utiliza o Ticket Médio Geral de {fmt_br(tm_geral)} como base para estimativa de pedidos.*")
     else:
-        st.warning(f"📅 **Prazo encerrado:** A data selecionada ({hoje.strftime('%d/%m')}) já é igual ou superior ao limite de faturamento (26/05).")
+        st.error(f"🚨 **O prazo de faturamento encerrou!** A data selecionada ({hoje.strftime('%d/%m')}) já passou do limite estratégico (26/05).")
 else:
-    st.info("ℹ️ Aguardando carregamento de dados para gerar o cronograma.")
-else:
-    st.warning("⚠️ Dados insuficientes para gerar o planejamento semanal.")
+    st.info("ℹ️ Aguardando dados para gerar o planejamento.")
         
 # =========================
 # ARQUIVO BASE
