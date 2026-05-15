@@ -420,90 +420,88 @@ st.markdown("---")
 st.markdown("## 🗓️ Cronograma de Fechamento Maio")
 
 try:
-    # 1. VARIÁVEIS DE CÁLCULO
+    # 1. DEFINIÇÃO DE VARIÁVEIS (Segurança para não dar NameError)
     gap_total = falta_r_cifra
     dias_restantes = dias_uteis_restantes
+    # Pegamos apenas os vendedores reais (removendo 'Outros' se necessário para a média)
+    qtd_vendedores = len(dados_v_dia[dados_v_dia['Vendedor'] != 'OUTROS (João Tadra)']) if not dados_v_dia.empty else 5
     
-    # Cálculo do Ticket Médio Real do Time
+    # Ticket Médio do time
     total_peds_mes = (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum())
     tm_time = total_geral / total_peds_mes if total_peds_mes > 0 else 2217.21
     
-    # 2. HEADER DE INDICADORES (KPI CARDS)
+    # 2. CARDS DE INDICADORES (Topo)
     c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("🚩 Buraco da Meta (Gap)", fmt_br(gap_total))
-    with c2:
-        st.metric("⏳ Janela de Faturamento", f"{dias_restantes} dias úteis", delta="Até 26/05")
-    with c3:
-        esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
-        peds_dia = esforco_diario / tm_time if tm_time > 0 else 0
-        st.metric("🔥 Esforço p/ Dia", fmt_br(esforco_diario), delta=f"~{int(peds_dia)} peds/dia", delta_color="inverse")
+    c1.metric("🚩 Gap Restante", fmt_br(gap_total))
+    c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta="Até 26/05")
+    
+    esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
+    peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
+    c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"~{int(peds_dia_time)} peds/dia")
 
-    # 3. LOGICA DE DISTRIBUIÇÃO POR VENDEDOR (BASEADO NA REALIDADE)
-    # Calculamos quanto cada um representa do faturamento atual para distribuir o esforço futuro
-    if not dados_v_dia.empty and total_geral > 0:
-        dados_v_dia['share'] = dados_v_dia['total'] / total_geral
-    else:
-        dados_v_dia['share'] = 1 / len(dados_v_dia) if not dados_v_dia.empty else 0
-
-    # 4. TABELA ESTRATÉGICA EM HTML/CSS
+    # 3. CSS PARA DESIGN PREMIUM
     st.markdown("""
         <style>
-            .main-card { background-color: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eef2f6; }
-            .header-row { display: flex; background: linear-gradient(90deg, #002D62 0%, #0056b3 100%); color: white; padding: 15px; border-radius: 8px; font-weight: bold; margin-bottom: 10px; }
-            .data-row { display: flex; padding: 15px; border-bottom: 1px solid #f0f2f6; align-items: center; transition: 0.3s; }
-            .data-row:hover { background-color: #f8fbff; }
-            .col-flex { flex: 1; text-align: center; }
-            .col-large { flex: 2; text-align: left; }
-            .badge-peds { background-color: #e3f2fd; color: #1976d2; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
-            .meta-val { color: #d32f2f; font-weight: bold; font-size: 16px; }
-            .vendedor-meta { font-size: 11px; color: #666; margin-top: 5px; line-height: 1.4; }
+            .container-plano { background: #ffffff; border-radius: 15px; border: 1px solid #e0e6ed; padding: 0px; overflow: hidden; font-family: 'Source Sans Pro', sans-serif; }
+            .header-plano { display: flex; background: #002D62; color: white; padding: 15px; font-weight: 600; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }
+            .linha-semana { display: flex; padding: 20px 15px; border-bottom: 1px solid #f0f4f8; align-items: center; }
+            .linha-semana:last-child { border-bottom: none; }
+            .col-data { flex: 1.5; }
+            .col-uteis { flex: 0.8; text-align: center; color: #666; }
+            .col-meta { flex: 1.2; text-align: center; color: #d32f2f; font-weight: bold; font-size: 16px; }
+            .col-peds { flex: 1.5; text-align: right; }
+            .badge-peds { background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 5px; }
+            .media-vendedor { font-size: 12px; color: #546e7a; line-height: 1.4; }
+            .footer-plano { background: #f8f9fa; padding: 15px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; font-weight: bold; }
         </style>
     """, unsafe_allow_html=True)
 
-    # Início da Tabela
-    html_plan = '<div class="main-card">'
-    html_plan += '<div class="header-row"><div class="col-large">📅 Período</div><div class="col-flex">⏱️ Dias</div><div class="col-flex">💰 Meta Período</div><div class="col-flex">📦 Pedidos Estimados</div></div>'
-
-    # Gerar semanas
+    # 4. CONSTRUÇÃO DA TABELA (String Única para evitar erros de renderização)
     datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
     df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
     df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
 
-    for _, dados_sem in df_semanas.groupby('Semana'):
-        ini, fim = dados_sem['Data'].min().strftime('%d/%m'), dados_sem['Data'].max().strftime('%d/%m')
-        d_uteis = len(dados_sem)
-        meta_perio = (gap_total / dias_restantes) * d_uteis
-        peds_perio = int(meta_perio / tm_time) if tm_time > 0 else 0
-        
-        # Cálculo de média por vendedor (Top, Médio e Outros) para o Tooltip
-        peds_top = int(peds_perio * dados_v_dia['share'].max()) if not dados_v_dia.empty else 0
-        peds_min = int(peds_perio * dados_v_dia[dados_v_dia['share'] > 0]['share'].min()) if not dados_v_dia.empty else 0
+    html_content = '<div class="container-plano">'
+    html_content += '<div class="header-plano"><div class="col-data">Período</div><div class="col-uteis">Dias</div><div class="col-meta">Meta Faturamento</div><div class="col-peds">Distribuição de Pedidos</div></div>'
 
-        html_plan += f"""
-            <div class="data-row">
-                <div class="col-large"><b>Semana de {ini} a {fim}</b><br><span style="font-size:11px; color:#999;">Ações: Foco em Reativação + CRM</span></div>
-                <div class="col-flex">{d_uteis} d.ú.</div>
-                <div class="col-flex meta-val">{fmt_br(meta_perio)}</div>
-                <div class="col-flex">
-                    <span class="badge-peds">{peds_perio} pedidos</span>
-                    <div class="vendedor-meta">
-                        Média Sugerida:<br>
-                        <b>{peds_top} peds</b> (Vendedores High)<br>
-                        <b>{peds_min} peds</b> (Vendedores Low)
+    for _, dados_sem in df_semanas.groupby('Semana'):
+        ini = dados_sem['Data'].min().strftime('%d/%m')
+        fim = dados_sem['Data'].max().strftime('%d/%m')
+        d_uteis = len(dados_sem)
+        
+        meta_semana = (gap_total / dias_restantes) * d_uteis
+        peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
+        media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
+
+        html_content += f"""
+            <div class="linha-semana">
+                <div class="col-data"><b>Semana de {ini} a {fim}</b><br><small style="color:#94a3b8">Foco: Reativação e Upsell</small></div>
+                <div class="col-uteis">{d_uteis} d.ú.</div>
+                <div class="col-meta">{fmt_br(meta_semana)}</div>
+                <div class="col-peds">
+                    <div class="badge-peds">{peds_semana} pedidos no total</div>
+                    <div class="media-vendedor">
+                        🎯 Média: <b>{media_p_vendedor} peds</b> por vendedor<br>
+                        <span style="color:#1976d2">Ritmo: ~{round(media_p_vendedor/d_uteis, 1)} peds/dia por pessoa</span>
                     </div>
                 </div>
             </div>
         """
 
-    html_plan += "</div>"
-    st.markdown(html_plan, unsafe_allow_html=True)
+    html_content += f"""
+        <div class="footer-plano">
+            <span>SALDO TOTAL DO GAP</span>
+            <span style="color:#d32f2f">{fmt_br(gap_total)}</span>
+            <span>{int(gap_total/tm_time)} Pedidos</span>
+        </div>
+    </div>
+    """
 
-    # 5. FOOTER COM INSIGHT
-    st.info(f"💡 **Estratégia:** Distribuição de pedidos baseada na performance histórica do mês. Ticket Médio base: **{fmt_br(tm_time)}**.")
+    st.markdown(html_content, unsafe_allow_html=True)
+    st.caption(f"✨ **Dica Inside Sales:** Meta baseada no faturamento líquido. Ticket Médio considerado: {fmt_br(tm_time)}")
 
 except Exception as e:
-    st.error(f"Aguardando dados de faturamento para gerar o cronograma estratégico.")
+    st.warning("⚠️ Aguardando atualização dos dados de performance para projetar o cronograma.")
         
 # =========================
 # ARQUIVO BASE
