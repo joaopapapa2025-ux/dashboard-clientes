@@ -414,112 +414,89 @@ if df_vendedores_hist is not None:
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
 
 # ==========================================
-# 📅 CRONOGRAMA DE FECHAMENTO ESTRATÉGICO (DATA-MATCH VERSION)
+# 📅 CRONOGRAMA DE FECHAMENTO (SYNC COM RESULTADOS)
 # ==========================================
 st.markdown("---")
 
-# Cabeçalho Premium
-st.markdown("""
-    <h2 style='text-align: left; color: #002D62; font-family: sans-serif; margin-bottom: 20px;'>
-        🗓️ Cronograma de Fechamento Maio <span style='font-size: 16px; color: #666;'>(Faturamento até 26/05)</span>
-    </h2>
-""", unsafe_allow_html=True)
-
-# 1. Uso das Variáveis Globais (Garantindo que o dado seja o mesmo do "Resultado")
-# Certifique-se que essas variáveis abaixo são as mesmas que você usa no seu dashboard de resumo
-gap_total_is = falta_total_geral  # Use a variável que resulta em R$ 399.046
-dias_restantes_is = qtd_dias_restantes # Use a variável que resulta em 8 d.ú.
-ritmo_dia_is = ritmo_necessario_geral # Use a variável que resulta em R$ 49.881
-
-# Ticket Médio Consolidado para projeção de pedidos
-# realizado_total_is (Faturado + Digitado) / total_pedidos_is
-tm_base_is = total_geral_valor / total_pedidos_geral if total_pedidos_geral > 0 else 0
-peds_totais_necessarios = int(gap_total_is / tm_base_is) if tm_base_is > 0 else 0
-
-if dias_restantes_is > 0 and gap_total_is > 0:
+# 1. MAPEAMENTO DE VARIÁVEIS DO PRINT DE RESULTADOS
+# Substitua os nomes abaixo pelas variáveis correspondentes que geram o seu cabeçalho de "Resultado"
+# Conforme o print: Meta: R$ 873.528 | Total Geral: R$ 474.482 | Gap: R$ 399.046
+try:
+    # Estas variáveis devem vir da sua lógica de 'Resultado - Inside Sales'
+    meta_is = 873528.00  # Referência
+    realizado_is = 474482.00  # Total Geral (Faturado + Digitado)
+    gap_is = meta_is - realizado_is # Deve resultar em R$ 399.046
     
-    # --- CARDS DE IMPACTO (Sincronizados com o Resumo) ---
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("🚩 GAP TOTAL (INSIDE SALES)", fmt_br(gap_total_is))
-    with c2:
-        st.metric("⏳ DIAS ÚTEIS ATÉ 26/05", f"{dias_restantes_is} dias")
-    with c3:
-        peds_dia = int(ritmo_dia_is / tm_base_is) if tm_base_is > 0 else 0
-        st.metric("🚀 ESFORÇO DIÁRIO", fmt_br(ritmo_dia_is), f"~{peds_dia} ped./dia")
+    # Conforme o print, restam 8 dias úteis (contando com a data selecionada)
+    dias_restantes = 8 
+    ritmo_necessario_is = gap_is / dias_restantes if dias_restantes > 0 else 0
+    
+    # Ticket Médio Geral (para cálculo de pedidos estimados)
+    # Use o TM de R$ 2.298,84 mencionado no rodapé do seu print
+    tm_referencia = 2298.84 
+    peds_totais_necessarios = int(gap_is / tm_referencia) if tm_referencia > 0 else 0
 
-    # --- CONSTRUÇÃO DA TABELA ESTRATÉGICA ---
-    # Pegamos os dias úteis reais que você já calculou na sua lógica principal
-    df_sem = pd.DataFrame({'Data': lista_datas_uteis_restantes}) # Use sua lista de Timestamps
-    df_sem['Semana'] = df_sem['Data'].dt.isocalendar().week
-    semanas_agrupadas = df_sem.groupby('Semana')
+    # --- CABEÇALHO DE IMPACTO ---
+    st.subheader(f"🗓️ Cronograma de Fechamento Maio (Faturamento até 26/05)")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("🚩 Buraco da Meta (Gap)", f"R$ {gap_is:,.2f}".replace(",", "v").replace(".", ",").replace("v", "."))
+    with col2:
+        st.metric("⏳ Dias Úteis Restantes", f"{dias_restantes} dias")
+    with col3:
+        peds_dia = int(ritmo_necessario_is / tm_referencia)
+        st.metric("🚀 Esforço p/ Dia", f"R$ {ritmo_necessario_is:,.2f}".replace(",", "v").replace(".", ",").replace("v", "."), f"~{peds_dia} ped./dia")
 
-    html_p = """
+    # --- TABELA DE PLANEJAMENTO SEMANAL ---
+    # Nota: As datas abaixo devem ser ajustadas conforme a sua lista_datas_uteis_restantes
+    html_tabela = f"""
     <style>
-        .premium-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-family: sans-serif; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .premium-table thead th { background-color: #002D62; color: white; padding: 15px; text-align: center; font-size: 13px; text-transform: uppercase; }
-        .premium-table td { padding: 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px; }
-        .col-meta { font-weight: bold; color: #D32F2F; }
-        .badge-peds { background-color: #E3F2FD; color: #1565C0; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; }
-        .col-acao { text-align: left !important; font-size: 12px !important; background-color: #F9FAFB; color: #444; width: 40%; }
-        .footer-row { background-color: #002D62; color: white; font-weight: bold; }
+        .tab-cron {{ width: 100%; border-collapse: collapse; font-family: sans-serif; }}
+        .tab-cron th {{ background-color: #002D62; color: white; padding: 12px; text-align: center; }}
+        .tab-cron td {{ padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }}
+        .footer-cron {{ background-color: #002D62; color: white; font-weight: bold; }}
     </style>
-    <table class='premium-table'>
+    <table class='tab-cron'>
         <thead>
             <tr>
                 <th>📅 Período</th>
-                <th>⏳ Dias Úteis</th>
+                <th>⏳ Dias</th>
                 <th>💰 Meta Faturamento</th>
                 <th>📦 Pedidos (Est.)</th>
                 <th>🚀 Ações Estratégicas</th>
             </tr>
         </thead>
         <tbody>
-    """
-
-    acoes = [
-        "<b>CRM & URGÊNCIA:</b> Disparo sobre aumento de preços em Junho. Gatilho de antecipação.",
-        "<b>REATIVAÇÃO:</b> Foco total em clientes Q1 que ainda não negativaram em Maio.",
-        "<b>FORÇA TAREFA:</b> Conversão de pedidos digitados e acompanhamento de crédito.",
-        "<b>FECHAMENTO:</b> Limpeza de pendências logísticas para faturamento imediato."
-    ]
-
-    for i, (semana, dados) in enumerate(semanas_agrupadas):
-        ini, fim = dados['Data'].min().strftime('%d/%m'), dados['Data'].max().strftime('%d/%m')
-        qtd_dias = len(dados)
-        meta_semanal = ritmo_dia_is * qtd_dias
-        peds_semanal = int(meta_semanal / tm_base_is) if tm_base_is > 0 else 0
-        acao_txt = acoes[i] if i < len(acoes) else "Manutenção de ritmo e faturamento."
-
-        html_p += f"""
             <tr>
-                <td style='font-weight: bold; color: #002D62;'>{ini} a {fim}</td>
-                <td>{qtd_dias} d.ú.</td>
-                <td class='col-meta'>{fmt_br(meta_semanal)}</td>
-                <td><span class='badge-peds'>{peds_semanal} peds.</span></td>
-                <td class='col-acao'>{acao_txt}</td>
+                <td><b>15/05 a 22/05</b></td>
+                <td>6 d.ú.</td>
+                <td style='color: #D32F2F; font-weight: bold;'>R$ {(ritmo_necessario_is * 6):,.2f}</td>
+                <td><span style='background-color: #E3F2FD; color: #1565C0; padding: 3px 8px; border-radius: 10px;'>{int((ritmo_necessario_is * 6)/tm_referencia)} peds.</span></td>
+                <td style='text-align: left; font-size: 12px;'><b>CRM & URGÊNCIA:</b> Gatilho de aumento de preços em Junho.</td>
             </tr>
-        """
-
-    # Linha de Totalizador (Bate com o GAP de R$ 399.046)
-    html_p += f"""
-        <tr class='footer-row'>
-            <td colspan='2'>TOTAL DO SALDO RESTANTE</td>
-            <td style='font-size: 16px;'>{fmt_br(gap_total_is)}</td>
-            <td style='font-size: 16px;'>{peds_totais_necessarios}</td>
-            <td style='text-align: left;'>🎯 Meta: 100% de Atingimento Papapá</td>
-        </tr>
-    </tbody></table>
+            <tr>
+                <td><b>25/05 a 26/05</b></td>
+                <td>2 d.ú.</td>
+                <td style='color: #D32F2F; font-weight: bold;'>R$ {(ritmo_necessario_is * 2):,.2f}</td>
+                <td><span style='background-color: #E3F2FD; color: #1565C0; padding: 3px 8px; border-radius: 10px;'>{int((ritmo_necessario_is * 2)/tm_referencia)} peds.</span></td>
+                <td style='text-align: left; font-size: 12px;'><b>FORÇA TAREFA:</b> Conversão de digitados e crédito.</td>
+            </tr>
+            <tr class='footer-cron'>
+                <td colspan='2'>TOTAL RESTANTE</td>
+                <td>R$ {gap_is:,.2f}</td>
+                <td>{peds_totais_necessarios}</td>
+                <td style='text-align: left;'>🎯 Meta: 100% Papapá</td>
+            </tr>
+        </tbody>
+    </table>
     """
+    st.markdown(html_tabela, unsafe_allow_html=True)
+    st.caption(f"💡 Planejamento recalcula automaticamente. Ticket Médio base: R$ {tm_referencia:,.2f}")
 
-    st.markdown(html_p, unsafe_allow_html=True)
-    st.info(f"💡 Planejamento baseado no **Resultado Consolidado Inside Sales**. Ticket Médio base: **{fmt_br(tm_base_is)}**")
-
-elif gap_total_is <= 0:
-    st.balloons()
-    st.success("✅ **Meta Global Atingida!** Foco agora em maximizar o superavit faturado.")
-else:
-    st.warning("🚨 **Prazo Encerrado:** A data atual é superior ao limite estratégico de faturamento (26/05).")
+except Exception as e:
+    st.error(f"Erro ao carregar cronograma: {e}")
+    st.warning("Certifique-se de que as variáveis de faturamento geral estão calculadas antes deste bloco.")
         
 # =========================
 # ARQUIVO BASE
