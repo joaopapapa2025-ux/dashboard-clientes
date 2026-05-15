@@ -419,82 +419,101 @@ if df_vendedores_hist is not None:
 st.markdown("---")
 st.subheader("🗓️ Cronograma de Fechamento Maio (Faturamento até 26/05)")
 
-# 1. Ajuste de compatibilidade de tipos (Converte date para Timestamp)
-hoje = pd.to_datetime(data_selecionada)
-ano_atual = hoje.year
-data_limite_fat = pd.Timestamp(ano_atual, 5, 26)
+# 1. Ajuste de compatibilidade e definição de datas
+hoje_ts = pd.to_datetime(data_selecionada)
+ano_ref = hoje_ts.year
+data_limite_fat = pd.Timestamp(ano_ref, 5, 26)
 
 if not dados_v_dia.empty:
-    # Cálculos Gerais do Time
+    # --- CÁLCULO DO SALDO REAL (Gap do Time Todo) ---
     meta_total_time = dados_v_dia["Meta"].sum()
-    faturado_total_time = dados_v_dia["total"].sum()
-    falta_total_time = max(0, meta_total_time - faturado_total_time)
+    # O total geral deve considerar o que já foi faturado + digitado
+    realizado_total_time = dados_v_dia["total"].sum()
+    falta_total_time = max(0, meta_total_time - realizado_total_time)
     
-    # Identifica dias úteis REAIS entre a data selecionada e o dia 26
-    if hoje < data_limite_fat:
-        datas_restantes = pd.date_range(hoje + pd.Timedelta(days=1), data_limite_fat)
-        dias_uteis_reais = [d for d in datas_restantes if d.weekday() < 5]
+    # Identifica dias úteis REAIS (seg-sex) de amanhã até o dia 26
+    if hoje_ts < data_limite_fat:
+        datas_restantes = pd.date_range(hoje_ts + pd.Timedelta(days=1), data_limite_fat)
+        # Filtra apenas dias de semana (0-4) e remove feriados da sua lista
+        dias_uteis_reais = [d for d in datas_restantes if d.weekday() < 5 and d.date() not in lista_feriados]
         qtd_dias_rest = len(dias_uteis_reais)
     else:
         qtd_dias_rest = 0
 
-    if qtd_dias_rest > 0:
+    if qtd_dias_rest > 0 and falta_total_time > 0:
         ritmo_necessario = falta_total_time / qtd_dias_rest
-        # Cálculo de TM usando colunas seguras
-        total_peds = dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()
-        tm_geral = faturado_total_time / total_peds if total_peds > 0 else 0
-        peds_totais_necessarios = int(falta_total_time / tm_geral) if tm_geral > 0 else 0
+        
+        # Cálculo de Ticket Médio Geral do Time para projetar pedidos
+        total_peds_time = dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()
+        tm_geral_time = realizado_total_time / total_peds_time if total_peds_time > 0 else 0
+        peds_totais_necessarios = int(falta_total_time / tm_geral_time) if tm_geral_time > 0 else 0
 
         # --- CABEÇALHO DE IMPACTO ---
         c1, c2, c3 = st.columns(3)
         with c1:
             st.metric("Buraco da Meta (Gap)", fmt_br(falta_total_time))
         with c2:
-            st.metric("Dias Úteis Restantes", f"{qtd_dias_rest} dias")
+            st.metric("Dias Úteis Restantes", f"{qtd_dias_rest} dias", help="Considerando faturamento até 26/05")
         with c3:
-            st.metric("Esforço p/ Dia", fmt_br(ritmo_necessario), f"{int(ritmo_necessario/tm_geral if tm_geral > 0 else 0)} ped./dia")
+            st.metric("Esforço p/ Dia", fmt_br(ritmo_necessario), f"~{int(ritmo_necessario/tm_geral_time if tm_geral_time > 0 else 0)} ped./dia")
 
-        # Agrupamento por semanas
+        # Agrupamento das datas em semanas para a tabela
         df_sem = pd.DataFrame({'Data': dias_uteis_reais})
         df_sem['Semana'] = df_sem['Data'].dt.isocalendar().week
         semanas_agrupadas = df_sem.groupby('Semana')
 
-        # Estilos CSS
+        # Estilos CSS Premium
         html_p = """<style>
-            .tab-plan { width: 100%; border-collapse: collapse; margin-top: 15px; font-family: sans-serif; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-            .tab-plan th { background-color: #002D62; color: white; padding: 15px; text-align: center; }
-            .tab-plan td { padding: 18px; text-align: center; border-bottom: 1px solid #eee; font-size: 15px; }
-            .col-acao { text-align: left !important; font-size: 13px !important; background-color: #F8F9FB; width: 400px; }
-            .val-meta { font-weight: bold; color: #D32F2F; }
-            .ped-count { background-color: #E3F2FD; color: #1565C0; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
+            .tab-plan { width: 100%; border-collapse: collapse; margin-top: 15px; font-family: 'Segoe UI', sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+            .tab-plan th { background-color: #002D62; color: white; padding: 15px; text-align: center; font-size: 13px; text-transform: uppercase; }
+            .tab-plan td { padding: 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px; }
+            .col-acao { text-align: left !important; font-size: 12px !important; background-color: #F9FAFB; width: 380px; color: #444; }
+            .val-meta-plan { font-weight: bold; color: #D32F2F; font-size: 15px; }
+            .badge-peds { background-color: #E3F2FD; color: #1565C0; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 12px; }
         </style>"""
         
-        html_p += "<table class='tab-plan'><thead><tr><th>📅 Período</th><th>⏳ Dias</th><th>💰 Meta Faturamento</th><th>📦 Pedidos</th><th>🚀 Ações Estratégicas</th></tr></thead><tbody>"
+        html_p += "<table class='tab-plan'><thead><tr><th>📅 Período</th><th>⏳ Dias</th><th>💰 Meta Faturamento</th><th>📦 Pedidos (Est.)</th><th>🚀 Ações Estratégicas</th></tr></thead><tbody>"
 
         acoes_lista = [
-            "<b>CRM:</b> Disparo via CRM informando aumento de preços em Junho (Gatilho de Urgência).",
-            "<b>REATIVAÇÃO:</b> Foco total na base de inativos e clientes que não compraram em Maio.",
-            "<b>PUERICULTURA:</b> Oferta de volume da linha de puericultura para acelerar giro.",
-            "<b>FECHAMENTO:</b> Força-tarefa para converter todos os pedidos digitados em faturamento."
+            "<b>CRM & URGÊNCIA:</b> Disparo informando aumento de preços em Junho. Gatilho de antecipação.",
+            "<b>REATIVAÇÃO DE BASE:</b> Foco em clientes que compraram no Q1 mas ainda não positivaram em Maio.",
+            "<b>GIRO DE ESTOQUE:</b> Ofertas agressivas na linha de Puericultura para aumentar volume.",
+            "<b>FORÇA TAREFA:</b> Conversão de pedidos digitados e acompanhamento de crédito/logística."
         ]
 
         for i, (semana, dados) in enumerate(semanas_agrupadas):
             ini, fim = dados['Data'].min().strftime('%d/%m'), dados['Data'].max().strftime('%d/%m')
-            dias_sem = len(dados)
-            val_sem = ritmo_necessario * dias_sem
-            peds_sem = int(val_sem / tm_geral) if tm_geral > 0 else 0
-            acao_txt = acoes_lista[i] if i < len(acoes_lista) else "Manutenção de ritmo e fechamento."
+            dias_na_semana = len(dados)
+            meta_semanal = ritmo_necessario * dias_na_semana
+            peds_semanal = int(meta_semanal / tm_geral_time) if tm_geral_time > 0 else 0
+            acao_txt = acoes_lista[i] if i < len(acoes_lista) else "Manutenção de ritmo e fechamento de cargas."
 
-            html_p += f"<tr><td style='font-weight: bold; color: #1E3A8A;'>{ini} a {fim}</td><td>{dias_sem} d</td><td class='val-meta'>{fmt_br(val_sem)}</td><td><span class='ped-count'>{peds_sem} ped.</span></td><td class='col-acao'>{acao_txt}</td></tr>"
+            html_p += f"""<tr>
+                <td style='font-weight: bold; color: #002D62;'>{ini} a {fim}</td>
+                <td>{dias_na_semana} d.ú.</td>
+                <td class='val-meta-plan'>{fmt_br(meta_semanal)}</td>
+                <td><span class='badge-peds'>{peds_semanal} peds.</span></td>
+                <td class='col-acao'>{acao_txt}</td>
+            </tr>"""
 
-        html_p += f"<tr style='background-color: #002D62; color: white; font-weight: bold;'><td colspan='2'>TOTAL RESTANTE</td><td>{fmt_br(falta_total_time)}</td><td>{peds_totais_necessarios}</td><td style='text-align: left;'>🎯 Meta: 100% Papapá</td></tr>"
-        html_p += "</tbody></table>"
+        # Linha de Totalizador Final
+        html_p += f"""<tr style='background-color: #002D62; color: white; font-weight: bold;'>
+            <td colspan='2'>TOTAL DO SALDO RESTANTE</td>
+            <td style='font-size: 16px;'>{fmt_br(falta_total_time)}</td>
+            <td style='font-size: 16px;'>{peds_totais_necessarios}</td>
+            <td style='text-align: left;'>🎯 Meta: 100% de Atingimento Papapá</td>
+        </tr></tbody></table>"""
         
         st.markdown(html_p, unsafe_allow_html=True)
+        st.info(f"💡 Planejamento recalcula automaticamente conforme o faturamento entra. Ticket Médio base: **{fmt_br(tm_geral_time)}**")
+    
+    elif falta_total_time <= 0:
+        st.balloons()
+        st.success("✅ **Meta já atingida!** O foco agora é faturar o máximo de superavit possível.")
     else:
-        st.warning(f"🚨 **Prazo de faturamento encerrado:** A data {hoje.strftime('%d/%m')} já passou do limite estratégico (26/05).")
+        st.warning(f"🚨 **Prazo de faturamento encerrado:** A data {hoje_ts.strftime('%d/%m')} já passou do limite estratégico (26/05).")
 else:
-    st.info("ℹ️ Dados não carregados.")
+    st.info("ℹ️ Aguardando dados dos vendedores para gerar o cronograma.")
         
 # =========================
 # ARQUIVO BASE
