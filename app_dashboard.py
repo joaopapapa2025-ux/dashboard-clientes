@@ -1895,7 +1895,7 @@ def criar_link_whatsapp(tel):
     if not tel or pd.isna(tel): return None
     num = "".join(filter(str.isdigit, str(tel)))
     if len(num) > 0 and not num.startswith("55"): num = "55" + num
-    return f"https://wa.me/{num}"
+    return f"https://web.whatsapp.com/send?phone={num}"
 
 df_filtrado["CONTATO"] = df_filtrado["TELEFONE"].apply(criar_link_whatsapp)
 cols = list(df_filtrado.columns)
