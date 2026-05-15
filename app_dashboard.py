@@ -372,6 +372,10 @@ if df_vendedores_hist is not None:
             # Se não houver dias restantes, o ritmo é o que falta
             dados_v_dia.at[idx, "ritmo"] = falta_v / dias_uteis_restantes if dias_uteis_restantes > 0 else falta_v
 
+            # Projeção (Forecast) Individual
+            dias_passados = dias_uteis_comerciais_totais - dias_uteis_restantes
+            dados_v_dia.at[idx, "forecast_ind"] = (total / dias_passados) * dias_uteis_comerciais_totais if dias_passados > 0 else 0
+
         # Ordenar e formatar para o HTML
         v_lista = dados_v_dia.sort_values(by="ating", ascending=False).to_dict('records')
         
