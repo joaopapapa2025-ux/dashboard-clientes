@@ -427,38 +427,27 @@ if not dados_v_dia.empty and dias_uteis_restantes > 0:
     ritmo_diario_geral = falta_total_time / dias_uteis_restantes
     tm_medio_time = faturado_total_time / (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()) if (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()) > 0 else 0
 
-    # 2. Mapeamento de Semanas Úteis Restantes
+    # 2. Mapeamento de Semanas
     hoje = data_selecionada
     ultimo_dia_mes = (hoje.replace(day=1) + pd.Timedelta(days=32)).replace(day=1) - pd.Timedelta(days=1)
     datas_restantes = pd.date_range(hoje + pd.Timedelta(days=1), ultimo_dia_mes)
-    dias_uteis_lista = [d for d in datas_restantes if d.weekday() < 5] # Segunda a Sexta
+    dias_uteis_lista = [d for d in datas_restantes if d.weekday() < 5]
 
     if dias_uteis_lista:
         df_semanas = pd.DataFrame({'Data': dias_uteis_lista})
-        # Agrupar por número da semana e pegar a primeira e última data de cada uma
         semanas_agrupadas = df_semanas.groupby(df_semanas['Data'].dt.isocalendar().week)
         
-        # --- MONTAGEM DA TABELA HTML ---
-        html_plan = """
-        <style>
+        # Estilos da Tabela
+        html_plan = """<style>
             .tab-plan { width: 100%; border-collapse: collapse; font-family: sans-serif; margin-top: 10px; }
             .tab-plan th { background-color: #1E3A8A; color: white; padding: 12px; text-align: center; border: 1px solid #ddd; }
             .tab-plan td { padding: 15px; text-align: center; border: 1px solid #ddd; font-size: 15px; }
             .sem-destaque { font-weight: bold; color: #1E3A8A; }
             .val-destaque { font-weight: bold; color: #E64A19; font-size: 16px; }
-            .ped-sub { font-size: 12px; color: #666; display: block; }
-        </style>
-        <table class='tab-plan'>
-            <thead>
-                <tr>
-                    <th>Período da Semana</th>
-                    <th>Dias Úteis</th>
-                    <th>Meta de Faturamento</th>
-                    <th>Expectativa de Pedidos</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
+            .ped-sub { font-size: 11px; color: #666; display: block; margin-top: 2px; }
+        </style>"""
+        
+        html_plan += "<table class='tab-plan'><thead><tr><th>Período da Semana</th><th>Dias Úteis</th><th>Meta de Faturamento</th><th>Expectativa de Pedidos</th></tr></thead><tbody>"
 
         for semana, dados in semanas_agrupadas:
             inicio_sem = dados['Data'].min().strftime('%d/%m')
@@ -467,22 +456,17 @@ if not dados_v_dia.empty and dias_uteis_restantes > 0:
             valor_necessario = ritmo_diario_geral * qtd_dias
             peds_necessarios = valor_necessario / tm_medio_time if tm_medio_time > 0 else 0
 
-            html_plan += f"""
-                <tr>
-                    <td class='sem-destaque'>Semana de {inicio_sem} a {fim_sem}</td>
-                    <td>{qtd_dias} dias</td>
-                    <td class='val-destaque'>{fmt_br(valor_necessario)}</td>
-                    <td><b>{int(peds_necessarios)} pedidos</b><span class='ped-sub'>Baseado no TM de {fmt_br(tm_medio_time)}</span></td>
-                </tr>
-            """
+            # Montagem da linha sem quebras de aspas triplas para não bugar o Streamlit
+            linha_sem = f"<tr><td class='sem-destaque'>Semana de {inicio_sem} a {fim_sem}</td>"
+            linha_sem += f"<td>{qtd_dias} dias</td>"
+            linha_sem += f"<td class='val-destaque'>{fmt_br(valor_necessario)}</td>"
+            linha_sem += f"<td><b>{int(peds_necessarios)} pedidos</b><span class='ped-sub'>Baseado no TM de {fmt_br(tm_medio_time)}</span></td></tr>"
+            html_plan += linha_sem
 
-        html_plan += f"""
-            <tr style='background-color: #f8f9fa;'>
-                <td colspan='2'><b>SALDO TOTAL RESTANTE</b></td>
-                <td style='color: #C62828; font-weight: bold; font-size: 18px;'>{fmt_br(falta_total_time)}</td>
-                <td><b>{int(falta_total_time / tm_medio_time if tm_medio_time > 0 else 0)} pedidos</b></td>
-            </tr>
-        </tbody></table>"""
+        # Rodapé com Saldo Total
+        html_plan += f"<tr style='background-color: #f8f9fa;'><td colspan='2'><b>SALDO TOTAL RESTANTE</b></td>"
+        html_plan += f"<td style='color: #C62828; font-weight: bold; font-size: 18px;'>{fmt_br(falta_total_time)}</td>"
+        html_plan += f"<td><b>{int(falta_total_time / tm_medio_time if tm_medio_time > 0 else 0)} pedidos</b></td></tr></tbody></table>"
         
         st.markdown(html_plan, unsafe_allow_html=True)
         st.caption("ℹ️ Planejamento recalcula automaticamente conforme o faturamento entra e os dias úteis diminuem.")
