@@ -440,18 +440,18 @@ try:
     peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
     c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"~{int(peds_dia_time)} peds/dia")
 
-    # 3. LÓGICA DE DATAS E AÇÕES
+    # 3. LÓGICA DE DATAS E AÇÕES (SUBSTITUIR APENAS ESTE BLOCO)
     datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
     df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
     df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
 
     rows_html = ""
-    cont_semana = 0
     
     for _, dados_sem in df_semanas.groupby('Semana'):
-        cont_semana += 1
-        ini = dados_sem['Data'].min().strftime('%d/%m')
-        fim = dados_sem['Data'].max().strftime('%d/%m')
+        ini_dt = dados_sem['Data'].min()
+        fim_dt = dados_sem['Data'].max()
+        ini = ini_dt.strftime('%d/%m')
+        fim = fim_dt.strftime('%d/%m')
         d_uteis = len(dados_sem)
         
         # Meta e Pedidos
@@ -459,19 +459,22 @@ try:
         peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
         media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
-        # ESTRATÉGIA DINÂMICA (Para não repetir "Reativação")
-        if cont_semana == 1:
-            acao_titulo = "🔥 GATILHO DE ANTECIPAÇÃO"
-            acao_desc = "Foco total: Aumento de preços em Junho."
-            cor_acao = "#E65100" 
-        elif fim == "26/05":
-            acao_titulo = "🏁 SPRINT FINAL"
-            acao_desc = "Recuperação de inativos e fechamento de propostas."
-            cor_acao = "#C62828"
-        else:
+        # ESTRATÉGIA PERSONALIZADA
+        # Se a semana contiver o dia 15
+        if 15 in dados_sem['Data'].dt.day.values:
             acao_titulo = "📈 SUSTENTAÇÃO"
             acao_desc = "Ações de Upsell na base atual."
             cor_acao = "#2E7D32"
+        # Se for a próxima semana (após o dia 15)
+        elif ini_dt.day > 15 and ini_dt.day <= 22:
+            acao_titulo = "🔥 GATILHO DE ANTECIPAÇÃO"
+            acao_desc = "Foco total: Aumento de preços em Junho."
+            cor_acao = "#E65100" 
+        # Sprint Final para os últimos dias do mês
+        else:
+            acao_titulo = "🏁 SPRINT FINAL"
+            acao_desc = "Recuperação de inativos e fechamento."
+            cor_acao = "#C62828"
 
         rows_html += f"""
             <div style="display: flex; padding: 20px 15px; border-bottom: 1px solid #f0f2f5; align-items: center;">
