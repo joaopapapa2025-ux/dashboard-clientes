@@ -277,18 +277,23 @@ st.markdown(f"🕒 *Última atualização: 15/05/2026 às 08:20*")
 
 st.markdown("""<style>[data-testid="stMetricDelta"] svg { display: none !important; } [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div { background-color: transparent !important; }</style>""", unsafe_allow_html=True)
 
-# Cálculo do Forecast
+# --- CÁLCULO DO FORECAST (PROJEÇÃO) ---
+# Dias que já se passaram no mês
 dias_decorridos = dias_uteis_totais - dias_uteis_restantes
-faturamento_total_atual = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada]["Faturado_Acumulado"].sum() + df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada]["Digitado_Acumulado"].sum()
 
-if dias_decorridos > 0:
-    ritmo_atual = faturamento_total_atual / dias_decorridos
-    forecast_valor = ritmo_atual * dias_uteis_totais
+# Usamos o total_geral que você já calculou lá em cima (que já tem faturado + digitado - devoluções)
+if dias_decorridos > 0 and total_geral > 0:
+    ritmo_atual_realizado = total_geral / dias_decorridos
+    forecast_valor = ritmo_atual_realizado * dias_uteis_totais
 else:
+    # Se for o primeiro dia do mês ou não tiver venda, o forecast é a própria meta ou zero
     forecast_valor = 0
 
-# Formatação para Real
-forecast_txt = f"R$ {forecast_valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+# Formatação segura para Real
+def fmt_forecast(v):
+    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+forecast_txt = fmt_forecast(forecast_valor)
 
 if gap_vs_linear < -2 and falta_r_cifra > 0:
     st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de {data_ref_calculo.strftime('%d/%m')}.")
