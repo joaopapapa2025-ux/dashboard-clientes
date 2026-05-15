@@ -414,107 +414,112 @@ if df_vendedores_hist is not None:
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
 
 # ==========================================
-# 📅 CRONOGRAMA DE FECHAMENTO (AUTOMAÇÃO TOTAL)
+# 📅 CRONOGRAMA DE FECHAMENTO (EXTRAÇÃO DIRETA)
 # ==========================================
 st.markdown("---")
-st.subheader("🗓️ Cronograma de Fechamento Maio (Faturamento até 26/05)")
 
-# 1. Recuperação Automática dos Dados do Bloco de Resultado
-# O código abaixo assume que você já calculou essas métricas no topo do dashboard
-try:
-    # --- VARIÁVEIS GLOBAIS (Sincronizadas com o print de Resultado) ---
-    # Usando os nomes padrão que você provavelmente definiu no bloco anterior
-    gap_total = falta_total_geral  # Deve ser R$ 399.046
-    dias_uteis = qtd_dias_restantes # Deve ser 8 dias
-    ritmo_dia = ritmo_necessario_geral # Deve ser R$ 49.881
+if not dados_performance.empty:
+    # 1. CÁLCULOS GLOBAIS (Baseados na Planilha)
+    meta_is = dados_performance["Meta"].sum()
+    faturado_is = dados_performance["Faturado"].sum()
+    digitado_is = dados_performance["Digitado"].sum()
+    total_geral_is = faturado_is + digitado_is
+    gap_total_is = max(0, meta_is - total_geral_is)
     
-    # Cálculo de Ticket Médio Geral para Projeção de Pedidos
-    # Baseado no Total Geral (R$ 474.482) dividido pelo total de pedidos
-    tm_geral = total_geral_valor / total_pedidos_geral if total_pedidos_geral > 0 else 0
-    peds_totais = int(gap_total / tm_geral) if tm_geral > 0 else 0
+    # 2. LÓGICA DE PRAZO (Até 26/05)
+    hoje = pd.to_datetime(data_selecionada)
+    data_limite = pd.Timestamp(hoje.year, 5, 26)
+    
+    # Identifica dias úteis restantes (Seg-Sex, removendo feriados)
+    if hoje < data_limite:
+        datas_restantes = pd.date_range(hoje + pd.Timedelta(days=1), data_limite)
+        dias_uteis_reais = [d for d in datas_restantes if d.weekday() < 5 and d.date() not in lista_feriados]
+        qtd_dias_rest = len(dias_uteis_reais)
+    else:
+        qtd_dias_rest = 0
 
-    # --- MÉTRICAS DE DESTAQUE ---
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("🚩 Buraco da Meta (Gap)", fmt_br(gap_total))
-    with c2:
-        st.metric("⏳ Dias Úteis Restantes", f"{dias_uteis} dias")
-    with c3:
-        peds_dia = int(ritmo_dia / tm_geral) if tm_geral > 0 else 0
-        st.metric("🚀 Esforço p/ Dia", fmt_br(ritmo_dia), f"~{peds_dia} ped./dia")
+    # 3. VALIDAÇÃO E EXIBIÇÃO
+    if qtd_dias_rest > 0 and gap_total_is > 0:
+        ritmo_necessario = gap_total_is / qtd_dias_rest
+        
+        # Ticket Médio Geral do Time para projetar pedidos
+        total_peds = dados_performance["Fat_Ped"].sum() + dados_performance["Dig_Ped"].sum()
+        tm_geral = total_geral_is / total_peds if total_peds > 0 else 2298.84 # TM de referência do seu print
+        
+        # --- CABEÇALHO ---
+        st.markdown(f"### 🗓️ Cronograma de Fechamento Maio (Faturamento até 26/05)")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric("🚩 GAP TOTAL (RESTRANTE)", fmt_br(gap_total_is))
+        with c2:
+            st.metric("⏳ JANELA DE FATURAMENTO", f"{qtd_dias_rest} dias úteis")
+        with c3:
+            peds_dia = int(ritmo_necessario / tm_geral)
+            st.metric("🚀 RITMO POR DIA", fmt_br(ritmo_necessario), f"~{peds_dia} ped./dia")
 
-    # --- TABELA DE PLANEJAMENTO (DINÂMICA) ---
-    # Agrupamos os dias úteis restantes em semanas automaticamente
-    df_cron = pd.DataFrame({'Data': lista_datas_uteis_restantes}) 
-    df_cron['Semana'] = df_cron['Data'].dt.isocalendar().week
-    semanas = df_cron.groupby('Semana')
+        # --- TABELA DE PLANEJAMENTO ---
+        df_semanas = pd.DataFrame({'Data': dias_uteis_reais})
+        df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
+        grupos = df_semanas.groupby('Semana')
 
-    html_tab = """
-    <style>
-        .tab-exec { width: 100%; border-collapse: collapse; font-family: sans-serif; margin-top: 10px; }
-        .tab-exec th { background-color: #002D62; color: white; padding: 12px; font-size: 13px; text-transform: uppercase; }
-        .tab-exec td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
-        .val-meta { color: #D32F2F; font-weight: bold; }
-        .badge-peds { background-color: #E3F2FD; color: #1565C0; padding: 3px 10px; border-radius: 12px; font-weight: bold; }
-        .footer-total { background-color: #002D62; color: white; font-weight: bold; }
-    </style>
-    <table class='tab-exec'>
-        <thead>
-            <tr>
-                <th>📅 Período</th>
-                <th>⏳ Dias</th>
-                <th>💰 Meta Faturamento</th>
-                <th>📦 Pedidos (Est.)</th>
-                <th>🚀 Ações Estratégicas</th>
-            </tr>
-        </thead>
-        <tbody>
-    """
-
-    acoes_estrat = [
-        "<b>CRM & URGÊNCIA:</b> Gatilho de aumento de preços em Junho.",
-        "<b>REATIVAÇÃO:</b> Foco na base inativa que comprou no Q1.",
-        "<b>FORÇA TAREFA:</b> Conversão de pedidos digitados e crédito.",
-        "<b>FECHAMENTO:</b> Ajuste logístico e faturamento final."
-    ]
-
-    for i, (nome_sem, dados_sem) in enumerate(semanas):
-        data_ini = dados_sem['Data'].min().strftime('%d/%m')
-        data_fim = dados_sem['Data'].max().strftime('%d/%m')
-        dias_sem = len(dados_sem)
-        meta_sem = ritmo_dia * dias_sem
-        peds_sem = int(meta_sem / tm_geral) if tm_geral > 0 else 0
-        acao = acoes_estrat[i] if i < len(acoes_estrat) else "Manutenção de ritmo."
-
-        html_tab += f"""
-            <tr>
-                <td><b>{data_ini} a {data_fim}</b></td>
-                <td>{dias_sem} d.ú.</td>
-                <td class='val-meta'>{fmt_br(meta_sem)}</td>
-                <td><span class='badge-peds'>{peds_sem} peds.</span></td>
-                <td style='text-align: left;'>{acao}</td>
-            </tr>
+        html_cron = """
+        <style>
+            .tab-final { width: 100%; border-collapse: collapse; font-family: sans-serif; margin-top: 15px; }
+            .tab-final th { background-color: #002D62; color: white; padding: 12px; font-size: 13px; }
+            .tab-final td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+            .meta-destaque { color: #D32F2F; font-weight: bold; }
+            .badge-peds { background-color: #E3F2FD; color: #1565C0; padding: 3px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; }
+        </style>
+        <table class='tab-final'>
+            <thead>
+                <tr>
+                    <th>📅 Período</th>
+                    <th>⏳ Dias</th>
+                    <th>💰 Meta Faturamento</th>
+                    <th>📦 Pedidos (Est.)</th>
+                    <th>🚀 Ações Estratégicas</th>
+                </tr>
+            </thead>
+            <tbody>
         """
 
-    # Linha final de fechamento (Soma Exata do Gap)
-    html_tab += f"""
-            <tr class='footer-total'>
-                <td colspan='2'>TOTAL RESTANTE</td>
-                <td>{fmt_br(gap_total)}</td>
-                <td>{peds_totais}</td>
-                <td style='text-align: left;'>🎯 Meta: 100% Papapá</td>
-            </tr>
-        </tbody>
-    </table>
-    """
-    
-    st.markdown(html_tab, unsafe_allow_html=True)
-    st.info(f"💡 Planejamento dinâmico baseado no Ticket Médio de **{fmt_br(tm_geral)}**.")
+        acoes = ["<b>CRM & URGÊNCIA:</b> Gatilho de aumento de preços.", "<b>REATIVAÇÃO:</b> Base inativa Q1.", "<b>FORÇA TAREFA:</b> Crédito e Digitados."]
 
-except NameError as e:
-    st.error(f"Variável não encontrada: {e}. Certifique-se de que o bloco de 'Resultado' foi executado primeiro.")
-except Exception as e:
-    st.error(f"Erro ao gerar cronograma: {e}")
+        for i, (nome, dias) in enumerate(grupos):
+            ini, fim = dias['Data'].min().strftime('%d/%m'), dias['Data'].max().strftime('%d/%m')
+            qtd = len(dias)
+            v_meta = ritmo_necessario * qtd
+            v_peds = int(v_meta / tm_geral)
+            acao_txt = acoes[i] if i < len(acoes) else "Faturamento final."
+
+            html_cron += f"""
+                <tr>
+                    <td><b>{ini} a {fim}</b></td>
+                    <td>{qtd} d.ú.</td>
+                    <td class='meta-destaque'>{fmt_br(v_meta)}</td>
+                    <td><span class='badge-peds'>{v_peds} peds.</span></td>
+                    <td style='text-align: left; font-size: 12px;'>{acao_txt}</td>
+                </tr>
+            """
+
+        html_cron += f"""
+                <tr style='background-color: #002D62; color: white; font-weight: bold;'>
+                    <td colspan='2'>TOTAL RESTANTE</td>
+                    <td>{fmt_br(gap_total_is)}</td>
+                    <td>{int(gap_total_is / tm_geral)}</td>
+                    <td style='text-align: left;'>🎯 Meta: 100% Papapá</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        st.markdown(html_cron, unsafe_allow_html=True)
+
+    elif gap_total_is <= 0:
+        st.success("✅ Meta atingida no consolidado!")
+    else:
+        st.error("🚨 Prazo de faturamento (26/05) encerrado.")
+else:
+    st.warning("⚠️ Planilha 'dados_performance' não encontrada ou vazia.")
         
 # =========================
 # ARQUIVO BASE
