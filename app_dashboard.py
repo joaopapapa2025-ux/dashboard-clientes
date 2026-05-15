@@ -337,17 +337,17 @@ if df_vendedores_hist is not None:
     # Filtra os dados do dia
     dados_v_dia = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
 
-    # Cálculo de dias passados para o Forecast Individual
+    # Cálculo de dias decorridos para a projeção (Forecast)
     dias_decorridos = dias_uteis_comerciais_totais - dias_uteis_restantes
 
-    # --- AVISO DE ATUALIZAÇÃO ---
+    # --- NOVO AVISO DE ATUALIZAÇÃO ---
     faturamento_total_dia = dados_v_dia["Faturado_Acumulado"].sum() if not dados_v_dia.empty else 0
     
     if faturamento_total_dia == 0:
         st.warning("⚠️ **Aviso:** O dashboard está sendo alimentado com os resultados de ontem. Em breve os números estarão na tela. Se demorar mais que o normal, é só avisar o João Tadra.")
     
     if not dados_v_dia.empty:
-        # --- BLINDAGEM DE DADOS ---
+        # --- BLINDAGEM: Garante que colunas críticas sejam números ---
         cols_numericas = ["Faturado_Acumulado", "Digitado_Acumulado", "Meta", "Fat_Ped", "Dig_Ped"]
         for col in cols_numericas:
             if col in dados_v_dia.columns:
@@ -356,15 +356,21 @@ if df_vendedores_hist is not None:
         for idx, v in dados_v_dia.iterrows():
             total = v["Faturado_Acumulado"] + v["Digitado_Acumulado"]
             dados_v_dia.at[idx, "total"] = total
-            dados_v_dia.at[idx, "ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
             
+            # Atingimento
+            ating = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
+            dados_v_dia.at[idx, "ating"] = ating
+            
+            # Valor Ideal e Diferença
             val_id = (percentual_esperado / 100) * v["Meta"]
             dados_v_dia.at[idx, "val_id"] = val_id
             dados_v_dia.at[idx, "diff"] = total - val_id
             
+            # Ticket Médio
             peds = v["Fat_Ped"] + v["Dig_Ped"]
             dados_v_dia.at[idx, "tm"] = total / peds if peds > 0 else 0
             
+            # Ritmo Diário Necessário
             falta_v = max(0, v["Meta"] - total)
             dados_v_dia.at[idx, "ritmo"] = falta_v / dias_uteis_restantes if dias_uteis_restantes > 0 else falta_v
 
@@ -374,9 +380,10 @@ if df_vendedores_hist is not None:
             else:
                 dados_v_dia.at[idx, "forecast_ind"] = 0
 
-        # Ordenar por atingimento
+        # Ordenar para o Ranking
         v_lista = dados_v_dia.sort_values(by="ating", ascending=False).to_dict('records')
         
+        # Função de formatação
         def fmt_br(val):
             try:
                 if pd.isna(val) or val == float('inf'): return "R$ 0,00"
@@ -392,7 +399,7 @@ if df_vendedores_hist is not None:
             .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; }
             .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; }
             .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; }
-            .col-vendedor { width: 220px !important; text-align: left !important; white-space: nowrap !important; }
+            .col-vendedor { width: 250px !important; text-align: left !important; white-space: nowrap !important; }
         </style>
         """
 
@@ -418,6 +425,7 @@ if df_vendedores_hist is not None:
         for i, v in enumerate(v_lista):
             cor_a = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
             cor_d = "#2E7D32" if v["diff"] >= 0 else "#C62828"
+            # Cor da Projeção (Verde se a projeção atingir a meta)
             cor_f = "#2E7D32" if v["forecast_ind"] >= v["Meta"] else "#C62828"
             
             fat_ped = int(v.get('Fat_Ped', 0))
@@ -441,7 +449,6 @@ if df_vendedores_hist is not None:
             </tr>
             """
         
-        # O comando que transforma tudo em visual
         st.markdown(style + header + rows + "</tbody></table>", unsafe_allow_html=True)
         
         if len(v_lista) > 0 and v_lista[0]["ating"] > 0:
