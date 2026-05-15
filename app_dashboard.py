@@ -1096,7 +1096,7 @@ if len(df_filtrado) == 1:
         with col_btn1:
             tel_wpp = limpar_telefone(cliente[COL_TELEFONE])
             if tel_wpp:
-                st.link_button("💬 WhatsApp", f"https://wa.me/55{tel_wpp}", use_container_width=True)
+                st.link_button("💬 WhatsApp", f"https://web.whatsapp.com/send?phone=55{tel_wpp}", use_container_width=True)
         
         with col_btn2:
             # Filtra vendas do cliente na aba MIX
