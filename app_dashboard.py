@@ -414,50 +414,51 @@ if df_vendedores_hist is not None:
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
 
 # ==========================================
-# 📅 CRONOGRAMA DE FECHAMENTO (SYNC COM RESULTADOS)
+# 📅 CRONOGRAMA DE FECHAMENTO (AUTOMAÇÃO TOTAL)
 # ==========================================
 st.markdown("---")
+st.subheader("🗓️ Cronograma de Fechamento Maio (Faturamento até 26/05)")
 
-# 1. MAPEAMENTO DE VARIÁVEIS DO PRINT DE RESULTADOS
-# Substitua os nomes abaixo pelas variáveis correspondentes que geram o seu cabeçalho de "Resultado"
-# Conforme o print: Meta: R$ 873.528 | Total Geral: R$ 474.482 | Gap: R$ 399.046
+# 1. Recuperação Automática dos Dados do Bloco de Resultado
+# O código abaixo assume que você já calculou essas métricas no topo do dashboard
 try:
-    # Estas variáveis devem vir da sua lógica de 'Resultado - Inside Sales'
-    meta_is = 873528.00  # Referência
-    realizado_is = 474482.00  # Total Geral (Faturado + Digitado)
-    gap_is = meta_is - realizado_is # Deve resultar em R$ 399.046
+    # --- VARIÁVEIS GLOBAIS (Sincronizadas com o print de Resultado) ---
+    # Usando os nomes padrão que você provavelmente definiu no bloco anterior
+    gap_total = falta_total_geral  # Deve ser R$ 399.046
+    dias_uteis = qtd_dias_restantes # Deve ser 8 dias
+    ritmo_dia = ritmo_necessario_geral # Deve ser R$ 49.881
     
-    # Conforme o print, restam 8 dias úteis (contando com a data selecionada)
-    dias_restantes = 8 
-    ritmo_necessario_is = gap_is / dias_restantes if dias_restantes > 0 else 0
-    
-    # Ticket Médio Geral (para cálculo de pedidos estimados)
-    # Use o TM de R$ 2.298,84 mencionado no rodapé do seu print
-    tm_referencia = 2298.84 
-    peds_totais_necessarios = int(gap_is / tm_referencia) if tm_referencia > 0 else 0
+    # Cálculo de Ticket Médio Geral para Projeção de Pedidos
+    # Baseado no Total Geral (R$ 474.482) dividido pelo total de pedidos
+    tm_geral = total_geral_valor / total_pedidos_geral if total_pedidos_geral > 0 else 0
+    peds_totais = int(gap_total / tm_geral) if tm_geral > 0 else 0
 
-    # --- CABEÇALHO DE IMPACTO ---
-    st.subheader(f"🗓️ Cronograma de Fechamento Maio (Faturamento até 26/05)")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("🚩 Buraco da Meta (Gap)", f"R$ {gap_is:,.2f}".replace(",", "v").replace(".", ",").replace("v", "."))
-    with col2:
-        st.metric("⏳ Dias Úteis Restantes", f"{dias_restantes} dias")
-    with col3:
-        peds_dia = int(ritmo_necessario_is / tm_referencia)
-        st.metric("🚀 Esforço p/ Dia", f"R$ {ritmo_necessario_is:,.2f}".replace(",", "v").replace(".", ",").replace("v", "."), f"~{peds_dia} ped./dia")
+    # --- MÉTRICAS DE DESTAQUE ---
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("🚩 Buraco da Meta (Gap)", fmt_br(gap_total))
+    with c2:
+        st.metric("⏳ Dias Úteis Restantes", f"{dias_uteis} dias")
+    with c3:
+        peds_dia = int(ritmo_dia / tm_geral) if tm_geral > 0 else 0
+        st.metric("🚀 Esforço p/ Dia", fmt_br(ritmo_dia), f"~{peds_dia} ped./dia")
 
-    # --- TABELA DE PLANEJAMENTO SEMANAL ---
-    # Nota: As datas abaixo devem ser ajustadas conforme a sua lista_datas_uteis_restantes
-    html_tabela = f"""
+    # --- TABELA DE PLANEJAMENTO (DINÂMICA) ---
+    # Agrupamos os dias úteis restantes em semanas automaticamente
+    df_cron = pd.DataFrame({'Data': lista_datas_uteis_restantes}) 
+    df_cron['Semana'] = df_cron['Data'].dt.isocalendar().week
+    semanas = df_cron.groupby('Semana')
+
+    html_tab = """
     <style>
-        .tab-cron {{ width: 100%; border-collapse: collapse; font-family: sans-serif; }}
-        .tab-cron th {{ background-color: #002D62; color: white; padding: 12px; text-align: center; }}
-        .tab-cron td {{ padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }}
-        .footer-cron {{ background-color: #002D62; color: white; font-weight: bold; }}
+        .tab-exec { width: 100%; border-collapse: collapse; font-family: sans-serif; margin-top: 10px; }
+        .tab-exec th { background-color: #002D62; color: white; padding: 12px; font-size: 13px; text-transform: uppercase; }
+        .tab-exec td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
+        .val-meta { color: #D32F2F; font-weight: bold; }
+        .badge-peds { background-color: #E3F2FD; color: #1565C0; padding: 3px 10px; border-radius: 12px; font-weight: bold; }
+        .footer-total { background-color: #002D62; color: white; font-weight: bold; }
     </style>
-    <table class='tab-cron'>
+    <table class='tab-exec'>
         <thead>
             <tr>
                 <th>📅 Período</th>
@@ -468,35 +469,52 @@ try:
             </tr>
         </thead>
         <tbody>
+    """
+
+    acoes_estrat = [
+        "<b>CRM & URGÊNCIA:</b> Gatilho de aumento de preços em Junho.",
+        "<b>REATIVAÇÃO:</b> Foco na base inativa que comprou no Q1.",
+        "<b>FORÇA TAREFA:</b> Conversão de pedidos digitados e crédito.",
+        "<b>FECHAMENTO:</b> Ajuste logístico e faturamento final."
+    ]
+
+    for i, (nome_sem, dados_sem) in enumerate(semanas):
+        data_ini = dados_sem['Data'].min().strftime('%d/%m')
+        data_fim = dados_sem['Data'].max().strftime('%d/%m')
+        dias_sem = len(dados_sem)
+        meta_sem = ritmo_dia * dias_sem
+        peds_sem = int(meta_sem / tm_geral) if tm_geral > 0 else 0
+        acao = acoes_estrat[i] if i < len(acoes_estrat) else "Manutenção de ritmo."
+
+        html_tab += f"""
             <tr>
-                <td><b>15/05 a 22/05</b></td>
-                <td>6 d.ú.</td>
-                <td style='color: #D32F2F; font-weight: bold;'>R$ {(ritmo_necessario_is * 6):,.2f}</td>
-                <td><span style='background-color: #E3F2FD; color: #1565C0; padding: 3px 8px; border-radius: 10px;'>{int((ritmo_necessario_is * 6)/tm_referencia)} peds.</span></td>
-                <td style='text-align: left; font-size: 12px;'><b>CRM & URGÊNCIA:</b> Gatilho de aumento de preços em Junho.</td>
+                <td><b>{data_ini} a {data_fim}</b></td>
+                <td>{dias_sem} d.ú.</td>
+                <td class='val-meta'>{fmt_br(meta_sem)}</td>
+                <td><span class='badge-peds'>{peds_sem} peds.</span></td>
+                <td style='text-align: left;'>{acao}</td>
             </tr>
-            <tr>
-                <td><b>25/05 a 26/05</b></td>
-                <td>2 d.ú.</td>
-                <td style='color: #D32F2F; font-weight: bold;'>R$ {(ritmo_necessario_is * 2):,.2f}</td>
-                <td><span style='background-color: #E3F2FD; color: #1565C0; padding: 3px 8px; border-radius: 10px;'>{int((ritmo_necessario_is * 2)/tm_referencia)} peds.</span></td>
-                <td style='text-align: left; font-size: 12px;'><b>FORÇA TAREFA:</b> Conversão de digitados e crédito.</td>
-            </tr>
-            <tr class='footer-cron'>
+        """
+
+    # Linha final de fechamento (Soma Exata do Gap)
+    html_tab += f"""
+            <tr class='footer-total'>
                 <td colspan='2'>TOTAL RESTANTE</td>
-                <td>R$ {gap_is:,.2f}</td>
-                <td>{peds_totais_necessarios}</td>
+                <td>{fmt_br(gap_total)}</td>
+                <td>{peds_totais}</td>
                 <td style='text-align: left;'>🎯 Meta: 100% Papapá</td>
             </tr>
         </tbody>
     </table>
     """
-    st.markdown(html_tabela, unsafe_allow_html=True)
-    st.caption(f"💡 Planejamento recalcula automaticamente. Ticket Médio base: R$ {tm_referencia:,.2f}")
+    
+    st.markdown(html_tab, unsafe_allow_html=True)
+    st.info(f"💡 Planejamento dinâmico baseado no Ticket Médio de **{fmt_br(tm_geral)}**.")
 
+except NameError as e:
+    st.error(f"Variável não encontrada: {e}. Certifique-se de que o bloco de 'Resultado' foi executado primeiro.")
 except Exception as e:
-    st.error(f"Erro ao carregar cronograma: {e}")
-    st.warning("Certifique-se de que as variáveis de faturamento geral estão calculadas antes deste bloco.")
+    st.error(f"Erro ao gerar cronograma: {e}")
         
 # =========================
 # ARQUIVO BASE
