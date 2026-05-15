@@ -337,15 +337,17 @@ if df_vendedores_hist is not None:
     # Filtra os dados do dia
     dados_v_dia = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
 
-# --- NOVO AVISO DE ATUALIZAÇÃO ---
-    # Verifica se a soma do faturamento de todos os vendedores é zero
+    # Cálculo de dias passados para o Forecast Individual
+    dias_decorridos = dias_uteis_comerciais_totais - dias_uteis_restantes
+
+    # --- AVISO DE ATUALIZAÇÃO ---
     faturamento_total_dia = dados_v_dia["Faturado_Acumulado"].sum() if not dados_v_dia.empty else 0
     
     if faturamento_total_dia == 0:
         st.warning("⚠️ **Aviso:** O dashboard está sendo alimentado com os resultados de ontem. Em breve os números estarão na tela. Se demorar mais que o normal, é só avisar o João Tadra.")
     
     if not dados_v_dia.empty:
-        # --- BLINDAGEM: Garante que colunas críticas sejam números e não tenham vazios (NaN) ---
+        # --- BLINDAGEM DE DADOS ---
         cols_numericas = ["Faturado_Acumulado", "Digitado_Acumulado", "Meta", "Fat_Ped", "Dig_Ped"]
         for col in cols_numericas:
             if col in dados_v_dia.columns:
@@ -355,7 +357,7 @@ if df_vendedores_hist is not None:
             total = v["Faturado_Acumulado"] + v["Digitado_Acumulado"]
             dados_v_dia.at[idx, "total"] = total
             
-            # Atingimento (evita divisão por zero)
+            # Atingimento
             dados_v_dia.at[idx, "ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
             
             # Valor Ideal e Diferença
@@ -369,40 +371,58 @@ if df_vendedores_hist is not None:
             
             # Ritmo Diário Necessário
             falta_v = max(0, v["Meta"] - total)
-            # Se não houver dias restantes, o ritmo é o que falta
             dados_v_dia.at[idx, "ritmo"] = falta_v / dias_uteis_restantes if dias_uteis_restantes > 0 else falta_v
 
-        # Ordenar e formatar para o HTML
+            # --- LÓGICA FORECAST INDIVIDUAL ---
+            if dias_decorridos > 0:
+                dados_v_dia.at[idx, "forecast_ind"] = (total / dias_decorridos) * dias_uteis_comerciais_totais
+            else:
+                dados_v_dia.at[idx, "forecast_ind"] = 0
+
+        # Ordenar por atingimento
         v_lista = dados_v_dia.sort_values(by="ating", ascending=False).to_dict('records')
         
-        # Função fmt_br melhorada para não quebrar com erro
         def fmt_br(val):
             try:
                 if pd.isna(val) or val == float('inf'): return "R$ 0,00"
                 return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except:
-                return "R$ 0,00"
+            except: return "R$ 0,00"
 
         # --- MONTAGEM DA TABELA HTML ---
-        html_v = """<style>.tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; } .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; } .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; } .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; } .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; } .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; } .col-vendedor { width: 250px !important; text-align: left !important; white-space: nowrap !important; }</style><table class='tab-performance'><thead><tr><th>Pos.</th><th class='col-vendedor'>Vendedor</th><th>Meta</th><th>Faturado</th><th>Digitado</th><th>Total (TM)</th><th>Atingimento</th><th>Ideal Hoje (R$)</th><th>Ritmo Diário Nec.</th></tr></thead><tbody>"""
+        html_v = """<style>.tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; } .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; } .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; } .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; } .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; } .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; } .col-vendedor { width: 220px !important; text-align: left !important; white-space: nowrap !important; }</style><table class='tab-performance'><thead><tr><th>Pos.</th><th class='col-vendedor'>Vendedor</th><th>Meta</th><th>Faturado</th><th>Digitado</th><th>Total (TM)</th><th>Atingimento</th><th>Ideal Hoje (R$)</th><th>Ritmo Diário Nec.</th></tr></thead><tbody>"""
         
         for i, v in enumerate(v_lista):
             cor_a = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
             cor_d = "#2E7D32" if v["diff"] >= 0 else "#C62828"
+            # Cor da Projeção (Verde se a projeção bater a meta)
+            cor_f = "#2E7D32" if v["forecast_ind"] >= v["Meta"] else "#C62828"
             
-            # Garantir que pedidos sejam inteiros para não dar erro no HTML
             fat_ped = int(v.get('Fat_Ped', 0))
             dig_ped = int(v.get('Dig_Ped', 0))
 
-            html_v += f"<tr><td>{i+1}º</td><td class='col-vendedor'><b>{v['Vendedor']}</b></td><td>{fmt_br(v['Meta'])}</td><td style='color: #2E7D32;'>{fmt_br(v['Faturado_Acumulado'])}<span class='val-sub'>{fat_ped} ped.</span></td><td style='color: #1565C0;'>{fmt_br(v['Digitado_Acumulado'])}<span class='val-sub'>{dig_ped} ped.</span></td><td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td><td><div class='prog-bg'><div class='prog-bar' style='width: {min(v['ating'], 100)}%'></div></div> <span style='color: {cor_a}; font-weight: bold;'>{v['ating']:.1f}%</span></td><td><b>{fmt_br(v['val_id'])}</b><span class='val-sub' style='color: {cor_d}; font-weight: bold;'>{ 'Acima' if v['diff'] >= 0 else 'Gap'}: {fmt_br(abs(v['diff']))}</span></td><td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo'])}</span><span class='val-sub'>p/ dia</span></td></tr>"
+            html_v += f"""<tr>
+                <td>{i+1}º</td>
+                <td class='col-vendedor'><b>{v['Vendedor']}</b></td>
+                <td>{fmt_br(v['Meta'])}</td>
+                <td style='color: #2E7D32;'>{fmt_br(v['Faturado_Acumulado'])}<span class='val-sub'>{fat_ped} ped.</span></td>
+                <td style='color: #1565C0;'>{fmt_br(v['Digitado_Acumulado'])}<span class='val-sub'>{dig_ped} ped.</span></td>
+                <td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td>
+                <td>
+                    <div class='prog-bg'><div class='prog-bar' style='width: {min(v['ating'], 100)}%'></div></div> 
+                    <span style='color: {cor_a}; font-weight: bold;'>{v['ating']:.1f}%</span>
+                    <span class='val-sub' style='color: {cor_f}; font-size: 10px; font-weight: bold;'>Proj: {fmt_br(v['forecast_ind'])}</span>
+                </td>
+                <td><b>{fmt_br(v['val_id'])}</b><span class='val-sub' style='color: {cor_d}; font-weight: bold;'>{ 'Acima' if v['diff'] >= 0 else 'Gap'}: {fmt_br(abs(v['diff']))}</span></td>
+                <td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo'])}</span><span class='val-sub'>p/ dia</span></td>
+            </tr>"""
         
         st.markdown(html_v + "</tbody></table>", unsafe_allow_html=True)
         
         if len(v_lista) > 0 and v_lista[0]["ating"] > 0:
             st.success(f"🚀 **Destaque do Mês:** Atualmente **{v_lista[0]['Vendedor']}** lidera o ranking com **{v_lista[0]['ating']:.1f}%** da meta! 🔥")
     else:
-        # MENSAGEM CASO A PLANILHA NÃO ESTEJA ATUALIZADA
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
+        
 # =========================
 # ARQUIVO BASE
 # =========================
