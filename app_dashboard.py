@@ -277,6 +277,19 @@ st.markdown(f"🕒 *Última atualização: 15/05/2026 às 08:20*")
 
 st.markdown("""<style>[data-testid="stMetricDelta"] svg { display: none !important; } [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div { background-color: transparent !important; }</style>""", unsafe_allow_html=True)
 
+# Cálculo do Forecast
+dias_decorridos = dias_uteis_totais - dias_uteis_restantes
+faturamento_total_atual = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada]["Faturado_Acumulado"].sum() + df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada]["Digitado_Acumulado"].sum()
+
+if dias_decorridos > 0:
+    ritmo_atual = faturamento_total_atual / dias_decorridos
+    forecast_valor = ritmo_atual * dias_uteis_totais
+else:
+    forecast_valor = 0
+
+# Formatação para Real
+forecast_txt = f"R$ {forecast_valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 if gap_vs_linear < -2 and falta_r_cifra > 0:
     st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de {data_ref_calculo.strftime('%d/%m')}.")
 elif falta_r_cifra <= 0:
@@ -306,6 +319,7 @@ st.markdown(f"""
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com a data selecionada): **{dias_uteis_restantes}**.
 > * O atingimento ideal para hoje é de **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
+> * **Forecast (Previsão de Fechamento):** :orange[**{forecast_txt}**] (baseado no ritmo atual).
 """)
 st.markdown("---")
 
