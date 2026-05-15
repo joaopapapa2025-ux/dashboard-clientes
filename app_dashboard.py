@@ -416,82 +416,112 @@ if df_vendedores_hist is not None:
 import streamlit.components.v1 as components
 
 # ==========================================
-# 🚀 CRONOGRAMA PRO: VERSÃO BLINDADA
+# 🚀 CRONOGRAMA PRO: DESIGN ELITE & ESTRATÉGICO
 # ==========================================
 st.markdown("---")
-st.markdown("## 🗓️ Cronograma de Fechamento Maio")
+st.markdown("## 🗓️ Planejamento Estratégico de Fechamento")
 
 try:
     # 1. VARIÁVEIS BASE
     gap_total = falta_r_cifra
     dias_restantes = dias_uteis_restantes
-    qtd_vendedores = 5 # Ajuste para o número real de vendedores
+    qtd_vendedores = 5 # Baseado no seu ranking individual
     
-    # Cálculo do Ticket Médio
+    # Cálculo do Ticket Médio Real do Time
     total_peds_mes = (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum())
     tm_time = total_geral / total_peds_mes if total_peds_mes > 0 else 2217.21
     
     # 2. CARDS DE TOPO (NATIVOS STREAMLIT)
     c1, c2, c3 = st.columns(3)
-    c1.metric("🚩 Gap Restante", fmt_br(gap_total))
+    c1.metric("🚩 Gap p/ Meta", fmt_br(gap_total))
     c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta="Até 26/05")
     
     esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
     peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
-    c3.metric("🔥 Meta p/ Dia (Time)", fmt_br(esforco_diario), delta=f"~{int(peds_dia_time)} peds/dia")
+    c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"~{int(peds_dia_time)} peds/dia")
 
-    # 3. CONSTRUÇÃO DO CONTEÚDO HTML
+    # 3. LÓGICA DE DATAS E AÇÕES
     datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
     df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
     df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
 
     rows_html = ""
+    cont_semana = 0
+    
     for _, dados_sem in df_semanas.groupby('Semana'):
+        cont_semana += 1
         ini = dados_sem['Data'].min().strftime('%d/%m')
         fim = dados_sem['Data'].max().strftime('%d/%m')
         d_uteis = len(dados_sem)
         
+        # Meta e Pedidos
         meta_semana = (gap_total / dias_restantes) * d_uteis
         peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
         media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
+        # ESTRATÉGIA DINÂMICA (Para não repetir "Reativação")
+        if cont_semana == 1:
+            acao_titulo = "🔥 GATILHO DE ANTECIPAÇÃO"
+            acao_desc = "Foco total: Aumento de preços em Junho."
+            cor_acao = "#E65100" 
+        elif fim == "26/05":
+            acao_titulo = "🏁 SPRINT FINAL"
+            acao_desc = "Recuperação de inativos e fechamento de propostas."
+            cor_acao = "#C62828"
+        else:
+            acao_titulo = "📈 SUSTENTAÇÃO"
+            acao_desc = "Ações de Upsell na base atual."
+            cor_acao = "#2E7D32"
+
         rows_html += f"""
-            <div style="display: flex; padding: 15px; border-bottom: 1px solid #eee; align-items: center;">
-                <div style="flex: 1.5;"><b>Semana de {ini} a {fim}</b><br><small style="color:#666">Foco: Reativação</small></div>
-                <div style="flex: 0.5; text-align: center;">{d_uteis} d.ú.</div>
-                <div style="flex: 1; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_semana)}</div>
-                <div style="flex: 2; text-align: right;">
-                    <span style="background: #e3f2fd; color: #1976d2; padding: 5px 10px; border-radius: 5px; font-weight: bold;">{peds_semana} peds total</span>
-                    <div style="font-size: 12px; margin-top: 5px; color: #444;">🎯 Média Individual: <b>{media_p_vendedor} peds</b></div>
+            <div style="display: flex; padding: 20px 15px; border-bottom: 1px solid #f0f2f5; align-items: center;">
+                <div style="flex: 1.2;">
+                    <span style="font-size: 14px; font-weight: 800; color: #1e293b;">{ini} a {fim}</span><br>
+                    <span style="font-size: 11px; color: #64748b;">{d_uteis} dias úteis</span>
+                </div>
+                <div style="flex: 1.8;">
+                    <span style="font-size: 12px; font-weight: bold; color: {cor_acao};">{acao_titulo}</span><br>
+                    <span style="font-size: 11px; color: #475569;">{acao_desc}</span>
+                </div>
+                <div style="flex: 1.2; text-align: center;">
+                    <span style="font-size: 15px; font-weight: bold; color: #d32f2f;">{fmt_br(meta_semana)}</span>
+                </div>
+                <div style="flex: 1.8; text-align: right;">
+                    <div style="background: #f1f5f9; padding: 8px; border-radius: 8px; border-right: 4px solid #002D62;">
+                        <span style="font-size: 13px; font-weight: bold; color: #002D62;">{peds_semana} peds total</span><br>
+                        <span style="font-size: 11px; color: #334155;">🎯 Individual: <b>{media_p_vendedor} peds</b></span>
+                    </div>
                 </div>
             </div>
         """
 
-    # HTML COMPLETO COM CSS EMBUTIDO
+    # 4. MONTAGEM DO COMPONENTE FINAL (CSS Limpo e Alinhado)
     full_html = f"""
-    <div style="font-family: sans-serif; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
-        <div style="display: flex; background: #002D62; color: white; padding: 12px; font-weight: bold; font-size: 13px;">
-            <div style="flex: 1.5;">PERÍODO</div>
-            <div style="flex: 0.5; text-align: center;">DIAS</div>
-            <div style="flex: 1; text-align: center;">META VALOR</div>
-            <div style="flex: 2; text-align: right;">DISTRIBUIÇÃO SUGERIDA</div>
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+        <div style="display: flex; background: #002D62; color: white; padding: 15px; font-weight: bold; font-size: 12px; letter-spacing: 1px;">
+            <div style="flex: 1.2;">PERÍODO</div>
+            <div style="flex: 1.8;">AÇÃO ESTRATÉGICA</div>
+            <div style="flex: 1.2; text-align: center;">VALOR PREVISTO</div>
+            <div style="flex: 1.8; text-align: right;">META DE PEDIDOS</div>
         </div>
-        {rows_html}
-        <div style="background: #f8f9fa; padding: 15px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; font-weight: bold;">
-            <span>TOTAL RESTANTE</span>
-            <span style="color: #d32f2f;">{fmt_br(gap_total)}</span>
-            <span>{int(gap_total/tm_time)} Pedidos</span>
+        <div style="background: white;">
+            {rows_html}
+        </div>
+        <div style="background: #f8fafc; padding: 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center;">
+            <span style="font-size: 13px; font-weight: 800; color: #1e293b;">TOTAL PARA BATER A META</span>
+            <span style="font-size: 18px; font-weight: 900; color: #d32f2f;">{fmt_br(gap_total)}</span>
+            <span style="background: #002D62; color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px;">{int(gap_total/tm_time)} Pedidos</span>
         </div>
     </div>
     """
 
-    # Renderiza o componente com altura fixa para não quebrar
-    components.html(full_html, height=450)
+    # Altura ajustada dinamicamente
+    components.html(full_html, height=400)
     
-    st.caption(f"💡 Planejamento recalcula automaticamente. TM base: {fmt_br(tm_time)}")
+    st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
 
 except Exception as e:
-    st.error(f"Erro ao gerar cronograma: {e}")
+    st.warning(f"Configure os dados de faturamento para visualizar o cronograma.")
         
 # =========================
 # ARQUIVO BASE
