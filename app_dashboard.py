@@ -413,57 +413,39 @@ if df_vendedores_hist is not None:
         # MENSAGEM CASO A PLANILHA NÃO ESTEJA ATUALIZADA
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
 
+import streamlit.components.v1 as components
+
 # ==========================================
-# 🚀 CRONOGRAMA PRO: PLANEJAMENTO ESTRATÉGICO
+# 🚀 CRONOGRAMA PRO: VERSÃO BLINDADA
 # ==========================================
 st.markdown("---")
 st.markdown("## 🗓️ Cronograma de Fechamento Maio")
 
 try:
-    # 1. DEFINIÇÃO DE VARIÁVEIS (Segurança para não dar NameError)
+    # 1. VARIÁVEIS BASE
     gap_total = falta_r_cifra
     dias_restantes = dias_uteis_restantes
-    # Pegamos apenas os vendedores reais (removendo 'Outros' se necessário para a média)
-    qtd_vendedores = len(dados_v_dia[dados_v_dia['Vendedor'] != 'OUTROS (João Tadra)']) if not dados_v_dia.empty else 5
+    qtd_vendedores = 5 # Ajuste para o número real de vendedores
     
-    # Ticket Médio do time
+    # Cálculo do Ticket Médio
     total_peds_mes = (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum())
     tm_time = total_geral / total_peds_mes if total_peds_mes > 0 else 2217.21
     
-    # 2. CARDS DE INDICADORES (Topo)
+    # 2. CARDS DE TOPO (NATIVOS STREAMLIT)
     c1, c2, c3 = st.columns(3)
     c1.metric("🚩 Gap Restante", fmt_br(gap_total))
     c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta="Até 26/05")
     
     esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
     peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
-    c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"~{int(peds_dia_time)} peds/dia")
+    c3.metric("🔥 Meta p/ Dia (Time)", fmt_br(esforco_diario), delta=f"~{int(peds_dia_time)} peds/dia")
 
-    # 3. CSS PARA DESIGN PREMIUM
-    st.markdown("""
-        <style>
-            .container-plano { background: #ffffff; border-radius: 15px; border: 1px solid #e0e6ed; padding: 0px; overflow: hidden; font-family: 'Source Sans Pro', sans-serif; }
-            .header-plano { display: flex; background: #002D62; color: white; padding: 15px; font-weight: 600; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }
-            .linha-semana { display: flex; padding: 20px 15px; border-bottom: 1px solid #f0f4f8; align-items: center; }
-            .linha-semana:last-child { border-bottom: none; }
-            .col-data { flex: 1.5; }
-            .col-uteis { flex: 0.8; text-align: center; color: #666; }
-            .col-meta { flex: 1.2; text-align: center; color: #d32f2f; font-weight: bold; font-size: 16px; }
-            .col-peds { flex: 1.5; text-align: right; }
-            .badge-peds { background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 5px; }
-            .media-vendedor { font-size: 12px; color: #546e7a; line-height: 1.4; }
-            .footer-plano { background: #f8f9fa; padding: 15px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; font-weight: bold; }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # 4. CONSTRUÇÃO DA TABELA (String Única para evitar erros de renderização)
+    # 3. CONSTRUÇÃO DO CONTEÚDO HTML
     datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
     df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
     df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
 
-    html_content = '<div class="container-plano">'
-    html_content += '<div class="header-plano"><div class="col-data">Período</div><div class="col-uteis">Dias</div><div class="col-meta">Meta Faturamento</div><div class="col-peds">Distribuição de Pedidos</div></div>'
-
+    rows_html = ""
     for _, dados_sem in df_semanas.groupby('Semana'):
         ini = dados_sem['Data'].min().strftime('%d/%m')
         fim = dados_sem['Data'].max().strftime('%d/%m')
@@ -473,35 +455,43 @@ try:
         peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
         media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
-        html_content += f"""
-            <div class="linha-semana">
-                <div class="col-data"><b>Semana de {ini} a {fim}</b><br><small style="color:#94a3b8">Foco: Reativação e Upsell</small></div>
-                <div class="col-uteis">{d_uteis} d.ú.</div>
-                <div class="col-meta">{fmt_br(meta_semana)}</div>
-                <div class="col-peds">
-                    <div class="badge-peds">{peds_semana} pedidos no total</div>
-                    <div class="media-vendedor">
-                        🎯 Média: <b>{media_p_vendedor} peds</b> por vendedor<br>
-                        <span style="color:#1976d2">Ritmo: ~{round(media_p_vendedor/d_uteis, 1)} peds/dia por pessoa</span>
-                    </div>
+        rows_html += f"""
+            <div style="display: flex; padding: 15px; border-bottom: 1px solid #eee; align-items: center;">
+                <div style="flex: 1.5;"><b>Semana de {ini} a {fim}</b><br><small style="color:#666">Foco: Reativação</small></div>
+                <div style="flex: 0.5; text-align: center;">{d_uteis} d.ú.</div>
+                <div style="flex: 1; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_semana)}</div>
+                <div style="flex: 2; text-align: right;">
+                    <span style="background: #e3f2fd; color: #1976d2; padding: 5px 10px; border-radius: 5px; font-weight: bold;">{peds_semana} peds total</span>
+                    <div style="font-size: 12px; margin-top: 5px; color: #444;">🎯 Média Individual: <b>{media_p_vendedor} peds</b></div>
                 </div>
             </div>
         """
 
-    html_content += f"""
-        <div class="footer-plano">
-            <span>SALDO TOTAL DO GAP</span>
-            <span style="color:#d32f2f">{fmt_br(gap_total)}</span>
+    # HTML COMPLETO COM CSS EMBUTIDO
+    full_html = f"""
+    <div style="font-family: sans-serif; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
+        <div style="display: flex; background: #002D62; color: white; padding: 12px; font-weight: bold; font-size: 13px;">
+            <div style="flex: 1.5;">PERÍODO</div>
+            <div style="flex: 0.5; text-align: center;">DIAS</div>
+            <div style="flex: 1; text-align: center;">META VALOR</div>
+            <div style="flex: 2; text-align: right;">DISTRIBUIÇÃO SUGERIDA</div>
+        </div>
+        {rows_html}
+        <div style="background: #f8f9fa; padding: 15px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; font-weight: bold;">
+            <span>TOTAL RESTANTE</span>
+            <span style="color: #d32f2f;">{fmt_br(gap_total)}</span>
             <span>{int(gap_total/tm_time)} Pedidos</span>
         </div>
     </div>
     """
 
-    st.markdown(html_content, unsafe_allow_html=True)
-    st.caption(f"✨ **Dica Inside Sales:** Meta baseada no faturamento líquido. Ticket Médio considerado: {fmt_br(tm_time)}")
+    # Renderiza o componente com altura fixa para não quebrar
+    components.html(full_html, height=450)
+    
+    st.caption(f"💡 Planejamento recalcula automaticamente. TM base: {fmt_br(tm_time)}")
 
 except Exception as e:
-    st.warning("⚠️ Aguardando atualização dos dados de performance para projetar o cronograma.")
+    st.error(f"Erro ao gerar cronograma: {e}")
         
 # =========================
 # ARQUIVO BASE
