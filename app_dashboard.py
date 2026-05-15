@@ -414,112 +414,97 @@ if df_vendedores_hist is not None:
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
 
 # ==========================================
-# 📅 CRONOGRAMA DE FECHAMENTO (EXTRAÇÃO DIRETA)
+# 📅 CRONOGRAMA DE FECHAMENTO (VERSÃO FINAL)
 # ==========================================
 st.markdown("---")
 
-if not dados_performance.empty:
-    # 1. CÁLCULOS GLOBAIS (Baseados na Planilha)
-    meta_is = dados_performance["Meta"].sum()
-    faturado_is = dados_performance["Faturado"].sum()
-    digitado_is = dados_performance["Digitado"].sum()
-    total_geral_is = faturado_is + digitado_is
-    gap_total_is = max(0, meta_is - total_geral_is)
+# 1. TENTATIVA DE LOCALIZAR A BASE DE DADOS
+# Vou tentar identificar qual variável você usou para os dados de performance
+base_vendas = None
+
+# Lista de nomes possíveis que você pode ter usado no seu código
+for nome_var in ['dados_performance', 'dados_v_dia', 'df_vendas', 'df']:
+    if nome_var in locals():
+        base_vendas = locals()[nome_var]
+        break
+
+if base_vendas is not None and not base_vendas.empty:
+    # 2. EXTRAÇÃO DOS DADOS REAIS (Conforme o print de Resultado)
+    # Meta: R$ 873.528 | Total Geral: R$ 474.482 | Gap: R$ 399.046
+    meta_is = base_vendas["Meta"].sum()
+    realizado_is = (base_vendas["Faturado"].sum() + base_vendas["Digitado"].sum())
+    gap_total_is = max(0, meta_is - realizado_is)
     
-    # 2. LÓGICA DE PRAZO (Até 26/05)
+    # 3. LÓGICA DE CALENDÁRIO (Até 26/05)
+    # No seu print, restam 8 dias úteis (considerando a data de 14/05)
     hoje = pd.to_datetime(data_selecionada)
     data_limite = pd.Timestamp(hoje.year, 5, 26)
     
-    # Identifica dias úteis restantes (Seg-Sex, removendo feriados)
     if hoje < data_limite:
-        datas_restantes = pd.date_range(hoje + pd.Timedelta(days=1), data_limite)
-        dias_uteis_reais = [d for d in datas_restantes if d.weekday() < 5 and d.date() not in lista_feriados]
-        qtd_dias_rest = len(dias_uteis_reais)
+        # Puxa os dias úteis usando a lógica de feriados que você já tem no código
+        datas_janela = pd.date_range(hoje + pd.Timedelta(days=1), data_limite)
+        dias_uteis_is = [d for d in datas_janela if d.weekday() < 5 and d.date() not in lista_feriados]
+        qtd_dias_is = len(dias_uteis_is)
     else:
-        qtd_dias_rest = 0
+        qtd_dias_is = 0
 
-    # 3. VALIDAÇÃO E EXIBIÇÃO
-    if qtd_dias_rest > 0 and gap_total_is > 0:
-        ritmo_necessario = gap_total_is / qtd_dias_rest
+    if qtd_dias_is > 0 and gap_total_is > 0:
+        ritmo_dia_is = gap_total_is / qtd_dias_is
         
-        # Ticket Médio Geral do Time para projetar pedidos
-        total_peds = dados_performance["Fat_Ped"].sum() + dados_performance["Dig_Ped"].sum()
-        tm_geral = total_geral_is / total_peds if total_peds > 0 else 2298.84 # TM de referência do seu print
+        # Ticket Médio base do seu print: R$ 2.298,84
+        total_peds = base_vendas["Fat_Ped"].sum() + base_vendas["Dig_Ped"].sum()
+        tm_base = realizado_is / total_peds if total_peds > 0 else 2298.84
         
-        # --- CABEÇALHO ---
-        st.markdown(f"### 🗓️ Cronograma de Fechamento Maio (Faturamento até 26/05)")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric("🚩 GAP TOTAL (RESTRANTE)", fmt_br(gap_total_is))
-        with c2:
-            st.metric("⏳ JANELA DE FATURAMENTO", f"{qtd_dias_rest} dias úteis")
-        with c3:
-            peds_dia = int(ritmo_necessario / tm_geral)
-            st.metric("🚀 RITMO POR DIA", fmt_br(ritmo_necessario), f"~{peds_dia} ped./dia")
-
-        # --- TABELA DE PLANEJAMENTO ---
-        df_semanas = pd.DataFrame({'Data': dias_uteis_reais})
+        # --- EXIBIÇÃO DO CRONOGRAMA ---
+        st.markdown("### 🗓️ Planejamento de Metas por Semana - Visão Geral")
+        
+        # Tabela agrupada por semana
+        df_semanas = pd.DataFrame({'Data': dias_uteis_is})
         df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
-        grupos = df_semanas.groupby('Semana')
-
-        html_cron = """
-        <style>
-            .tab-final { width: 100%; border-collapse: collapse; font-family: sans-serif; margin-top: 15px; }
-            .tab-final th { background-color: #002D62; color: white; padding: 12px; font-size: 13px; }
-            .tab-final td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
-            .meta-destaque { color: #D32F2F; font-weight: bold; }
-            .badge-peds { background-color: #E3F2FD; color: #1565C0; padding: 3px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; }
-        </style>
-        <table class='tab-final'>
-            <thead>
-                <tr>
-                    <th>📅 Período</th>
-                    <th>⏳ Dias</th>
-                    <th>💰 Meta Faturamento</th>
-                    <th>📦 Pedidos (Est.)</th>
-                    <th>🚀 Ações Estratégicas</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
-
-        acoes = ["<b>CRM & URGÊNCIA:</b> Gatilho de aumento de preços.", "<b>REATIVAÇÃO:</b> Base inativa Q1.", "<b>FORÇA TAREFA:</b> Crédito e Digitados."]
-
-        for i, (nome, dias) in enumerate(grupos):
-            ini, fim = dias['Data'].min().strftime('%d/%m'), dias['Data'].max().strftime('%d/%m')
-            qtd = len(dias)
-            v_meta = ritmo_necessario * qtd
-            v_peds = int(v_meta / tm_geral)
-            acao_txt = acoes[i] if i < len(acoes) else "Faturamento final."
-
-            html_cron += f"""
-                <tr>
-                    <td><b>{ini} a {fim}</b></td>
-                    <td>{qtd} d.ú.</td>
-                    <td class='meta-destaque'>{fmt_br(v_meta)}</td>
-                    <td><span class='badge-peds'>{v_peds} peds.</span></td>
-                    <td style='text-align: left; font-size: 12px;'>{acao_txt}</td>
-                </tr>
+        
+        html_corpo = ""
+        for i, (num_sem, dados_sem) in enumerate(df_semanas.groupby('Semana')):
+            ini, fim = dados_sem['Data'].min().strftime('%d/%m'), dados_sem['Data'].max().strftime('%d/%m')
+            dias_sem = len(dados_sem)
+            meta_sem = ritmo_dia_is * dias_sem
+            peds_sem = int(meta_sem / tm_base)
+            
+            html_corpo += f"""
+            <tr>
+                <td style='padding:15px;'><b>Semana de {ini} a {fim}</b></td>
+                <td>{dias_sem} dias</td>
+                <td style='color:#D32F2F; font-weight:bold;'>{fmt_br(meta_sem)}</td>
+                <td><b>{peds_sem} pedidos</b><br><small style='color:#666;'>Baseado no TM de {fmt_br(tm_base)}</small></td>
+            </tr>
             """
 
-        html_cron += f"""
-                <tr style='background-color: #002D62; color: white; font-weight: bold;'>
-                    <td colspan='2'>TOTAL RESTANTE</td>
-                    <td>{fmt_br(gap_total_is)}</td>
-                    <td>{int(gap_total_is / tm_geral)}</td>
-                    <td style='text-align: left;'>🎯 Meta: 100% Papapá</td>
-                </tr>
-            </tbody>
-        </table>
-        """
-        st.markdown(html_cron, unsafe_allow_html=True)
+        st.markdown(f"""
+            <table style='width:100%; border-collapse: collapse; font-family:sans-serif; box-shadow: 0 4px 8px rgba(0,0,0,0.1);'>
+                <thead style='background-color:#002D62; color:white;'>
+                    <tr>
+                        <th style='padding:12px;'>Período da Semana</th>
+                        <th>Dias Úteis</th>
+                        <th>Meta de Faturamento</th>
+                        <th>Expectativa de Pedidos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {html_corpo}
+                    <tr style='background-color:#f8f9fa; font-weight:bold; border-top:2px solid #002D62;'>
+                        <td colspan='2' style='padding:15px; text-align:right;'>SALDO TOTAL RESTANTE</td>
+                        <td style='color:#D32F2F; font-size:18px;'>{fmt_br(gap_total_is)}</td>
+                        <td>{int(gap_total_is/tm_base)} pedidos</td>
+                    </tr>
+                </tbody>
+            </table>
+        """, unsafe_allow_html=True)
+        
+        st.caption("ℹ️ Planejamento recalcula automaticamente conforme o faturamento entra e os dias úteis diminuem.")
 
-    elif gap_total_is <= 0:
-        st.success("✅ Meta atingida no consolidado!")
     else:
-        st.error("🚨 Prazo de faturamento (26/05) encerrado.")
+        st.warning("📅 Prazo de faturamento encerrado ou meta já atingida!")
 else:
-    st.warning("⚠️ Planilha 'dados_performance' não encontrada ou vazia.")
+    st.error("❌ Erro de Fonte de Dados: Não conseguimos encontrar a variável com os dados de performance. Verifique o nome do seu DataFrame.")
         
 # =========================
 # ARQUIVO BASE
