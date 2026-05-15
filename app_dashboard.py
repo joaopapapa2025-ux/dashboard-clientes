@@ -414,75 +414,71 @@ if df_vendedores_hist is not None:
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
 
 # ==========================================
-# 📅 CRONOGRAMA DE FECHAMENTO (CORRIGIDO)
+# 📅 CRONOGRAMA DE FECHAMENTO (VERSÃO ESTILIZADA)
 # ==========================================
 st.markdown("---")
+st.subheader("🗓️ Planejamento de Metas por Semana - Visão Geral")
 
-# 1. PEGA OS DADOS DIRETAMENTE DAS VARIÁVEIS GLOBAIS DO SEU BLOCO 1
-# Isso garante que o Gap de R$ 399.046 e o desconto de devoluções apareçam aqui também.
 try:
+    # 1. VALIDAÇÃO DOS DADOS (Usando suas variáveis globais calculadas no início)
     gap_total_is = falta_r_cifra 
     ritmo_dia_is = ritmo_final
     qtd_dias_is = dias_uteis_restantes
-    tm_base = total_geral / (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()) if not dados_v_dia.empty else 2298.84
+    
+    # Cálculo do TM baseado no realizado total do dia selecionado
+    total_peds_base = (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()) if not dados_v_dia.empty else 1
+    tm_base = total_geral / total_peds_base if total_peds_base > 0 else 2217.21
 
     if qtd_dias_is > 0 and gap_total_is > 0:
-        # --- EXIBIÇÃO DO CRONOGRAMA ---
-        st.markdown("### 🗓️ Planejamento de Metas por Semana - Visão Geral")
-        
-        # Filtra os dias úteis a partir de hoje até o dia 26/05 que você calculou na lógica de calendário
+        # 2. LÓGICA DE SEMANAS
         datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
         df_semanas = pd.DataFrame({'Data': datas_janela})
         df_semanas['Data'] = pd.to_datetime(df_semanas['Data'])
         df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
         
-        html_corpo = ""
+        # 3. CABEÇALHO COM ESTILO (CORRIGINDO OS TÍTULOS FEIOS)
+        st.markdown("""
+            <div style="display: flex; background-color: #002D62; color: white; padding: 12px; font-weight: bold; border-radius: 5px 5px 0 0;">
+                <div style="flex: 2;">Período da Semana</div>
+                <div style="flex: 1; text-align: center;">Dias Úteis</div>
+                <div style="flex: 1.5; text-align: center;">Meta Faturamento</div>
+                <div style="flex: 1.5; text-align: center;">Pedidos (Est.)</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # 4. CORPO DA TABELA
         for num_sem, dados_sem in df_semanas.groupby('Semana'):
             ini = dados_sem['Data'].min().strftime('%d/%m')
             fim = dados_sem['Data'].max().strftime('%d/%m')
             dias_sem = len(dados_sem)
             meta_sem = ritmo_dia_is * dias_sem
-            peds_sem = int(meta_sem / tm_base) if tm_base > 0 else 0
+            peds_sem = int(meta_sem / tm_base)
             
-            html_corpo += f"""
-            <tr>
-                <td style='padding:12px;'><b>Semana de {ini} a {fim}</b></td>
-                <td style='text-align:center;'>{dias_sem} d.ú.</td>
-                <td style='color:#D32F2F; font-weight:bold; text-align:center;'>{fmt_br(meta_sem)}</td>
-                <td style='text-align:center;'><b>{peds_sem} pedidos</b><br><small style='color:#666;'>Projeção p/ período</small></td>
-            </tr>
-            """
+            st.markdown(f"""
+                <div style="display: flex; padding: 12px; border-bottom: 1px solid #eee; align-items: center; background-color: white;">
+                    <div style="flex: 2;"><b>Semana de {ini} a {fim}</b></div>
+                    <div style="flex: 1; text-align: center;">{dias_sem} d.ú.</div>
+                    <div style="flex: 1.5; text-align: center; color: #D32F2F; font-weight: bold;">{fmt_br(meta_sem)}</div>
+                    <div style="flex: 1.5; text-align: center;"><b>{peds_sem} ped.</b><br><small style="color: #666;">Ref. TM {fmt_br(tm_base)}</small></div>
+                </div>
+            """, unsafe_allow_html=True)
 
+        # 5. RODAPÉ DE TOTAIS
         st.markdown(f"""
-            <table style='width:100%; border-collapse: collapse; font-family:sans-serif; border: 1px solid #ddd;'>
-                <thead style='background-color:#002D62; color:white;'>
-                    <tr>
-                        <th style='padding:12px; text-align:left;'>Período da Semana</th>
-                        <th>Dias Úteis</th>
-                        <th>Meta de Faturamento</th>
-                        <th>Expectativa de Pedidos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {html_corpo}
-                    <tr style='background-color:#f8f9fa; font-weight:bold; border-top:2px solid #002D62;'>
-                        <td colspan='2' style='padding:15px; text-align:right;'>SALDO TOTAL RESTANTE (GAP)</td>
-                        <td style='color:#D32F2F; font-size:18px; text-align:center;'>{fmt_br(gap_total_is)}</td>
-                        <td style='text-align:center;'>{int(gap_total_is/tm_base) if tm_base > 0 else 0} pedidos</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div style="display: flex; background-color: #f8f9fa; padding: 15px; border: 2px solid #002D62; border-top: none; border-radius: 0 0 5px 5px; font-weight: bold;">
+                <div style="flex: 3; text-align: right; padding-right: 20px;">SALDO TOTAL RESTANTE (GAP):</div>
+                <div style="flex: 1.5; text-align: center; color: #D32F2F; font-size: 18px;">{fmt_br(gap_total_is)}</div>
+                <div style="flex: 1.5; text-align: center; font-size: 18px;">{int(gap_total_is/tm_base)} pedidos</div>
+            </div>
         """, unsafe_allow_html=True)
         
-        st.info(f"💡 Planejamento baseado no faturamento líquido. Ticket Médio base: **{fmt_br(tm_base)}**")
+        st.caption(f"💡 Inteligência de Vendas: Planejamento baseado no faturamento líquido. Prazo limite: 26/05.")
 
-    elif gap_total_is <= 0:
-        st.success("✅ Meta atingida! Foco total em faturar o máximo de superavit possível.")
     else:
-        st.warning("📅 Prazo de faturamento estratégico encerrado ou dados não disponíveis para o período.")
+        st.success("🏆 **Meta atingida!** O cronograma de esforço foi concluído com sucesso.")
 
 except Exception as e:
-    st.error(f"Erro ao gerar cronograma: {e}")
+    st.error(f"Erro ao processar cronograma: {e}. Certifique-se de que os dados de 'Resultado' foram carregados.")
         
 # =========================
 # ARQUIVO BASE
