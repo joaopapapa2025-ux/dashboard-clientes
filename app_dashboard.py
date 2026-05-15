@@ -412,6 +412,56 @@ if df_vendedores_hist is not None:
     else:
         # MENSAGEM CASO A PLANILHA NÃO ESTEJA ATUALIZADA
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
+
+# ==========================================
+# 📅 PLANEJAMENTO SEMANAL PARA META (NOVO)
+# ==========================================
+st.divider()
+st.subheader("🎯 Planejamento Semanal de Recuperação")
+st.write("Esforço necessário por semana para atingir 100% da meta individual.")
+
+if not dados_v_dia.empty and dias_uteis_restantes > 0:
+    # 1. Identificar semanas restantes e dias úteis nelas
+    # Criamos um range de datas de amanhã até o fim do mês
+    amanha = data_selecionada + pd.Timedelta(days=1)
+    ultimo_dia_mes = (data_selecionada.replace(day=1) + pd.Timedelta(days=32)).replace(day=1) - pd.Timedelta(days=1)
+    
+    if amanha <= ultimo_dia_mes:
+        datas_restantes = pd.date_range(amanha, ultimo_dia_mes)
+        # Filtramos apenas dias úteis (Segunda a Sexta = 0 a 4)
+        dias_reais = [d for d in datas_restantes if d.weekday() < 5]
+        
+        if dias_reais:
+            df_semanas = pd.DataFrame({'Data': dias_reais})
+            df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
+            contagem_dias_semana = df_semanas.groupby('Semana').size().to_dict()
+            
+            plan_data = []
+            for v in v_lista:
+                falta_total = max(0, v["Meta"] - v["total"])
+                if falta_total > 0:
+                    ritmo_diario = falta_total / dias_uteis_restantes
+                    
+                    v_plan = {"Vendedor": v["Vendedor"]}
+                    for sem, qtd_dias in contagem_dias_semana.items():
+                        valor_sem = ritmo_diario * qtd_dias
+                        peds_sem = valor_sem / v["tm"] if v["tm"] > 0 else 0
+                        v_plan[f"Semana {sem}"] = f"{fmt_br(valor_sem)} ({int(peds_sem)} ped.)"
+                    
+                    v_plan["Total a Faturar"] = fmt_br(falta_total)
+                    plan_data.append(v_plan)
+            
+            if plan_data:
+                df_final_plan = pd.DataFrame(plan_data)
+                st.table(df_final_plan.set_index("Vendedor"))
+            else:
+                st.success("✅ Todos os vendedores já bateram a meta!")
+        else:
+            st.info("📅 Não restam mais dias úteis este mês para planejamento.")
+    else:
+        st.info("📅 Fim do mês atingido.")
+else:
+    st.warning("⚠️ Não é possível calcular o planejamento sem dias úteis restantes.")
         
 # =========================
 # ARQUIVO BASE
