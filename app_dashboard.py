@@ -468,7 +468,7 @@ try:
         # Se for a próxima semana (após o dia 15)
         elif ini_dt.day > 15 and ini_dt.day <= 22:
             acao_titulo = "🔥 GATILHO DE ANTECIPAÇÃO"
-            acao_desc = "Foco total: Aumento de preços em Junho."
+            acao_desc = "Foco total: Aumento de preços em junho."
             cor_acao = "#E65100" 
         # Sprint Final para os últimos dias do mês
         else:
