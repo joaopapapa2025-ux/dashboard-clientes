@@ -343,8 +343,10 @@ if df_vendedores_hist is not None and not df_vendedores_hist.empty:
         financeiro_total = dados_v_dia_ciclo["Faturado_Acumulado"].sum() + dados_v_dia_ciclo["Digitado_Acumulado"].sum()
         
         # 3. Cálculo do Ticket Médio do Time
-        if total_peds_inter = total_peds_geral:
-            tm_time_geral = financeiro_total / total_peds_inter if total_peds_inter > 0 else 0.0
+        if total_peds_geral > 0:
+            tm_time_geral = financeiro_total / total_peds_geral
+        else:
+            tm_time_geral = 0.0
 
 # Funções de formatação locais rápidas e seguras
 def fmt_tm(val):
