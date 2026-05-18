@@ -596,6 +596,7 @@ COL_ULT_COMP = "ÚLTIMA COMPRA"
 COL_TABELA   = "TABELA"
 COL_SEGMENTO = "SEGMENTO"
 COL_T_U_9_M  = "TOTAL ÚLTIMO 9 MESES"
+COL_CODIGO = "CÓDIGO"
 
 # Meses para o Sistema de Farol
 COL_MES_ATUAL = "FEV/26" 
@@ -918,7 +919,8 @@ def gerar_pdf_cliente(cliente, vendas_cliente):
 
 # --- TRATAMENTO DE DADOS ---
 COL_DATA_ULTIMA_COMPRA = "ÚLTIMA COMPRA"
-COL_GRUPO = "GRUPO ECONÔMICO" 
+COL_GRUPO = "GRUPO ECONÔMICO"
+COL_CODIGO = "CÓDIGO"
 
 if COL_TELEFONE in df.columns:
     df["TEL_LIMPO"] = df[COL_TELEFONE].astype(str).str.replace(r'\D', '', regex=True)
@@ -962,6 +964,14 @@ df_filtrado = df.copy()
 # ==========================================
 # 1. BUSCAS POR TEXTO (TOPO)
 # ==========================================
+
+# --- NOVO FILTRO: CÓDIGO DO CLIENTE (POSICIONADO NO TOPO) ---
+if COL_CODIGO in df_filtrado.columns:
+    b_codigo = st.sidebar.text_input("Buscar por Código do Cliente", key="b_codigo")
+    if b_codigo:
+        # Converte a coluna e a busca para string para evitar problemas de tipos numéricos
+        df_filtrado = df_filtrado[df_filtrado[COL_CODIGO].astype(str).str.contains(str(b_codigo), case=False, na=False)]
+        
 b_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="b_cnpj")
 if b_cnpj:
     cnpj_l = "".join(filter(str.isdigit, b_cnpj)) 
