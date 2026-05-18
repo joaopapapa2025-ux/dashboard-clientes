@@ -965,12 +965,25 @@ df_filtrado = df.copy()
 # 1. BUSCAS POR TEXTO (TOPO)
 # ==========================================
 
-# --- NOVO FILTRO: CÓDIGO DO CLIENTE (POSICIONADO NO TOPO) ---
+# PLACEHOLDERS DINÂMICOS (Garante a ordem visual correta na Sidebar)
+placeholder_codigo = st.sidebar.empty()
+placeholder_razao = st.sidebar.empty()
+
+# --- NOVO FILTRO: CÓDIGO DO CLIENTE (LISTA SUSPENSA DINÂMICA) ---
 if COL_CODIGO in df_filtrado.columns:
-    b_codigo = st.sidebar.text_input("Buscar por Código do Cliente", key="b_codigo")
-    if b_codigo:
-        # Converte a coluna e a busca para string para evitar problemas de tipos numéricos
-        df_filtrado = df_filtrado[df_filtrado[COL_CODIGO].astype(str).str.contains(str(b_codigo), case=False, na=False)]
+    # Cria a lista de códigos únicos baseada nos dados filtrados atuais, ordenando-os
+    # Convertemos para string para garantir a exibição limpa no componente
+    lista_codigos = sorted(df_filtrado[COL_CODIGO].dropna().astype(str).unique().tolist())
+    
+    codigo_sel = placeholder_codigo.multiselect(
+        "Filtrar Código do Cliente",
+        options=lista_codigos,
+        key="b_codigo"
+    )
+    
+    # Se houver códigos selecionados, filtra a base usando .isin()
+    if codigo_sel:
+        df_filtrado = df_filtrado[df_filtrado[COL_CODIGO].astype(str).isin(codigo_sel)]
         
 b_cnpj = st.sidebar.text_input("Buscar por CNPJ", key="b_cnpj")
 if b_cnpj:
