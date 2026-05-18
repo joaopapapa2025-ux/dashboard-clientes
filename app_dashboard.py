@@ -316,6 +316,29 @@ valor_esperado_reais = (percentual_esperado / 100) * meta_maio
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 dev_txt = f"-R$ {valor_devolucoes:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
+# ==========================================
+# 📊 CÁLCULO DOS INDICADORES DE PEDIDOS E TM
+# ==========================================
+if 'dados_v_dia' in locals() and not dados_v_dia.empty:
+    total_ped_fat = int(dados_v_dia["Fat_Ped"].sum())
+    total_ped_dig = int(dados_v_dia["Dig_Ped"].sum())
+    total_peds_geral = total_ped_fat + total_ped_dig
+    
+    # Ticket Médio do Time (Total Geral dividido pelo total de pedidos)
+    tm_time_geral = total_geral / total_peds_geral if total_peds_geral > 0 else 0
+else:
+    # Valores de segurança caso o df ainda não tenha sido lido no topo do script
+    total_ped_fat = 0
+    total_ped_dig = 0
+    tm_time_geral = 0
+
+# Função simples para formatação rápida do TM dentro do bloco
+def fmt_tm(val):
+    return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# ==========================================
+# 🔍 ANÁLISE DE CICLO ATUALIZADA
+# ==========================================
 st.markdown(f"""
 > **Análise de ciclo:**
 > * Valor de devoluções: **{dev_txt}**
@@ -323,6 +346,8 @@ st.markdown(f"""
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com a data selecionada): **{dias_uteis_restantes}**.
 > * O atingimento ideal para hoje é de **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
+> * **Volume do Mês:** **{total_ped_fat}** peds faturados | **{total_ped_dig}** peds digitados.
+> * **Ticket Médio do Time:** **{fmt_tm(tm_time_geral)}** por pedido.
 > * **Forecast (previsão de fechamento):** :orange[**{forecast_txt}**] (baseado no ritmo atual).
 """)
 st.markdown("---")
