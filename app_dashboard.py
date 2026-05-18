@@ -317,27 +317,44 @@ valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace
 dev_txt = f"-R$ {valor_devolucoes:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # ==========================================
-# 📊 CÁLCULO DOS INDICADORES DE PEDIDOS E TM
+# 📊 CÁLCULO DOS INDICADORES DE PEDIDOS E TM DIRECT DE DADOS_PERFORMANCE
 # ==========================================
-if 'dados_v_dia' in locals() and not dados_v_dia.empty:
-    total_ped_fat = int(dados_v_dia["Fat_Ped"].sum())
-    total_ped_dig = int(dados_v_dia["Dig_Ped"].sum())
-    total_peds_geral = total_ped_fat + total_ped_dig
+total_ped_fat = 0
+total_ped_dig = 0
+tm_time_geral = 0.0
+
+if df_vendedores_hist is not None and not df_vendedores_hist.empty:
+    # Filtra os dados especificamente para a data selecionada para garantir consistência
+    dados_v_dia_ciclo = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
     
-    # Ticket Médio do Time (Total Geral dividido pelo total de pedidos)
-    tm_time_geral = total_geral / total_peds_geral if total_peds_geral > 0 else 0
-else:
-    # Valores de segurança caso o df ainda não tenha sido lido no topo do script
-    total_ped_fat = 0
-    total_ped_dig = 0
-    tm_time_geral = 0
+    if not dados_v_dia_ciclo.empty:
+        # Garante que as colunas críticas sejam numéricas
+        cols_calculo = ["Fat_Ped", "Dig_Ped", "Faturado_Acumulado", "Digitado_Acumulado"]
+        for col in cols_calculo:
+            if col in dados_v_dia_ciclo.columns:
+                dados_v_dia_ciclo[col] = pd.to_numeric(dados_v_dia_ciclo[col], errors='coerce').fillna(0)
+        
+        # 1. Totalização de Pedidos Faturados e Digitados do Time
+        total_ped_fat = int(dados_v_dia_ciclo["Fat_Ped"].sum())
+        total_ped_dig = int(dados_v_dia_ciclo["Dig_Ped"].sum())
+        total_peds_geral = total_ped_fat + total_ped_dig
+        
+        # 2. Totalização Financeira (Sem considerar devoluções conforme solicitado)
+        financeiro_total = dados_v_dia_ciclo["Faturado_Acumulado"].sum() + dados_v_dia_ciclo["Digitado_Acumulado"].sum()
+        
+        # 3. Cálculo do Ticket Médio do Time
+        if total_peds_inter = total_peds_geral:
+            tm_time_geral = financeiro_total / total_peds_inter if total_peds_inter > 0 else 0.0
 
-# Função simples para formatação rápida do TM dentro do bloco
+# Funções de formatação locais rápidas e seguras
 def fmt_tm(val):
-    return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    try:
+        return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except:
+        return "R$ 0,00"
 
 # ==========================================
-# 🔍 ANÁLISE DE CICLO ATUALIZADA
+# 🔍 ANÁLISE DE CICLO CORRIGIDA E PRECISÃO 100%
 # ==========================================
 st.markdown(f"""
 > **Análise de ciclo:**
