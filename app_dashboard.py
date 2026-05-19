@@ -524,11 +524,11 @@ try:
             acao_desc = "Recuperação e fechamento."
             cor_acao = "#C62828"
 
-        # GERAÇÃO DA LISTA SUSPENSA (COMPACTADA E RESPONSIVA)
+        # GERAÇÃO DA LISTA SUSPENSA COM SCRIPT REATIVO
         detalhe_vendedores_html = ""
         if vendedores_ativos:
             detalhe_vendedores_html += f"""
-            <details style="margin-top: 6px; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa;">
+            <details style="margin-top: 6px; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa;" ontoggle="updateCronogramaHeight()">
                 <summary style="font-size: 11px; color: #002D62; font-weight: bold; cursor: pointer; padding: 6px 10px; outline: none; user-select: none;">
                     📋 Ver Planejamento por Vendedor
                 </summary>
@@ -589,9 +589,9 @@ try:
             </div>
         """
 
-    # 4. MONTAGEM DO COMPONENTE FINAL (Sem travas de altura interna para permitir expansão)
+    # 4. MONTAGEM DO COMPONENTE FINAL COM AUTO-RESIZE JS
     full_html = f"""
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; background: white;">
+    <div id="cronograma-container" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; background: white; padding-bottom: 2px;">
         <div style="display: flex; background: #002D62; color: white; padding: 12px 15px; font-weight: bold; font-size: 11px; letter-spacing: 1px;">
             <div style="flex: 1.2;">PERÍODO</div>
             <div style="flex: 1.8;">AÇÃO ESTRATÉGICA</div>
@@ -609,10 +609,26 @@ try:
             <span style="background: #002D62; color: white; padding: 3px 10px; border-radius: 20px; font-size: 12px;">{int(gap_total/tm_time) if tm_time > 0 else 0} Pedidos</span>
         </div>
     </div>
+
+    <script>
+        function updateCronogramaHeight() {{
+            setTimeout(() => {{
+                var body = document.body;
+                var html = document.documentElement;
+                var height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+                window.parent.postMessage({{
+                    type: 'streamlit:setFrameHeight',
+                    height: height
+                }}, '*');
+            }}, 40);
+        }}
+        window.onload = updateCronogramaHeight;
+        window.addEventListener('resize', updateCronogramaHeight);
+    </script>
     """
 
-    # O truque está aqui: height limita o bloco fechado, e scrolling=True cria a barra na lateral do bloco se ele abrir e crescer
-    components.html(full_html, height=450, scrolling=True)
+    # scrolling=False e o script JS cuida de expandir/recuar o tamanho dinamicamente na tela
+    components.html(full_html, height=180, scrolling=False)
     
     # Agora o st.info ficará perfeitamente isolado abaixo, sem nenhuma chance de colisão
     st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
