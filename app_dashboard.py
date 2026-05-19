@@ -498,8 +498,11 @@ try:
     
     total_falta_time = sum(max(0, v["Meta"] - v["total"]) for v in vendedores_ativos) if vendedores_ativos else 0
 
-    # 4. ITERAÇÃO POR SEMANA (CONSTRUÇÃO EM BLOCOS NATIVOS)
-    for _, dados_sem in df_semanas.groupby('Semana'):
+    # [Ajuste] Descobre qual é a última semana ativa do planejamento corrente
+    ultima_semana_do_plano = df_semanas['Semana'].max() if not df_semanas.empty else 0
+
+    # CORPO DO CRONOGRAMA (Iteração por semanas usando Containers Nativos)
+    for semana, dados_sem in df_semanas.groupby('Semana'):
         ini_dt = dados_sem['Data'].min()
         fim_dt = dados_sem['Data'].max()
         ini = ini_dt.strftime('%d/%m')
@@ -510,25 +513,24 @@ try:
         peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
         media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
-        # Descobre qual é a última semana ativa do planejamento corrente
-        ultima_semana_do_plano = df_semanas['Semana'].max()
-
-            if _, dados_sem in df_semanas.groupby('Semana'):
-            # Se for a última semana da lista de datas, é SPRINT FINAL independente do dia
-            if semana == ultima_semana_do_plano:
-                acao_titulo = "🏁 SPRINT FINAL"
-                acao_desc = "Recuperação e fechamento imediato."
-                cor_bloco = "red"
-            # Se a semana englobar o meio do mês (ex: dia 15)
-            elif 15 in dados_sem['Data'].dt.day.values:
-                acao_titulo = "📈 SUSTENTAÇÃO"
-                acao_desc = "Ações de Upsell na base."
-                cor_bloco = "green"
-            # Qualquer outra semana intermediária anterior ao fechamento
-            else:
-                acao_titulo = "🔥 ANTECIPAÇÃO"
-                acao_desc = "Foco: Mudança de tabela."
-                cor_bloco = "orange"
+        # =================================================================
+        # 🎯 NOVA LÓGICA AUTOMÁTICA DE AÇÕES ESTRATÉGICAS (CORRIGIDA)
+        # =================================================================
+        # Se for a última semana da lista de datas, é SPRINT FINAL independente do dia
+        if semana == ultima_semana_do_plano:
+            acao_titulo = "🏁 SPRINT FINAL"
+            acao_desc = "Recuperação e fechamento imediato."
+            cor_bloco = "red"
+        # Se a semana englobar o meio do mês (ex: dia 15)
+        elif 15 in dados_sem['Data'].dt.day.values:
+            acao_titulo = "📈 SUSTENTAÇÃO"
+            acao_desc = "Ações de Upsell na base."
+            cor_bloco = "green"
+        # Qualquer outra semana intermediária anterior ao fechamento
+        else:
+            acao_titulo = "🔥 ANTECIPAÇÃO"
+            acao_desc = "Foco: Mudança de tabela."
+            cor_bloco = "orange"
 
         # Título da Semana de forma elegante
         st.subheader(f"🗓️ Período: {ini} a {fim} ({d_uteis} dias úteis)")
