@@ -524,21 +524,24 @@ try:
             acao_desc = "Recuperação e fechamento."
             cor_acao = "#C62828"
 
-        # Tabela de Vendedores aberta direto, mas compacta
+        # GERAÇÃO DA LISTA SUSPENSA (COMPACTADA E RESPONSIVA)
         detalhe_vendedores_html = ""
         if vendedores_ativos:
             detalhe_vendedores_html += f"""
-            <div style="margin-top: 6px; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa; padding: 6px 10px; box-sizing: border-box;">
-                <div style="font-size: 11px; color: #002D62; font-weight: bold; margin-bottom: 4px;">📋 Planejamento por Vendedor:</div>
-                <table style="width: 100%; border-collapse: collapse; text-align: left; line-height: 1.2; font-size: 11px;">
-                    <thead>
-                        <tr style="border-bottom: 1px solid #cbd5e1; color: #64748b; font-weight: bold;">
-                            <th style="padding: 2px 0;">Vendedor</th>
-                            <th style="padding: 2px 0; text-align: center;">Meta Período</th>
-                            <th style="padding: 2px 0; text-align: right;">Qtd Peds</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <details style="margin-top: 6px; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa;">
+                <summary style="font-size: 11px; color: #002D62; font-weight: bold; cursor: pointer; padding: 6px 10px; outline: none; user-select: none;">
+                    📋 Ver Planejamento por Vendedor
+                </summary>
+                <div style="padding: 6px 10px; border-top: 1px solid #e2e8f0; box-sizing: border-box;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; line-height: 1.2; font-size: 11px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #cbd5e1; color: #64748b; font-weight: bold;">
+                                <th style="padding: 2px 0;">Vendedor</th>
+                                <th style="padding: 2px 0; text-align: center;">Meta Período</th>
+                                <th style="padding: 2px 0; text-align: right;">Qtd Peds</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             """
             for v in vendedores_ativos:
                 falta_ind = max(0, v["Meta"] - v["total"])
@@ -548,16 +551,17 @@ try:
                 peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
                 
                 detalhe_vendedores_html += f"""
-                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 3px 0; font-weight: 600; color: #1e293b;">{v['Vendedor']}</td>
-                            <td style="padding: 3px 0; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_ind_semana)}</td>
-                            <td style="padding: 3px 0; text-align: right; color: #002D62; font-weight: bold;">{peds_ind_semana} peds</td>
-                        </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 3px 0; font-weight: 600; color: #1e293b;">{v['Vendedor']}</td>
+                                <td style="padding: 3px 0; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_ind_semana)}</td>
+                                <td style="padding: 3px 0; text-align: right; color: #002D62; font-weight: bold;">{peds_ind_semana} peds</td>
+                            </tr>
                 """
             detalhe_vendedores_html += """
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
             """
 
         rows_html += f"""
@@ -585,21 +589,21 @@ try:
             </div>
         """
 
-    # 4. MONTAGEM DO COMPONENTE FINAL (Adicionado max-height e overflow para isolar o layout)
+    # 4. MONTAGEM DO COMPONENTE FINAL (Sem travas de altura interna para permitir expansão)
     full_html = f"""
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; max-height: 480px; display: flex; flex-direction: column; background: white;">
-        <div style="display: flex; background: #002D62; color: white; padding: 12px 15px; font-weight: bold; font-size: 11px; letter-spacing: 1px; flex-shrink: 0;">
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; background: white;">
+        <div style="display: flex; background: #002D62; color: white; padding: 12px 15px; font-weight: bold; font-size: 11px; letter-spacing: 1px;">
             <div style="flex: 1.2;">PERÍODO</div>
             <div style="flex: 1.8;">AÇÃO ESTRATÉGICA</div>
             <div style="flex: 1.2; text-align: center;">VALOR PREVISTO</div>
             <div style="flex: 1.8; text-align: right;">META DE PEDIDOS</div>
         </div>
         
-        <div style="overflow-y: auto; flex-grow: 1; background: white;">
+        <div style="background: white;">
             {rows_html}
         </div>
         
-        <div style="background: #f8fafc; padding: 12px 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center; flex-shrink: 0;">
+        <div style="background: #f8fafc; padding: 12px 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center;">
             <span style="font-size: 12px; font-weight: 800; color: #1e293b;">TOTAL PARA BATER A META</span>
             <span style="font-size: 16px; font-weight: 900; color: #d32f2f;">{fmt_br(gap_total)}</span>
             <span style="background: #002D62; color: white; padding: 3px 10px; border-radius: 20px; font-size: 12px;">{int(gap_total/tm_time) if tm_time > 0 else 0} Pedidos</span>
@@ -607,8 +611,8 @@ try:
     </div>
     """
 
-    # Altura do iframe do Streamlit definida maior para garantir folga, mas controlada internamente pelo CSS acima
-    components.html(full_html, height=500, scrolling=False)
+    # O truque está aqui: height limita o bloco fechado, e scrolling=True cria a barra na lateral do bloco se ele abrir e crescer
+    components.html(full_html, height=450, scrolling=True)
     
     # Agora o st.info ficará perfeitamente isolado abaixo, sem nenhuma chance de colisão
     st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
