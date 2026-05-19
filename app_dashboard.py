@@ -381,7 +381,7 @@ if df_vendedores_hist is not None:
     # Filtra os dados do dia
     dados_v_dia = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
 
-# --- NOVO AVISO DE ATUALIZAÇÃO ---
+    # --- NOVO AVISO DE ATUALIZAÇÃO ---
     # Verifica se a soma do faturamento de todos os vendedores é zero
     faturamento_total_dia = dados_v_dia["Faturado_Acumulado"].sum() if not dados_v_dia.empty else 0
     
@@ -413,7 +413,6 @@ if df_vendedores_hist is not None:
             
             # Ritmo Diário Necessário
             falta_v = max(0, v["Meta"] - total)
-            # Se não houver dias restantes, o ritmo é o que falta
             dados_v_dia.at[idx, "ritmo"] = falta_v / dias_uteis_restantes if dias_uteis_restantes > 0 else falta_v
 
             # Projeção (Forecast) Individual
@@ -431,8 +430,17 @@ if df_vendedores_hist is not None:
             except:
                 return "R$ 0,00"
 
-        # --- MONTAGEM DA TABELA HTML ---
-        style = """<style>.tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; } .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; } .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; } .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; } .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; } .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; } .col-vendedor { width: 250px !important; text-align: left !important; white-space: nowrap !important; }</style>"""
+        # --- MONTAGEM DA TABELA HTML COM REDIMENSIONAMENTO AUTOMÁTICO ---
+        style = """<style>
+            body { margin: 0; padding: 0; background-color: transparent; }
+            .tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; } 
+            .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; } 
+            .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; } 
+            .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; } 
+            .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; } 
+            .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; } 
+            .col-vendedor { width: 250px !important; text-align: left !important; white-space: nowrap !important; }
+        </style>"""
         
         html_v = style + """<table class='tab-performance'><thead><tr><th>Pos.</th><th class='col-vendedor'>Vendedor</th><th>Meta</th><th>Faturado</th><th>Digitado</th><th>Total (TM)</th><th>Atingimento</th><th>Ideal Hoje (R$)</th><th>Ritmo Diário Nec.</th></tr></thead><tbody>"""
         
@@ -444,12 +452,35 @@ if df_vendedores_hist is not None:
             fat_ped = int(v.get('Fat_Ped', 0))
             dig_ped = int(v.get('Dig_Ped', 0))
 
-            # Linha corrigida com Forecast em negrito (bold)
             linha = f"<tr><td>{i+1}º</td><td class='col-vendedor'><b>{v['Vendedor']}</b></td><td>{fmt_br(v['Meta'])}</td><td style='color: #2E7D32;'>{fmt_br(v['Faturado_Acumulado'])}<span class='val-sub'>{fat_ped} ped.</span></td><td style='color: #1565C0;'>{fmt_br(v['Digitado_Acumulado'])}<span class='val-sub'>{dig_ped} ped.</span></td><td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td><td><div class='prog-bg'><div class='prog-bar' style='width: {min(v['ating'], 100)}%'></div></div> <span style='color: {cor_a}; font-weight: bold;'>{v['ating']:.1f}%</span><span class='val-sub' style='color: {cor_f}; font-weight: bold;'>Forecast: {fmt_br(v.get('forecast_ind', 0))}</span></td><td><b>{fmt_br(v['val_id'])}</b><span class='val-sub' style='color: {cor_d}; font-weight: bold;'>{ 'Acima' if v['diff'] >= 0 else 'Gap'}: {fmt_br(abs(v['diff']))}</span></td><td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo'])}</span><span class='val-sub'>p/ dia</span></td></tr>"
             html_v += linha
         
         html_v += "</tbody></table>"
-        st.markdown(html_v, unsafe_allow_html=True)
+
+        # Injeção do Script Auto-Resize para o Streamlit ajustar a altura na tela perfeitamente
+        full_html = f"""
+        <div id="performance-container">
+            {html_v}
+        </div>
+        <script>
+            function sendHeight() {{
+                setTimeout(() => {{
+                    var body = document.body;
+                    var html = document.documentElement;
+                    var height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+                    window.parent.postMessage({{
+                        type: 'streamlit:setFrameHeight',
+                        height: height
+                    }}, '*');
+                }}, 50);
+            }}
+            window.onload = sendHeight;
+            window.addEventListener('resize', sendHeight);
+        </script>
+        """
+        
+        # Renderiza usando components de forma segura e autoajustável
+        components.html(full_html, height=200, scrolling=False)
         
         if len(v_lista) > 0 and v_lista[0]["ating"] > 0:
             st.success(f"🚀 **Destaque do Mês:** Atualmente **{v_lista[0]['Vendedor']}** lidera o ranking com **{v_lista[0]['ating']:.1f}%** da meta! 🔥")
@@ -458,7 +489,6 @@ if df_vendedores_hist is not None:
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
 
 import streamlit.components.v1 as components
-
 # ==========================================
 # 🚀 CRONOGRAMA PRO: DESIGN ELITE & ESTRATÉGICO
 # ==========================================
