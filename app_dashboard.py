@@ -545,7 +545,7 @@ try:
             st.markdown(f"**Valor Previsto:**\n:red[**{fmt_br(meta_semana)}**]")
             
         with col_peds:
-            st.markdown(f"**Meta de Pedidos:**\n🏆 **{peds_semana} peds** total | 🎯 Ind: **{media_p_vendedor} peds**")
+            st.markdown(f"**Meta de Pedidos:**\n🏆 **{peds_semana} pedidos total | 🎯 Ind: **{media_p_vendedor} pedidos**")
 
         # Expander Seguro e Compacto para o Detalhamento por Vendedor
         if vendedores_ativos:
