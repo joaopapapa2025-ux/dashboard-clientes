@@ -510,20 +510,25 @@ try:
         peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
         media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
-        ultimo_dia_mes = fim_dt.days_in_month
-        
-        if fim_dt.day <= 15:
-            acao_titulo = "📈 SUSTENTAÇÃO"
-            acao_desc = "Ações de Upsell na base."
-            cor_bloco = "green"
-        elif fim_dt.day > 15 and fim_dt.day <= (ultimo_dia_mes - 5):
-            acao_titulo = "🔥 ANTECIPAÇÃO"
-            acao_desc = "Foco: Mudança de tabela."
-            cor_bloco = "orange"
-        else:
-            acao_titulo = "🏁 SPRINT FINAL"
-            acao_desc = "Recuperação e fechamento."
-            cor_bloco = "red"
+        # Descobre qual é a última semana ativa do planejamento corrente
+        ultima_semana_do_plano = df_semanas['Semana'].max()
+
+        if _, dados_sem in df_semanas.groupby('Semana'):
+            # Se for a última semana da lista de datas, é SPRINT FINAL independente do dia
+            if semana == ultima_semana_do_plano:
+                acao_titulo = "🏁 SPRINT FINAL"
+                acao_desc = "Recuperação e fechamento imediato."
+                cor_bloco = "red"
+            # Se a semana englobar o meio do mês (ex: dia 15)
+            elif 15 in dados_sem['Data'].dt.day.values:
+                acao_titulo = "📈 SUSTENTAÇÃO"
+                acao_desc = "Ações de Upsell na base."
+                cor_bloco = "green"
+            # Qualquer outra semana intermediária anterior ao fechamento
+            else:
+                acao_titulo = "🔥 ANTECIPAÇÃO"
+                acao_desc = "Foco: Mudança de tabela."
+                cor_bloco = "orange"
 
         # Título da Semana de forma elegante
         st.subheader(f"🗓️ Período: {ini} a {fim} ({d_uteis} dias úteis)")
