@@ -572,7 +572,7 @@ try:
                     <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f1f5f9; align-items: center;">
                         <div style="flex: 2; text-align: left; font-weight: 600; color: #1e293b;">👤 {v['Vendedor']}</div>
                         <div style="flex: 1; text-align: center; font-weight: bold; color: #d32f2f;">{fmt_br(meta_ind_semana)}</div>
-                        <div style="flex: 1; text-align: right; font-weight: bold; color: #002D62;">{peds_ind_semana} peds</div>
+                        <div style="flex: 1; text-align: right; font-weight: bold; color: #002D62;">{peds_ind_semana} pedidos</div>
                     </div>
                     """, unsafe_allow_html=True)
         
