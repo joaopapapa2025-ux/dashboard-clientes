@@ -469,7 +469,7 @@ try:
     # 1. VARIÁVEIS BASE
     gap_total = falta_r_cifra
     dias_restantes = dias_uteis_restantes
-    qtd_vendedores = 5 # Baseado no seu ranking individual
+    qtd_vendedores = 5  # Baseado no seu ranking individual
     
     # Cálculo do Ticket Médio Real do Time
     total_peds_mes = (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum())
@@ -482,35 +482,31 @@ try:
     
     esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
     peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
-    c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"{int(peds_dia_time)} peds/dia")
+    c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"{int(peds_dia_time)} pedidos/dia")
 
-    # 3. LÓGICA DE DATAS E AÇÕES COM DETALHAMENTO DE VENDEDOR
+    # 3. LÓGICA DE DATAS E SELEÇÃO DE SEMANAS
     datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
     df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
     df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
     
-    # Mapeia vendedores ativos e calcula pesos com base no que falta para a meta individual
+    # Mapeia vendedores ativos e pesos
     vendedores_ativos = []
     if 'dados_v_dia' in locals() and not dados_v_dia.empty:
         vendedores_ativos = dados_v_dia[dados_v_dia['Meta'] > 0].to_dict('records')
     
     total_falta_time = sum(max(0, v["Meta"] - v["total"]) for v in vendedores_ativos) if vendedores_ativos else 0
 
-    # Inicializa o HTML da Tabela Geral Unificada
-    html_cronograma = """
-    <div style="font-family: 'Segoe UI', sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; background: white;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
-            <thead>
-                <tr style="background: #002D62; color: white; font-weight: bold; font-size: 11px; letter-spacing: 1px;">
-                    <th style="padding: 12px 15px; width: 20%;">PERÍODO</th>
-                    <th style="padding: 12px 15px; width: 35%;">AÇÃO ESTRATÉGICA</th>
-                    <th style="padding: 12px 15px; width: 20%; text-align: center;">VALOR PREVISTO</th>
-                    <th style="padding: 12px 15px; width: 25%; text-align: right;">META DE PEDIDOS</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
+    # CABEÇALHO DA TABELA ESTRUTURAL
+    st.markdown("""
+    <div style="font-family: 'Segoe UI', sans-serif; display: flex; background: #002D62; color: white; padding: 12px 15px; font-weight: bold; font-size: 11px; letter-spacing: 1px; border-radius: 8px 8px 0 0; text-transform: uppercase;">
+        <div style="flex: 1.2;">PERÍODO</div>
+        <div style="flex: 1.8;">AÇÃO ESTRATÉGICA</div>
+        <div style="flex: 1.2; text-align: center;">VALOR PREVISTO</div>
+        <div style="flex: 1.8; text-align: right;">META DE PEDIDOS</div>
+    </div>
+    """, unsafe_allow_html=True)
 
+    # CORPO DO CRONOGRAMA (Iteração por semanas usando Containers Nativos)
     for _, dados_sem in df_semanas.groupby('Semana'):
         ini_dt = dados_sem['Data'].min()
         fim_dt = dados_sem['Data'].max()
@@ -518,12 +514,10 @@ try:
         fim = fim_dt.strftime('%d/%m')
         d_uteis = len(dados_sem)
         
-        # Meta e Pedidos Gerais da Semana
         meta_semana = (gap_total / dias_restantes) * d_uteis if dias_restantes > 0 else 0
         peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
         media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
-        # ESTRATÉGIA PERSONALIZADA
         if 15 in dados_sem['Data'].dt.day.values:
             acao_titulo = "📈 SUSTENTAÇÃO"
             acao_desc = "Ações de Upsell na base."
@@ -537,85 +531,72 @@ try:
             acao_desc = "Recuperação e fechamento."
             cor_acao = "#C62828"
 
-        # Linha do Período Geral
-        html_cronograma += f"""
-        <tr style="background: #fdfdfd; border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 15px; vertical-align: middle;">
-                <span style="font-weight: 800; color: #1e293b; font-size: 14px;">{ini} a {fim}</span><br>
+        # Renderiza a linha mestra da semana
+        st.markdown(f"""
+        <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; align-items: center; padding: 12px 15px; background: #ffffff; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #f0f2f5; line-height: 1.4;">
+            <div style="flex: 1.2;">
+                <span style="font-size: 13px; font-weight: 800; color: #1e293b;">{ini} a {fim}</span><br>
                 <span style="font-size: 11px; color: #64748b;">{d_uteis} dias úteis</span>
-            </td>
-            <td style="padding: 15px; vertical-align: middle;">
-                <span style="font-weight: bold; color: {cor_acao}; font-size: 13px;">{acao_titulo}</span><br>
+            </div>
+            <div style="flex: 1.8;">
+                <span style="font-size: 12px; font-weight: bold; color: {cor_acao};">{acao_titulo}</span><br>
                 <span style="font-size: 11px; color: #475569;">{acao_desc}</span>
-            </td>
-            <td style="padding: 15px; text-align: center; vertical-align: middle;">
-                <span style="font-weight: bold; color: #d32f2f; font-size: 14px;">{fmt_br(meta_semana)}</span>
-            </td>
-            <td style="padding: 15px; text-align: right; vertical-align: middle;">
-                <div style="background: #f1f5f9; padding: 6px 10px; border-radius: 6px; border-right: 4px solid #002D62; display: inline-block; text-align: right; min-width: 120px;">
-                    <span style="font-weight: bold; color: #002D62; font-size: 12px;">{peds_semana} peds total</span><br>
+            </div>
+            <div style="flex: 1.2; text-align: center;">
+                <span style="font-size: 14px; font-weight: bold; color: #d32f2f;">{fmt_br(meta_semana)}</span>
+            </div>
+            <div style="flex: 1.8; text-align: right;">
+                <div style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; border-right: 4px solid #002D62; display: inline-block; text-align: right; min-width: 130px;">
+                    <span style="font-size: 12px; font-weight: bold; color: #002D62;">{peds_semana} pedidos total</span><br>
                     <span style="font-size: 11px; color: #334155;">🎯 Ind: <b>{media_p_vendedor} peds</b></span>
                 </div>
-            </td>
-        </tr>
-        """
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        # Linhas do Detalhamento dos Vendedores (Sub-tabela integrada perfeitamente)
+        # LISTA SUSPENSA GERENCIADA PELO STREAMLIT (Segurança e empurrão de layout automáticos)
         if vendedores_ativos:
-            html_cronograma += f"""
-            <tr>
-                <td colspan="4" style="padding: 0 15px 15px 15px; background: #fafafa; border-bottom: 1px solid #e2e8f0;">
-                    <div style="border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 6px 6px; background: white; padding: 10px 15px;">
-                        <div style="font-size: 11px; font-weight: bold; color: #002D62; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">📋 Detalhamento das Metas por Vendedor:</div>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 11px; line-height: 1.4;">
+            with st.container():
+                with st.expander("📋 Ver Planejamento por Vendedor", expanded=False):
+                    html_vendedores = """
+                    <div style="padding: 5px 10px; background: #ffffff; font-family: 'Segoe UI', sans-serif;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; line-height: 1.5;">
                             <thead>
-                                <tr style="border-bottom: 1px solid #cbd5e1; color: #64748b; font-weight: bold;">
-                                    <th style="padding: 4px 0; text-align: left;">Vendedor</th>
-                                    <th style="padding: 4px 0; text-align: center; width: 30%;">Meta Período</th>
-                                    <th style="padding: 4px 0; text-align: right; width: 30%;">Qtd Esperada</th>
+                                <tr style="border-bottom: 1px solid #cbd5e1; color: #64748b; font-weight: bold; font-size: 11px;">
+                                    <th style="padding: 6px 0;">VENDEDOR</th>
+                                    <th style="padding: 6px 0; text-align: center; width: 35%;">META PERÍODO</th>
+                                    <th style="padding: 6px 0; text-align: right; width: 35%;">QTD PEDIDOS ESPERADA</th>
                                 </tr>
                             </thead>
                             <tbody>
-            """
-            for v in vendedores_ativos:
-                falta_ind = max(0, v["Meta"] - v["total"])
-                peso = (falta_ind / total_falta_time) if total_falta_time > 0 else (1 / len(vendedores_ativos))
-                
-                meta_ind_semana = meta_semana * peso
-                peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
-                
-                html_cronograma += f"""
+                    """
+                    for v in vendedores_ativos:
+                        falta_ind = max(0, v["Meta"] - v["total"])
+                        peso = (falta_ind / total_falta_time) if total_falta_time > 0 else (1 / len(vendedores_ativos))
+                        
+                        meta_ind_semana = meta_semana * peso
+                        peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
+                        
+                        html_vendedores += f"""
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                                    <td style="padding: 5px 0; font-weight: 600; color: #334155;">{v['Vendedor']}</td>
-                                    <td style="padding: 5px 0; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_ind_semana)}</td>
-                                    <td style="padding: 5px 0; text-align: right; color: #002D62; font-weight: bold;">{peds_ind_semana} peds</td>
+                                    <td style="padding: 6px 0; font-weight: 600; color: #1e293b;">{v['Vendedor']}</td>
+                                    <td style="padding: 6px 0; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_ind_semana)}</td>
+                                    <td style="padding: 6px 0; text-align: right; color: #002D62; font-weight: bold;">{peds_ind_semana} pedidos</td>
                                 </tr>
-                """
-            html_cronograma += """
-                            </tbody>
-                        </table>
-                    </div>
-                </td>
-            </tr>
-            """
+                        """
+                    html_vendedores += "</tbody></table></div>"
+                    st.markdown(html_vendedores, unsafe_allow_html=True)
 
-    # Fecha o corpo da tabela e anexa o rodapé estático unificado
-    html_cronograma += f"""
-            </tbody>
-        </table>
-        <div style="background: #f8fafc; padding: 14px 20px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center;">
-            <span style="font-size: 12px; font-weight: 800; color: #1e293b; letter-spacing: 0.5px;">TOTAL PARA BATER A META</span>
-            <span style="font-size: 18px; font-weight: 900; color: #d32f2f;">{fmt_br(gap_total)}</span>
-            <span style="background: #002D62; color: white; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold;">{int(gap_total/tm_time) if tm_time > 0 else 0} Pedidos</span>
-        </div>
+    # RODAPÉ ESTRUTURAL DA TABELA
+    st.markdown(f"""
+    <div style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 12px 18px; display: flex; justify-content: space-between; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; border-top: 2px solid #002D62; border-radius: 0 0 8px 8px; align-items: center; margin-bottom: 20px;">
+        <span style="font-size: 12px; font-weight: 800; color: #1e293b; letter-spacing: 0.5px;">TOTAL PARA BATER A META</span>
+        <span style="font-size: 16px; font-weight: 900; color: #d32f2f;">{fmt_br(gap_total)}</span>
+        <span style="background: #002D62; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">{int(gap_total/tm_time) if tm_time > 0 else 0} Pedidos</span>
     </div>
-    """
-
-    # Exibe a tabela utilizando st.markdown estável para impossibilitar vazamentos ou bugs de layout
-    st.markdown(html_cronograma, unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
-    # Exibe o insight logo abaixo de forma segura
+    # INSIGHT TOTALMENTE PROTEGIDO ABAIXO DA ESTRUTURA
     st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
 
 except Exception as e:
