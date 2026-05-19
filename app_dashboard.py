@@ -633,8 +633,12 @@ try:
     </script>
     """
 
-    # Definimos uma altura inicial padrão bem menor (220), mas ela se auto-ajustará via JS
-    components.html(full_html, height=220, scrolling=False)
+    # Altura fixa segura para as linhas atuais; 'scrolling=True' garante que se você abrir 
+    # o "Ver Planejamento", a tabela ganha uma barra de rolagem interna sem quebrar o layout.
+    components.html(full_html, height=190, scrolling=True)
+    
+    # Adiciona um pequeno respiro vertical nativo do Streamlit antes do card de insight
+    st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
     
     st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
 
