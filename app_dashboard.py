@@ -524,48 +524,42 @@ try:
             acao_desc = "Recuperação e fechamento."
             cor_acao = "#C62828"
 
-        # GERAÇÃO DA LISTA SUSPENSA (COMPACTADA)
+        # Tabela de Vendedores aberta direto (Sem o <details> para não bugar a altura)
         detalhe_vendedores_html = ""
         if vendedores_ativos:
             detalhe_vendedores_html += f"""
-            <details style="margin-top: 4px; width: 100%; border: 1px solid #e2e8f0; border-radius: 4px; background: #fafafa;">
-                <summary style="font-size: 11px; color: #002D62; font-weight: bold; cursor: pointer; padding: 4px 8px; outline: none;">
-                    📋 Ver Planejamento por Vendedor
-                </summary>
-                <div style="padding: 4px 8px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #334155;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left; line-height: 1.2;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid #cbd5e1; color: #64748b; font-weight: bold;">
-                                <th style="padding: 2px 0;">Vendedor</th>
-                                <th style="padding: 2px 0; text-align: center;">Meta Período</th>
-                                <th style="padding: 2px 0; text-align: right;">Qtd Peds</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+            <div style="margin-top: 8px; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa; padding: 6px 10px;">
+                <div style="font-size: 11px; color: #002D62; font-weight: bold; margin-bottom: 4px;">📋 Planejamento por Vendedor:</div>
+                <table style="width: 100%; border-collapse: collapse; text-align: left; line-height: 1.2; font-size: 11px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #cbd5e1; color: #64748b; font-weight: bold;">
+                            <th style="padding: 2px 0;">Vendedor</th>
+                            <th style="padding: 2px 0; text-align: center;">Meta Período</th>
+                            <th style="padding: 2px 0; text-align: right;">Qtd Peds</th>
+                        </tr>
+                    </thead>
+                    <tbody>
             """
             for v in vendedores_ativos:
                 falta_ind = max(0, v["Meta"] - v["total"])
                 peso = (falta_ind / total_falta_time) if total_falta_time > 0 else (1 / len(vendedores_ativos))
                 
                 meta_ind_semana = meta_semana * peso
-                # Trocado o "m." por "peds" e arredondado para 1 casa decimal de forma limpa
                 peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
                 
                 detalhe_vendedores_html += f"""
-                            <tr style="border-bottom: 1px solid #f1f5f9;">
-                                <td style="padding: 3px 0; font-weight: 600; color: #1e293b;">{v['Vendedor']}</td>
-                                <td style="padding: 3px 0; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_ind_semana)}</td>
-                                <td style="padding: 3px 0; text-align: right; color: #002D62; font-weight: bold;">{peds_ind_semana} peds</td>
-                            </tr>
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 3px 0; font-weight: 600; color: #1e293b;">{v['Vendedor']}</td>
+                            <td style="padding: 3px 0; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_ind_semana)}</td>
+                            <td style="padding: 3px 0; text-align: right; color: #002D62; font-weight: bold;">{peds_ind_semana} peds</td>
+                        </tr>
                 """
             detalhe_vendedores_html += """
-                        </tbody>
-                    </table>
-                </div>
-            </details>
+                    </tbody>
+                </table>
+            </div>
             """
 
-        # Linha principal com padding vertical reduzido de 20px para 8px
         rows_html += f"""
             <div style="display: flex; flex-direction: column; padding: 8px 15px; border-bottom: 1px solid #f0f2f5; line-height: 1.3;">
                 <div style="display: flex; width: 100%; align-items: center;">
@@ -611,9 +605,10 @@ try:
     </div>
     """
 
-    # Altura do iframe reduzida proporcionalmente para evitar grandes espaços vazios embaixo
-    components.html(full_html, height=420, scrolling=True)
+    # Altura estática perfeita calculada para caber a linha e a tabela interna sem sobrar espaço
+    components.html(full_html, height=320, scrolling=False)
     
+    # Exibe o card informativo coladinho e no lugar certo
     st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
 
 except Exception as e:
