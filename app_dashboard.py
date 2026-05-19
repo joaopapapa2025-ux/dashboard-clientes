@@ -524,11 +524,11 @@ try:
             acao_desc = "Recuperação e fechamento."
             cor_acao = "#C62828"
 
-        # Tabela de Vendedores aberta direto (Sem o <details> para não bugar a altura)
+        # Tabela de Vendedores aberta direto, mas compacta
         detalhe_vendedores_html = ""
         if vendedores_ativos:
             detalhe_vendedores_html += f"""
-            <div style="margin-top: 8px; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa; padding: 6px 10px;">
+            <div style="margin-top: 6px; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa; padding: 6px 10px; box-sizing: border-box;">
                 <div style="font-size: 11px; color: #002D62; font-weight: bold; margin-bottom: 4px;">📋 Planejamento por Vendedor:</div>
                 <table style="width: 100%; border-collapse: collapse; text-align: left; line-height: 1.2; font-size: 11px;">
                     <thead>
@@ -561,7 +561,7 @@ try:
             """
 
         rows_html += f"""
-            <div style="display: flex; flex-direction: column; padding: 8px 15px; border-bottom: 1px solid #f0f2f5; line-height: 1.3;">
+            <div style="display: flex; flex-direction: column; padding: 10px 15px; border-bottom: 1px solid #f0f2f5; line-height: 1.3;">
                 <div style="display: flex; width: 100%; align-items: center;">
                     <div style="flex: 1.2;">
                         <span style="font-size: 13px; font-weight: 800; color: #1e293b;">{ini} a {fim}</span><br>
@@ -585,19 +585,22 @@ try:
             </div>
         """
 
-    # 4. MONTAGEM DO COMPONENTE FINAL (CSS Limpo e Alinhado)
+    # 4. MONTAGEM DO COMPONENTE FINAL (Adicionado max-height e overflow para isolar o layout)
     full_html = f"""
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
-        <div style="display: flex; background: #002D62; color: white; padding: 10px 15px; font-weight: bold; font-size: 11px; letter-spacing: 1px;">
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; max-height: 480px; display: flex; flex-direction: column; background: white;">
+        <div style="display: flex; background: #002D62; color: white; padding: 12px 15px; font-weight: bold; font-size: 11px; letter-spacing: 1px; flex-shrink: 0;">
             <div style="flex: 1.2;">PERÍODO</div>
             <div style="flex: 1.8;">AÇÃO ESTRATÉGICA</div>
             <div style="flex: 1.2; text-align: center;">VALOR PREVISTO</div>
             <div style="flex: 1.8; text-align: right;">META DE PEDIDOS</div>
         </div>
-        <div style="background: white;">
+        
+        {# O segredo anti-sobreposição: as linhas rolam aqui dentro se crescerem demais #}
+        <div style="overflow-y: auto; flex-grow: 1; background: white;">
             {rows_html}
         </div>
-        <div style="background: #f8fafc; padding: 12px 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center;">
+        
+        <div style="background: #f8fafc; padding: 12px 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center; flex-shrink: 0;">
             <span style="font-size: 12px; font-weight: 800; color: #1e293b;">TOTAL PARA BATER A META</span>
             <span style="font-size: 16px; font-weight: 900; color: #d32f2f;">{fmt_br(gap_total)}</span>
             <span style="background: #002D62; color: white; padding: 3px 10px; border-radius: 20px; font-size: 12px;">{int(gap_total/tm_time) if tm_time > 0 else 0} Pedidos</span>
@@ -605,10 +608,10 @@ try:
     </div>
     """
 
-    # Altura estática perfeita calculada para caber a linha e a tabela interna sem sobrar espaço
-    components.html(full_html, height=320, scrolling=False)
+    # Altura do iframe do Streamlit definida maior para garantir folga, mas controlada internamente pelo CSS acima
+    components.html(full_html, height=500, scrolling=False)
     
-    # Exibe o card informativo coladinho e no lugar certo
+    # Agora o st.info ficará perfeitamente isolado abaixo, sem nenhuma chance de colisão
     st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
 
 except Exception as e:
