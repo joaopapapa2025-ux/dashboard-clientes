@@ -513,49 +513,49 @@ try:
         # ESTRATÉGIA PERSONALIZADA
         if 15 in dados_sem['Data'].dt.day.values:
             acao_titulo = "📈 SUSTENTAÇÃO"
-            acao_desc = "Ações de Upsell na base atual."
+            acao_desc = "Ações de Upsell na base."
             cor_acao = "#2E7D32"
         elif ini_dt.day > 15 and ini_dt.day <= 22:
-            acao_titulo = "🔥 GATILHO DE ANTECIPAÇÃO"
-            acao_desc = "Foco total: Aumento de preços em junho."
+            acao_titulo = "🔥 ANTECIPAÇÃO"
+            acao_desc = "Foco: Mudança de tabela."
             cor_acao = "#E65100" 
         else:
             acao_titulo = "🏁 SPRINT FINAL"
-            acao_desc = "Recuperação de inativos e fechamento."
+            acao_desc = "Recuperação e fechamento."
             cor_acao = "#C62828"
 
-        # GERAÇÃO DA LISTA SUSPENSA DE VENDEDORES (DENTRO DA LINHA DO CRONOGRAMA)
+        # GERAÇÃO DA LISTA SUSPENSA (COMPACTADA)
         detalhe_vendedores_html = ""
         if vendedores_ativos:
             detalhe_vendedores_html += f"""
-            <details style="margin-top: 10px; width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; background: #fafafa;">
-                <summary style="font-size: 11px; color: #002D62; font-weight: bold; cursor: pointer; padding: 6px 10px; outline: none; display: flex; align-items: center; justify-content: space-between;">
-                    <span>📋 Ver Planejamento por Vendedor</span>
+            <details style="margin-top: 4px; width: 100%; border: 1px solid #e2e8f0; border-radius: 4px; background: #fafafa;">
+                <summary style="font-size: 11px; color: #002D62; font-weight: bold; cursor: pointer; padding: 4px 8px; outline: none;">
+                    📋 Ver Planejamento por Vendedor
                 </summary>
-                <div style="padding: 8px 12px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #334155;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <div style="padding: 4px 8px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #334155;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; line-height: 1.2;">
                         <thead>
                             <tr style="border-bottom: 1px solid #cbd5e1; color: #64748b; font-weight: bold;">
-                                <th style="padding: 4px 0;">Vendedor</th>
-                                <th style="padding: 4px 0; text-align: center;">Meta Período</th>
-                                <th style="padding: 4px 0; text-align: right;">Qtd Peds</th>
+                                <th style="padding: 2px 0;">Vendedor</th>
+                                <th style="padding: 2px 0; text-align: center;">Meta Período</th>
+                                <th style="padding: 2px 0; text-align: right;">Qtd Peds</th>
                             </tr>
                         </thead>
                         <tbody>
             """
             for v in vendedores_ativos:
                 falta_ind = max(0, v["Meta"] - v["total"])
-                # Distribui proporcionalmente ao tamanho do GAP de cada um
                 peso = (falta_ind / total_falta_time) if total_falta_time > 0 else (1 / len(vendedores_ativos))
                 
                 meta_ind_semana = meta_semana * peso
+                # Trocado o "m." por "peds" e arredondado para 1 casa decimal de forma limpa
                 peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
                 
                 detalhe_vendedores_html += f"""
                             <tr style="border-bottom: 1px solid #f1f5f9;">
-                                <td style="padding: 5px 0; font-weight: 600; color: #1e293b;">{v['Vendedor']}</td>
-                                <td style="padding: 5px 0; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_ind_semana)}</td>
-                                <td style="padding: 5px 0; text-align: right; color: #002D62; font-weight: bold;">~{peds_ind_semana} m.</td>
+                                <td style="padding: 3px 0; font-weight: 600; color: #1e293b;">{v['Vendedor']}</td>
+                                <td style="padding: 3px 0; text-align: center; color: #d32f2f; font-weight: bold;">{fmt_br(meta_ind_semana)}</td>
+                                <td style="padding: 3px 0; text-align: right; color: #002D62; font-weight: bold;">{peds_ind_semana} peds</td>
                             </tr>
                 """
             detalhe_vendedores_html += """
@@ -565,11 +565,12 @@ try:
             </details>
             """
 
+        # Linha principal com padding vertical reduzido de 20px para 8px
         rows_html += f"""
-            <div style="display: flex; flex-direction: column; padding: 15px 15px; border-bottom: 1px solid #f0f2f5;">
+            <div style="display: flex; flex-direction: column; padding: 8px 15px; border-bottom: 1px solid #f0f2f5; line-height: 1.3;">
                 <div style="display: flex; width: 100%; align-items: center;">
                     <div style="flex: 1.2;">
-                        <span style="font-size: 14px; font-weight: 800; color: #1e293b;">{ini} a {fim}</span><br>
+                        <span style="font-size: 13px; font-weight: 800; color: #1e293b;">{ini} a {fim}</span><br>
                         <span style="font-size: 11px; color: #64748b;">{d_uteis} dias úteis</span>
                     </div>
                     <div style="flex: 1.8;">
@@ -577,12 +578,12 @@ try:
                         <span style="font-size: 11px; color: #475569;">{acao_desc}</span>
                     </div>
                     <div style="flex: 1.2; text-align: center;">
-                        <span style="font-size: 15px; font-weight: bold; color: #d32f2f;">{fmt_br(meta_semana)}</span>
+                        <span style="font-size: 14px; font-weight: bold; color: #d32f2f;">{fmt_br(meta_semana)}</span>
                     </div>
                     <div style="flex: 1.8; text-align: right;">
-                        <div style="background: #f1f5f9; padding: 8px; border-radius: 8px; border-right: 4px solid #002D62;">
-                            <span style="font-size: 13px; font-weight: bold; color: #002D62;">{peds_semana} peds total</span><br>
-                            <span style="font-size: 11px; color: #334155;">🎯 Média Ind.: <b>{media_p_vendedor} peds</b></span>
+                        <div style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; border-right: 4px solid #002D62; display: inline-block; text-align: right; min-width: 120px;">
+                            <span style="font-size: 12px; font-weight: bold; color: #002D62;">{peds_semana} peds total</span><br>
+                            <span style="font-size: 11px; color: #334155;">🎯 Ind: <b>{media_p_vendedor}</b></span>
                         </div>
                     </div>
                 </div>
@@ -593,7 +594,7 @@ try:
     # 4. MONTAGEM DO COMPONENTE FINAL (CSS Limpo e Alinhado)
     full_html = f"""
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
-        <div style="display: flex; background: #002D62; color: white; padding: 15px; font-weight: bold; font-size: 12px; letter-spacing: 1px;">
+        <div style="display: flex; background: #002D62; color: white; padding: 10px 15px; font-weight: bold; font-size: 11px; letter-spacing: 1px;">
             <div style="flex: 1.2;">PERÍODO</div>
             <div style="flex: 1.8;">AÇÃO ESTRATÉGICA</div>
             <div style="flex: 1.2; text-align: center;">VALOR PREVISTO</div>
@@ -602,16 +603,16 @@ try:
         <div style="background: white;">
             {rows_html}
         </div>
-        <div style="background: #f8fafc; padding: 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center;">
-            <span style="font-size: 13px; font-weight: 800; color: #1e293b;">TOTAL PARA BATER A META</span>
-            <span style="font-size: 18px; font-weight: 900; color: #d32f2f;">{fmt_br(gap_total)}</span>
-            <span style="background: #002D62; color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px;">{int(gap_total/tm_time) if tm_time > 0 else 0} Pedidos</span>
+        <div style="background: #f8fafc; padding: 12px 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center;">
+            <span style="font-size: 12px; font-weight: 800; color: #1e293b;">TOTAL PARA BATER A META</span>
+            <span style="font-size: 16px; font-weight: 900; color: #d32f2f;">{fmt_br(gap_total)}</span>
+            <span style="background: #002D62; color: white; padding: 3px 10px; border-radius: 20px; font-size: 12px;">{int(gap_total/tm_time) if tm_time > 0 else 0} Pedidos</span>
         </div>
     </div>
     """
 
-    # Aumentei um pouco a altura limite para acomodar a abertura das abas sanfona sem criar barra de rolagem geral
-    components.html(full_html, height=520, scrolling=True)
+    # Altura do iframe reduzida proporcionalmente para evitar grandes espaços vazios embaixo
+    components.html(full_html, height=420, scrolling=True)
     
     st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
 
