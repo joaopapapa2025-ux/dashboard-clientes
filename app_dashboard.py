@@ -513,7 +513,7 @@ try:
         # Descobre qual é a última semana ativa do planejamento corrente
         ultima_semana_do_plano = df_semanas['Semana'].max()
 
-        if _, dados_sem in df_semanas.groupby('Semana'):
+            if _, dados_sem in df_semanas.groupby('Semana'):
             # Se for a última semana da lista de datas, é SPRINT FINAL independente do dia
             if semana == ultima_semana_do_plano:
                 acao_titulo = "🏁 SPRINT FINAL"
