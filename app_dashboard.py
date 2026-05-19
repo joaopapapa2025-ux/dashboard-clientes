@@ -529,7 +529,7 @@ try:
         if vendedores_ativos:
             detalhe_vendedores_html += f"""
             <details style="margin-top: 4px; width: 100%; border: 1px solid #e2e8f0; border-radius: 4px; background: #fafafa;">
-                <summary style="font-size: 11px; color: #002D62; font-weight: bold; cursor: pointer; padding: 4px 8px; outline: none;">
+                <summary style="font-size: 11px; color: #002D62; font-weight: bold; cursor: pointer; padding: 4px 8px; outline: none;" onclick="setTimeout(sendHeight, 50)">
                     📋 Ver Planejamento por Vendedor
                 </summary>
                 <div style="padding: 4px 8px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #334155;">
@@ -548,7 +548,6 @@ try:
                 peso = (falta_ind / total_falta_time) if total_falta_time > 0 else (1 / len(vendedores_ativos))
                 
                 meta_ind_semana = meta_semana * peso
-                # Trocado o "m." por "peds" e arredondado para 1 casa decimal de forma limpa
                 peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
                 
                 detalhe_vendedores_html += f"""
@@ -565,9 +564,9 @@ try:
             </details>
             """
 
-        # Linha principal com padding vertical reduzido de 20px para 8px
+        # Linha principal com padding super otimizado
         rows_html += f"""
-            <div style="display: flex; flex-direction: column; padding: 8px 15px; border-bottom: 1px solid #f0f2f5; line-height: 1.3;">
+            <div style="display: flex; flex-direction: column; padding: 6px 15px; border-bottom: 1px solid #f0f2f5; line-height: 1.2;">
                 <div style="display: flex; width: 100%; align-items: center;">
                     <div style="flex: 1.2;">
                         <span style="font-size: 13px; font-weight: 800; color: #1e293b;">{ini} a {fim}</span><br>
@@ -591,9 +590,9 @@ try:
             </div>
         """
 
-    # 4. MONTAGEM DO COMPONENTE FINAL (CSS Limpo e Alinhado)
+    # 4. MONTAGEM DO COMPONENTE FINAL (Com script de auto-ajuste de altura)
     full_html = f"""
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+    <div id="wrapper" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 2px;">
         <div style="display: flex; background: #002D62; color: white; padding: 10px 15px; font-weight: bold; font-size: 11px; letter-spacing: 1px;">
             <div style="flex: 1.2;">PERÍODO</div>
             <div style="flex: 1.8;">AÇÃO ESTRATÉGICA</div>
@@ -603,16 +602,39 @@ try:
         <div style="background: white;">
             {rows_html}
         </div>
-        <div style="background: #f8fafc; padding: 12px 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center;">
+        <div style="background: #f8fafc; padding: 10px 18px; display: flex; justify-content: space-between; border-top: 2px solid #002D62; align-items: center;">
             <span style="font-size: 12px; font-weight: 800; color: #1e293b;">TOTAL PARA BATER A META</span>
             <span style="font-size: 16px; font-weight: 900; color: #d32f2f;">{fmt_br(gap_total)}</span>
             <span style="background: #002D62; color: white; padding: 3px 10px; border-radius: 20px; font-size: 12px;">{int(gap_total/tm_time) if tm_time > 0 else 0} Pedidos</span>
         </div>
     </div>
+
+    <script style="display:none;">
+        function sendHeight() {{
+            var height = document.getElementById('wrapper').offsetHeight + 20;
+            parent.postMessage({{
+                type: 'streamlit:setComponentValue',
+                value: height
+            }}, '*');
+            // Comunicação direta para o iframe ajustar sua própria janela se suportado
+            if (window.parent && window.parent.document) {{
+                var iframes = window.parent.document.getElementsByTagName('iframe');
+                for (var i = 0; i < iframes.length; i++) {{
+                    if (iframes[i].contentWindow === window) {{
+                        iframes[i].style.height = height + 'px';
+                    }}
+                }}
+            }}
+        }}
+        window.addEventListener('load', function() {{
+            setTimeout(sendHeight, 100);
+        }});
+        window.addEventListener('resize', sendHeight);
+    </script>
     """
 
-    # Altura do iframe reduzida proporcionalmente para evitar grandes espaços vazios embaixo
-    components.html(full_html, height=420, scrolling=True)
+    # Definimos uma altura inicial padrão bem menor (220), mas ela se auto-ajustará via JS
+    components.html(full_html, height=220, scrolling=False)
     
     st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
 
