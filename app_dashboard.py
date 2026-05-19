@@ -547,16 +547,20 @@ try:
         with col_peds:
             st.markdown(f"**Meta de Pedidos:**\n🏆 **{peds_semana} peds** total | 🎯 Ind: **{media_p_vendedor} peds**")
 
-        # Expander Seguro para o Detalhamento por Vendedor
+        # Expander Seguro e Compacto para o Detalhamento por Vendedor
         if vendedores_ativos:
             with st.expander("📋 Ver Planejamento por Vendedor", expanded=False):
-                # Usamos st.columns para criar uma tabela perfeita sem usar tags HTML perigosas
-                grid_head_1, grid_head_2, grid_head_3 = st.columns([2, 1, 1])
-                grid_head_1.markdown("**Vendedor**")
-                grid_head_2.markdown("<center><b>Meta Período</b></center>", unsafe_allow_html=True)
-                grid_head_3.markdown("<p align='right'><b>Qtd Pedidos Esperada</b></p>", unsafe_allow_html=True)
-                st.markdown("---")
                 
+                # Cabeçalho da tabela com espaçamento reduzido
+                st.markdown("""
+                <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-weight: bold; font-size: 11px; color: #64748b; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;">
+                    <div style="flex: 2; text-align: left;">Vendedor</div>
+                    <div style="flex: 1; text-align: center;">Meta Período</div>
+                    <div style="flex: 1; text-align: right;">Qtd Pedidos Esperada</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Loop dos vendedores gerando linhas coladas e sem espaçamentos extras
                 for v in vendedores_ativos:
                     falta_ind = max(0, v["Meta"] - v["total"])
                     peso = (falta_ind / total_falta_time) if total_falta_time > 0 else (1 / len(vendedores_ativos))
@@ -564,10 +568,13 @@ try:
                     meta_ind_semana = meta_semana * peso
                     peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
                     
-                    g_col1, g_col2, g_col3 = st.columns([2, 1, 1])
-                    g_col1.markdown(f"👤 {v['Vendedor']}")
-                    g_col2.markdown(f"<center><span style='color:#d32f2f; font-weight:bold;'>{fmt_br(meta_ind_semana)}</span></center>", unsafe_allow_html=True)
-                    g_col3.markdown(f"<p align='right' style='color:#002D62; font-weight:bold;'>{peds_ind_semana} peds</p>", unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f1f5f9; align-items: center;">
+                        <div style="flex: 2; text-align: left; font-weight: 600; color: #1e293b;">👤 {v['Vendedor']}</div>
+                        <div style="flex: 1; text-align: center; font-weight: bold; color: #d32f2f;">{fmt_br(meta_ind_semana)}</div>
+                        <div style="flex: 1; text-align: right; font-weight: bold; color: #002D62;">{peds_ind_semana} peds</div>
+                    </div>
+                    """, unsafe_allow_html=True)
         
         st.markdown("---")
 
