@@ -478,7 +478,9 @@ try:
     # 2. CARDS DE TOPO (NATIVOS STREAMLIT)
     c1, c2, c3 = st.columns(3)
     c1.metric("🚩 Gap p/ Meta", fmt_br(gap_total))
-    c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta="Até 26/05")
+    # Ele vai pegar automaticamente o último dia útil da sua lista para exibir no delta
+    ultimo_dia_str = pd.to_datetime(dias_uteis_totais_list[-1]).strftime('%d/%m') if dias_uteis_totais_list else ""
+    c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta=f"Até {ultimo_dia_str}")
     
     esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
     peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
@@ -508,11 +510,13 @@ try:
         peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
         media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
-        if 15 in dados_sem['Data'].dt.day.values:
+        ultimo_dia_mes = fim_dt.days_in_month
+        
+        if fim_dt.day <= 15:
             acao_titulo = "📈 SUSTENTAÇÃO"
             acao_desc = "Ações de Upsell na base."
             cor_bloco = "green"
-        elif ini_dt.day > 15 and ini_dt.day <= 22:
+        elif fim_dt.day > 15 and fim_dt.day <= (ultimo_dia_mes - 5):
             acao_titulo = "🔥 ANTECIPAÇÃO"
             acao_desc = "Foco: Mudança de tabela."
             cor_bloco = "orange"
