@@ -595,7 +595,6 @@ try:
             <div style="flex: 1.8; text-align: right;">META DE PEDIDOS</div>
         </div>
         
-        {# O segredo anti-sobreposição: as linhas rolam aqui dentro se crescerem demais #}
         <div style="overflow-y: auto; flex-grow: 1; background: white;">
             {rows_html}
         </div>
