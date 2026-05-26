@@ -478,7 +478,7 @@ try:
     # 2. CARDS DE TOPO (NATIVOS STREAMLIT)
     c1, c2, c3 = st.columns(3)
     c1.metric("🚩 Gap p/ Meta", fmt_br(gap_total))
-    # Ele vai pegar automaticamente o último dia útil da sua lista para exibir no delta
+    
     ultimo_dia_str = pd.to_datetime(dias_uteis_totais_list[-1]).strftime('%d/%m') if dias_uteis_totais_list else ""
     c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta=f"Até {ultimo_dia_str}")
     
@@ -491,14 +491,16 @@ try:
     df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
     df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
     
-    # Mapeia vendedores ativos e pesos
+    # Mapeia vendedores ativos usando como base a Meta Global do Mês
     vendedores_ativos = []
     if 'dados_v_dia' in locals() and not dados_v_dia.empty:
+        # Filtra apenas os vendedores reais (removendo linhas de totais ou "OUTROS" sem meta)
         vendedores_ativos = dados_v_dia[dados_v_dia['Meta'] > 0].to_dict('records')
     
-    total_falta_time = sum(max(0, v["Meta"] - v["total"]) for v in vendedores_ativos) if vendedores_ativos else 0
+    # Total de metas cadastradas no mês para base do novo cálculo proporcional
+    total_metas_mes = sum(v["Meta"] for v in vendedores_ativos) if vendedores_ativos else 0
 
-    # [Ajuste] Descobre qual é a última semana ativa do planejamento corrente
+    # Descobre qual é a última semana ativa do planejamento corrente
     ultima_semana_do_plano = df_semanas['Semana'].max() if not df_semanas.empty else 0
 
     # CORPO DO CRONOGRAMA (Iteração por semanas usando Containers Nativos)
@@ -513,29 +515,22 @@ try:
         peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
         media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
-        # =================================================================
-        # 🎯 NOVA LÓGICA AUTOMÁTICA DE AÇÕES ESTRATÉGICAS (CORRIGIDA)
-        # =================================================================
-        # Se for a última semana da lista de datas, é SPRINT FINAL independente do dia
+        # Nova lógica automatizada de ações estratégicas
         if semana == ultima_semana_do_plano:
             acao_titulo = "🏁 SPRINT FINAL"
             acao_desc = "Recuperação e fechamento imediato."
             cor_bloco = "red"
-        # Se a semana englobar o meio do mês (ex: dia 15)
         elif 15 in dados_sem['Data'].dt.day.values:
             acao_titulo = "📈 SUSTENTAÇÃO"
             acao_desc = "Ações de Upsell na base."
             cor_bloco = "green"
-        # Qualquer outra semana intermediária anterior ao fechamento
         else:
             acao_titulo = "🔥 ANTECIPAÇÃO"
             acao_desc = "Foco: Mudança de tabela."
             cor_bloco = "orange"
 
-        # Título da Semana de forma elegante
         st.subheader(f"🗓️ Período: {ini} a {fim} ({d_uteis} dias úteis)")
         
-        # Grid Interno para as Métricas do Período
         col_esf, col_prev, col_peds = st.columns([1.5, 1, 1.5])
         
         with col_esf:
@@ -551,7 +546,6 @@ try:
         if vendedores_ativos:
             with st.expander("📋 Ver Planejamento por Vendedor", expanded=False):
                 
-                # Cabeçalho da tabela com espaçamento reduzido
                 st.markdown("""
                 <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-weight: bold; font-size: 11px; color: #64748b; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;">
                     <div style="flex: 2; text-align: left;">Vendedor</div>
@@ -560,12 +554,13 @@ try:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Loop dos vendedores gerando linhas coladas e sem espaçamentos extras
                 for v in vendedores_ativos:
-                    falta_ind = max(0, v["Meta"] - v["total"])
-                    peso = (falta_ind / total_falta_time) if total_falta_time > 0 else (1 / len(vendedores_ativos))
+                    # [CORREÇÃO] O peso agora reflete o tamanho da meta original dele sobre a meta do time
+                    peso = (v["Meta"] / total_metas_mes) if total_metas_mes > 0 else (1 / len(vendedores_ativos))
                     
                     meta_ind_semana = meta_semana * peso
+                    
+                    # Calcula os pedidos individuais usando o ticket médio individual do vendedor v["tm"]
                     peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
                     
                     st.markdown(f"""
@@ -578,7 +573,6 @@ try:
         
         st.markdown("---")
 
-    # 5. CONTAINER DE FECHAMENTO (RODAPÉ)
     with st.container():
         st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
 
