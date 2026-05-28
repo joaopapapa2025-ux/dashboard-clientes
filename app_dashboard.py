@@ -276,8 +276,8 @@ if df_geral_hist is not None and not df_geral_hist.empty:
 # --- TRAVA DE SEGURANÇA COMERCIAL: TRANSBORDO ---
 linha_limite = df_geral_hist[df_geral_hist['Data'] == data_limite_faturamento] if df_geral_hist is not None else pd.DataFrame()
 
-# Se passarmos da data limite, congelamos o digitado útil e jogamos o excesso para o transbordo
-if not linha_limite.empty and data_selecionada > data_limite_faturamento:
+# Mudança técnica: Usamos >= para capturar o transbordo a partir do próprio dia limite
+if not linha_limite.empty and data_selecionada >= data_limite_faturamento:
     digitado_valido_mes = float(linha_limite.iloc[0]['Digitado_Acumulado'])
     valor_transbordo = max(0.0, digitado_acumulado - digitado_valido_mes)
 else:
@@ -379,38 +379,53 @@ st.markdown(f"""
 # ==========================================
 # 💸 NOVA TABELA: TRANSBORDO E BACKLOG DE VIRADA (DINÂMICA)
 # ==========================================
-# CORREÇÃO: A tabela agora avalia a regra usando a data de referência real do cálculo
-if data_ref_calculo > data_limite_faturamento and valor_transbordo > 0:
+# Mudança técnica: Condição ajustada para exibir a tabela a partir da data do corte (inclusive)
+if data_ref_calculo >= data_limite_faturamento:
     st.markdown("### 📥 Transbordo e Carteira para o Próximo Mês")
     st.info(f"💡 **Atenção:** Os pedidos digitados a partir do dia {data_limite_faturamento.strftime('%d/%m')} não faturam mais neste mês. Eles estão sendo computados abaixo como carteira garantida para a abertura do próximo mês.")
     
     style_t = """<style>.tab-transbordo { width: 50%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; margin-bottom: 20px; } .tab-transbordo th { background-color: #f8fafc; padding: 8px; text-align: left; color: #475569; border-bottom: 2px solid #e2e8f0; } .tab-transbordo td { padding: 8px; text-align: left; border-bottom: 1px solid #f1f5f9; }</style>"""
     html_t = style_t + """<table class='tab-transbordo'><thead><tr><th>👤 Vendedor</th><th style='text-align: right;'>💰 Valor Transbordo (Mês +1)</th></tr></thead><tbody>"""
     
+    tabela_tem_linhas = False
+    
     if df_vendedores_hist is not None and not df_vendedores_hist.empty:
-        # Força o filtro pela data de referência correta dos cálculos atuais
         v_atual = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada]
         v_limite = df_vendedores_hist[df_vendedores_hist['Data'] == data_limite_faturamento]
         
-        # Se a seleção do usuário cair em dia sem dados, busca a última data com registros
         if v_atual.empty:
             ultima_data_v = df_vendedores_hist['Data'].max()
             v_atual = df_vendedores_hist[df_vendedores_hist['Data'] == ultima_data_v]
             
         for _, vend in v_atual.iterrows():
             nome = vend['Vendedor']
+            if nome.upper() == "OUTROS":
+                continue
+                
             dig_atual = pd.to_numeric(vend['Digitado_Acumulado'], errors='coerce') or 0.0
             
             fatia_limite = v_limite[v_limite['Vendedor'] == nome]
             dig_limite = pd.to_numeric(fatia_limite.iloc[0]['Digitado_Acumulado'], errors='coerce') if not fatia_limite.empty else 0.0
             
             excedente_vendedor = max(0.0, dig_atual - dig_limite)
+            
+            # Se ainda estivermos no dia exato do corte, mostramos o digitado do dia como transbordo potencial
+            if data_selecionada == data_limite_faturamento:
+                excedente_vendedor = pd.to_numeric(vend['Digitado_Acumulado'], errors='coerce') or 0.0
+                
             if excedente_vendedor > 0:
                 html_t += f"<tr><td><b>{nome}</b></td><td style='text-align: right; color: #1565C0; font-weight: bold;'>{fmt_tm(excedente_vendedor)}</td></tr>"
+                tabela_tem_linhas = True
                 
-        html_t += f"<tr style='background-color: #eff6ff;'><td><b>TOTAL TRANSBORDO TIME</b></td><td style='text-align: right; color: #1e40af; font-weight: bold;'>{fmt_tm(valor_transbordo)}</td></tr>"
+        # Se for o dia exato do corte e o acumulado geral de transbordo for zero na regra de subtração,
+        # exibimos a soma do digitado do dia para popular o indicador de transbordo inicial
+        exibicao_total_transbordo = valor_transbordo if valor_transbordo > 0 else (digitado_acumulado if data_selecionada == data_limite_faturamento else 0.0)
+        
+        html_t += f"<tr style='background-color: #eff6ff;'><td><b>TOTAL TRANSBORDO TIME</b></td><td style='text-align: right; color: #1e40af; font-weight: bold;'>{fmt_tm(exibicao_total_transbordo)}</td></tr>"
         html_t += "</tbody></table>"
-        st.markdown(html_t, unsafe_allow_html=True)
+        
+        if tabela_tem_linhas or exibicao_total_transbordo > 0:
+            st.markdown(html_t, unsafe_allow_html=True)
 
 st.markdown("---")
 
