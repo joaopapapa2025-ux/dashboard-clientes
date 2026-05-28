@@ -251,7 +251,7 @@ dias_uteis_restantes = len([d for d in dias_uteis_totais_list if d >= data_selec
 percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
 
 # ==========================================
-# 📝 BLOCO 1: PERFORMANCE GERAL
+# 📝 BLOCO 1: PERFORMANCE GERAL (COM TRAVA DE DIGITAÇÃO)
 # ==========================================
 meta_maio, faturado_maio, digitado_maio = 873528.0, 0.0, 0.0
 valor_devolucoes = 40252.00  # Valor fixo conforme solicitado
@@ -263,10 +263,24 @@ if df_geral_hist is not None:
         faturado_maio = float(linha.iloc[0]['Faturado_Acumulado'])
         digitado_maio = float(linha.iloc[0]['Digitado_Acumulado'])
 
-# CÁLCULO AJUSTADO: O Total Geral agora é o faturamento líquido (Bruto - Devoluções)
-total_geral = (faturado_maio + digitado_maio) - valor_devolucoes
+# --- REGRA DE OURO: IDENTIFICAÇÃO DE TRANSBORDO ---
+# Se a data selecionada for MAIOR que a data limite de faturamento, 
+# precisamos travar o digitado válido para este mês e calcular o transbordo.
+linha_limite = df_geral_hist[df_geral_hist['Data'] == data_limite_faturamento] if df_geral_hist is not None else pd.DataFrame()
 
-# Os cálculos abaixo agora herdam automaticamente o valor já com o desconto
+if not linha_limite.empty and data_selecionada > data_limite_faturamento:
+    # O digitado que realmente conta para o mês corrente congela no limite do dia 26/05
+    digitado_valido_mes = float(linha_limite.iloc[0]['Digitado_Acumulado'])
+    # O excedente é o que "deságua" no mês que vem
+    valor_transbordo = digitado_maio - digitado_valido_mes
+else:
+    digitado_valido_mes = digitado_maio
+    valor_transbordo = 0.0
+
+# CÁLCULO AJUSTADO: Total Geral usa apenas o digitado útil/válido comercialmente para o mês
+total_geral = (faturado_maio + digitado_valido_mes) - valor_devolucoes
+
+# Os cálculos abaixo agora herdam automaticamente o valor já com a trava de segurança
 percentual_atual = (total_geral / meta_maio) * 100 if meta_maio > 0 else 0
 gap_vs_linear = percentual_atual - percentual_esperado
 falta_r_cifra = meta_maio - total_geral
@@ -278,20 +292,13 @@ st.markdown(f"🕒 *Última atualização: 28/05/2026 às 08:10*")
 st.markdown("""<style>[data-testid="stMetricDelta"] svg { display: none !important; } [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div { background-color: transparent !important; }</style>""", unsafe_allow_html=True)
 
 # --- CÁLCULO DO FORECAST (PROJEÇÃO) ---
-# Usamos as variáveis exatas que você já tem no seu código de calendário:
-# dias_uteis_comerciais_totais (Total do ciclo)
-# dias_uteis_restantes (Quanto falta)
-
 dias_decorridos = dias_uteis_comerciais_totais - dias_uteis_restantes
-
 if dias_decorridos > 0 and total_geral > 0:
     ritmo_atual_realizado = total_geral / dias_decorridos
     forecast_valor = ritmo_atual_realizado * dias_uteis_comerciais_totais
 else:
-    # Se for o primeiro dia útil do mês, o forecast começa zerado ou na meta
     forecast_valor = 0
 
-# Formatação para Real
 forecast_txt = f"R$ {forecast_valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 if gap_vs_linear < -2 and falta_r_cifra > 0:
@@ -304,7 +311,7 @@ def fmt_m(v): return f"R$ {v:,.0f}".replace(",", "X").replace(".", ",").replace(
 
 with col1: st.metric("🎯 Meta", fmt_m(meta_maio))
 with col2: st.metric("✅ Faturado", fmt_m(faturado_maio))
-with col3: st.metric("📝 Digitado", fmt_m(digitado_maio))
+with col3: st.metric("📝 Digitado Útil", fmt_m(digitado_valido_mes)) # Exibe apenas o que vira faturamento no mês
 with col_total: st.metric("💰 Total Geral", fmt_m(total_geral))
 with col4: st.metric("🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit", fmt_m(abs(falta_r_cifra)))
 with col5: st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
@@ -317,43 +324,33 @@ valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace
 dev_txt = f"-R$ {valor_devolucoes:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # ==========================================
-# 📊 CÁLCULO DOS INDICADORES DE PEDIDOS E TM DIRECT DE DADOS_PERFORMANCE
+# 📊 CÁLCULO DOS INDICADORES DE PEDIDOS E TM DIRECT
 # ==========================================
 total_ped_fat = 0
 total_ped_dig = 0
 tm_time_geral = 0.0
 
 if df_vendedores_hist is not None and not df_vendedores_hist.empty:
-    # Filtra os dados especificamente para a data selecionada para garantir consistência
     dados_v_dia_ciclo = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
     
     if not dados_v_dia_ciclo.empty:
-        # Garante que as colunas críticas sejam numéricas
         cols_calculo = ["Fat_Ped", "Dig_Ped", "Faturado_Acumulado", "Digitado_Acumulado"]
         for col in cols_calculo:
             if col in dados_v_dia_ciclo.columns:
                 dados_v_dia_ciclo[col] = pd.to_numeric(dados_v_dia_ciclo[col], errors='coerce').fillna(0)
         
-        # 1. Totalização de Pedidos Faturados e Digitados do Time
         total_ped_fat = int(dados_v_dia_ciclo["Fat_Ped"].sum())
         total_ped_dig = int(dados_v_dia_ciclo["Dig_Ped"].sum())
         total_peds_geral = total_ped_fat + total_ped_dig
         
-        # 2. Totalização Financeira (Sem considerar devoluções conforme solicitado)
         financeiro_total = dados_v_dia_ciclo["Faturado_Acumulado"].sum() + dados_v_dia_ciclo["Digitado_Acumulado"].sum()
         
-        # 3. Cálculo do Ticket Médio do Time
         if total_peds_geral > 0:
             tm_time_geral = financeiro_total / total_peds_geral
-        else:
-            tm_time_geral = 0.0
 
-# Funções de formatação locais rápidas e seguras
 def fmt_tm(val):
-    try:
-        return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    except:
-        return "R$ 0,00"
+    try: return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except: return "R$ 0,00"
 
 # ==========================================
 # 🔍 ANÁLISE DE CICLO CORRIGIDA E PRECISÃO 100%
@@ -365,10 +362,42 @@ st.markdown(f"""
 > * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
 > * Dias úteis restantes (contando com a data selecionada): **{dias_uteis_restantes}**.
 > * O atingimento ideal para hoje é de **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
-> * **Volume do mês:** **{total_ped_fat}** pedidos faturados | **{total_ped_dig}** pedidos digitados. | **{total_ped_fat + total_ped_dig}** pedidos no total.
+> * **Volume do mês:** **{total_ped_fat}** pedidos faturados | **{total_ped_dig}** pedidos digitados.
 > * **Ticket médio:** **{fmt_tm(tm_time_geral)}**.
 > * **Forecast (previsão de fechamento):** :orange[**{forecast_txt}**] (baseado no ritmo atual).
 """)
+
+# ==========================================
+# 💸 NOVA TABELA: TRANSBORDO E BACKLOG DE VIRADA (DINÂMICA)
+# ==========================================
+if data_selecionada > data_limite_faturamento and valor_transbordo > 0:
+    st.markdown("### 📥 Transbordo e Carteira para o Próximo Mês")
+    st.info(f"💡 **Atenção:** Os pedidos digitados a partir do dia {data_limite_faturamento.strftime('%d/%m')} não faturam mais neste mês. Eles estão sendo computados abaixo como carteira garantida para a abertura do próximo mês.")
+    
+    # Montando mini-tabela HTML de transbordo por vendedor
+    style_t = """<style>.tab-transbordo { width: 50%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; margin-bottom: 20px; } .tab-transbordo th { background-color: #f8fafc; padding: 8px; text-align: left; color: #475569; border-bottom: 2px solid #e2e8f0; } .tab-transbordo td { padding: 8px; text-align: left; border-bottom: 1px solid #f1f5f9; }</style>"""
+    html_t = style_t + """<table class='tab-transbordo'><thead><tr><th>👤 Vendedor</th><th style='text-align: right;'>💰 Valor Transbordo (Mês +1)</th></tr></thead><tbody>"""
+    
+    if df_vendedores_hist is not None:
+        v_atual = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada]
+        v_limite = df_vendedores_hist[df_vendedores_hist['Data'] == data_limite_faturamento]
+        
+        for _, vend in v_atual.iterrows():
+            nome = vend['Vendedor']
+            dig_atual = pd.to_numeric(vend['Digitado_Acumulado'], errors='coerce') or 0.0
+            
+            # Localiza o acumulado do mesmo vendedor no dia do corte
+            fatia_limite = v_limite[v_limite['Vendedor'] == nome]
+            dig_limite = pd.to_numeric(fatia_limite.iloc[0]['Digitado_Acumulado'], errors='coerce') if not fatia_limite.empty else 0.0
+            
+            excedente_vendedor = dig_atual - dig_limite
+            if excedente_vendedor > 0:
+                html_t += f"<tr><td><b>{nome}</b></td><td style='text-align: right; color: #1565C0; font-weight: bold;'>{fmt_tm(excedente_vendedor)}</td></tr>"
+                
+        html_t += f"<tr style='background-color: #eff6ff;'><td><b>TOTAL TRANSBORDO TIME</b></td><td style='text-align: right; color: #1e40af; font-weight: bold;'>{fmt_tm(valor_transbordo)}</td></tr>"
+        html_t += "</tbody></table>"
+        st.markdown(html_t, unsafe_allow_html=True)
+
 st.markdown("---")
 
 # ==========================================
