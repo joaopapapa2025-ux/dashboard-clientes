@@ -255,6 +255,7 @@ percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
 # ==========================================
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 meta_mes = 0.0
 valor_devolucoes = 40252.00  # Valor fixo de devoluções
@@ -277,6 +278,13 @@ tabela_tem_transbordo = False
 def fmt_tm(val):
     try: return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     except: return "R$ 0,00"
+
+def fmt_br(val):
+    try:
+        if pd.isna(val) or val == float('inf'): return "R$ 0,00"
+        return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except:
+        return "R$ 0,00"
 
 if df_vendedores_hist is not None and not df_vendedores_hist.empty:
     v_atual = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
@@ -302,12 +310,9 @@ if df_vendedores_hist is not None and not df_vendedores_hist.empty:
 
         # LÓGICA DE ABATIMENTO PATRIMONIAL
         if data_selecionada >= data_limite_faturamento:
-            # Quanto ele faturou a mais desde o dia do corte?
             faturamento_novo = max(0.0, fat_atual - fat_limite)
-            # O faturamento novo consome o saldo digitado antigo que ele tinha direito
             digitado_antigo_restante = max(0.0, dig_limite - faturamento_novo)
             
-            # O que vale para o mês atual é o faturamento real + o que restou do direito de digitação antigo
             total_mes_corrente = fat_atual + digitado_antigo_restante
             transbordo_vendedor = max(0.0, soma_total_atual - total_mes_corrente)
             digitado_util_vendedor = digitado_antigo_restante
@@ -319,7 +324,6 @@ if df_vendedores_hist is not None and not df_vendedores_hist.empty:
         total_digitado_util_time += digitado_util_vendedor
         valor_transbordo_time += transbordo_vendedor
         
-        # Alimenta as linhas da tabela de transbordo
         if transbordo_vendedor > 0:
             linhas_transbordo_html += f"<tr><td><b>{nome}</b></td><td style='text-align: right; color: #1565C0; font-weight: bold;'>{fmt_tm(transbordo_vendedor)}</td></tr>"
             tabela_tem_transbordo = True
@@ -410,85 +414,64 @@ st.markdown(f"""
 > * **Forecast (previsão de fechamento):** :orange[**{forecast_txt}**] (baseado no ritmo atual).
 """)
 
-# ==========================================
-# 💸 INTERFACE: EXIBIÇÃO DA TABELA DE TRANSBORDO
-# ==========================================
-if data_selecionada >= data_limite_faturamento and tabela_tem_transbordo:
-    st.markdown("### 📥 Transbordo e Carteira para o Próximo Mês")
-    st.info(f"💡 **Atenção:** Os pedidos digitados a partir do dia {data_limite_faturamento.strftime('%d/%m')} não faturam mais neste mês. Eles estão sendo computados abaixo como carteira garantida para a abertura do próximo mês.")
-    
-    style_t = """<style>.tab-transbordo { width: 50%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; margin-bottom: 20px; } .tab-transbordo th { background-color: #f8fafc; padding: 8px; text-align: left; color: #475569; border-bottom: 2px solid #e2e8f0; } .tab-transbordo td { padding: 8px; text-align: left; border-bottom: 1px solid #f1f5f9; }</style>"""
-    html_t = style_t + f"""<table class='tab-transbordo'><thead><tr><th>👤 Vendedor</th><th style='text-align: right;'>💰 Valor Transbordo (Mês +1)</th></tr></thead><tbody>{linhas_transbordo_html}"""
-    html_t += f"<tr style='background-color: #eff6ff;'><td><b>TOTAL TRANSBORDO TIME</b></td><td style='text-align: right; color: #1e40af; font-weight: bold;'>{fmt_tm(valor_transbordo_time)}</td></tr>"
-    html_t += "</tbody></table>"
-    st.markdown(html_t, unsafe_allow_html=True)
-
 st.markdown("---")
 
 # ==========================================
-# 📈 PERFORMANCE POR VENDEDOR
+# 📈 PERFORMANCE POR VENDEDOR (RANKING)
 # ==========================================
 st.subheader(f"👥 Ranking de Performance Individual - {data_selecionada.strftime('%B').capitalize()}")
 st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.1f}%]")
 
 if df_vendedores_hist is not None:
-    # Filtra os dados do dia
     dados_v_dia = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
 
-# --- NOVO AVISO DE ATUALIZAÇÃO ---
-    # Verifica se a soma do faturamento de todos os vendedores é zero
     faturamento_total_dia = dados_v_dia["Faturado_Acumulado"].sum() if not dados_v_dia.empty else 0
-    
     if faturamento_total_dia == 0:
         st.warning("⚠️ **Aviso:** O dashboard está sendo alimentado com os resultados de ontem. Em breve os números estarão na tela. Se demorar mais que o normal, é só avisar o João Tadra.")
     
     if not dados_v_dia.empty:
-        # --- BLINDAGEM: Garante que colunas críticas sejam números e não tenham vazios (NaN) ---
         cols_numericas = ["Faturado_Acumulado", "Digitado_Acumulado", "Meta", "Fat_Ped", "Dig_Ped"]
         for col in cols_numericas:
             if col in dados_v_dia.columns:
                 dados_v_dia[col] = pd.to_numeric(dados_v_dia[col], errors='coerce').fillna(0)
 
         for idx, v in dados_v_dia.iterrows():
-            total = v["Faturado_Acumulado"] + v["Digitado_Acumulado"]
-            dados_v_dia.at[idx, "total"] = total
+            nome = v['Vendedor']
+            fat_atual = v["Faturado_Acumulado"]
+            dig_atual = v["Digitado_Acumulado"]
             
-            # Atingimento (evita divisão por zero)
-            dados_v_dia.at[idx, "ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
+            # Buscando a foto do dia de corte para aplicar o abatimento individual na coluna Total do ranking
+            fatia_limite = v_limite[v_limite['Vendedor'] == nome] if 'v_limite' in locals() else pd.DataFrame()
+            fat_limite = pd.to_numeric(fatia_limite.iloc[0]['Faturado_Acumulado'], errors='coerce') if not fatia_limite.empty else fat_atual
+            dig_limite = pd.to_numeric(fatia_limite.iloc[0]['Digitado_Acumulado'], errors='coerce') if not fatia_limite.empty else 0.0
+
+            if data_selecionada >= data_limite_faturamento:
+                faturamento_novo = max(0.0, fat_atual - fat_limite)
+                digitado_util = max(0.0, dig_limite - faturamento_novo)
+                total_util_mes = fat_atual + digitado_util
+            else:
+                total_util_mes = fat_atual + dig_atual
+
+            dados_v_dia.at[idx, "total"] = total_util_mes
+            dados_v_dia.at[idx, "ating"] = (total_util_mes / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
             
-            # Valor Ideal e Diferença
             val_id = (percentual_esperado / 100) * v["Meta"]
             dados_v_dia.at[idx, "val_id"] = val_id
-            dados_v_dia.at[idx, "diff"] = total - val_id
+            dados_v_dia.at[idx, "diff"] = total_util_mes - val_id
             
-            # Ticket Médio
             peds = v["Fat_Ped"] + v["Dig_Ped"]
-            dados_v_dia.at[idx, "tm"] = total / peds if peds > 0 else 0
+            dados_v_dia.at[idx, "tm"] = total_util_mes / peds if peds > 0 else 0
             
-            # Ritmo Diário Necessário
-            falta_v = max(0, v["Meta"] - total)
-            # Se não houver dias restantes, o ritmo é o que falta
+            falta_v = max(0, v["Meta"] - total_util_mes)
             dados_v_dia.at[idx, "ritmo"] = falta_v / dias_uteis_restantes if dias_uteis_restantes > 0 else falta_v
 
-            # Projeção (Forecast) Individual
             dias_passados = dias_uteis_comerciais_totais - dias_uteis_restantes
-            dados_v_dia.at[idx, "forecast_ind"] = (total / dias_passados) * dias_uteis_comerciais_totais if dias_passados > 0 else 0
+            dados_v_dia.at[idx, "forecast_ind"] = (total_util_mes / dias_passados) * dias_uteis_comerciais_totais if dias_passados > 0 else 0
 
-        # Ordenar e formatar para o HTML
         v_lista = dados_v_dia.sort_values(by="ating", ascending=False).to_dict('records')
         
-        # Função fmt_br melhorada para não quebrar com erro
-        def fmt_br(val):
-            try:
-                if pd.isna(val) or val == float('inf'): return "R$ 0,00"
-                return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except:
-                return "R$ 0,00"
-
-        # --- MONTAGEM DA TABELA HTML ---
         style = """<style>.tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; } .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; } .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; } .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; } .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; } .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; } .col-vendedor { width: 250px !important; text-align: left !important; white-space: nowrap !important; }</style>"""
-        
-        html_v = style + """<table class='tab-performance'><thead><tr><th>Pos.</th><th class='col-vendedor'>Vendedor</th><th>Meta</th><th>Faturado</th><th>Digitado</th><th>Total (TM)</th><th>Atingimento</th><th>Ideal Hoje (R$)</th><th>Ritmo Diário Nec.</th></tr></thead><tbody>"""
+        html_v = style + """<table class='tab-performance'><thead><tr><th>Pos.</th><th class='col-vendedor'>Vendedor</th><th>Meta</th><th>Faturado</th><th>Digitado</th><th>Total Útil (TM)</th><th>Atingimento</th><th>Ideal Hoje (R$)</th><th>Ritmo Diário Nec.</th></tr></thead><tbody>"""
         
         for i, v in enumerate(v_lista):
             cor_a = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
@@ -498,7 +481,6 @@ if df_vendedores_hist is not None:
             fat_ped = int(v.get('Fat_Ped', 0))
             dig_ped = int(v.get('Dig_Ped', 0))
 
-            # Linha corrigida com Forecast em negrito (bold)
             linha = f"<tr><td>{i+1}º</td><td class='col-vendedor'><b>{v['Vendedor']}</b></td><td>{fmt_br(v['Meta'])}</td><td style='color: #2E7D32;'>{fmt_br(v['Faturado_Acumulado'])}<span class='val-sub'>{fat_ped} ped.</span></td><td style='color: #1565C0;'>{fmt_br(v['Digitado_Acumulado'])}<span class='val-sub'>{dig_ped} ped.</span></td><td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td><td><div class='prog-bg'><div class='prog-bar' style='width: {min(v['ating'], 100)}%'></div></div> <span style='color: {cor_a}; font-weight: bold;'>{v['ating']:.1f}%</span><span class='val-sub' style='color: {cor_f}; font-weight: bold;'>Forecast: {fmt_br(v.get('forecast_ind', 0))}</span></td><td><b>{fmt_br(v['val_id'])}</b><span class='val-sub' style='color: {cor_d}; font-weight: bold;'>{ 'Acima' if v['diff'] >= 0 else 'Gap'}: {fmt_br(abs(v['diff']))}</span></td><td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo'])}</span><span class='val-sub'>p/ dia</span></td></tr>"
             html_v += linha
         
@@ -508,130 +490,98 @@ if df_vendedores_hist is not None:
         if len(v_lista) > 0 and v_lista[0]["ating"] > 0:
             st.success(f"🚀 **Destaque do Mês:** Atualmente **{v_lista[0]['Vendedor']}** lidera o ranking com **{v_lista[0]['ating']:.1f}%** da meta! 🔥")
     else:
-        # MENSAGEM CASO A PLANILHA NÃO ESTEJA ATUALIZADA
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
 
-import streamlit.components.v1 as components
-
-# ==========================================
-# 🚀 CRONOGRAMA PRO: DESIGN ELITE & ESTRATÉGICO
-# ==========================================
 st.markdown("---")
-st.markdown("## 🗓️ Planejamento Estratégico de Fechamento")
 
-try:
-    # 1. VARIÁVEIS BASE
-    gap_total = falta_r_cifra
-    dias_restantes = dias_uteis_restantes
-    qtd_vendedores = 5
-    
-    # Cálculo do Ticket Médio Real do Time
-    total_peds_mes = (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum())
-    tm_time = total_geral / total_peds_mes if total_peds_mes > 0 else 2217.21
-    
-    # 2. CARDS DE TOPO (NATIVOS STREAMLIT)
-    c1, c2, c3 = st.columns(3)
-    c1.metric("🚩 Gap p/ Meta", fmt_br(gap_total))
-    
-    ultimo_dia_str = pd.to_datetime(dias_uteis_totais_list[-1]).strftime('%d/%m') if dias_uteis_totais_list else ""
-    c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta=f"Até {ultimo_dia_str}")
-    
-    esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
-    peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
-    c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"{int(peds_dia_time)} pedidos/dia")
+# ==========================================
+# 🔄 REGRA DE TRANSIÇÃO AUTOMÁTICA (CRONOGRAMA VS TRANSBORDO)
+# ==========================================
 
-    # 3. LÓGICA DE DATAS E SELEÇÃO DE SEMANAS
-    datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
-    df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
-    df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
-    
-    # Mapeia vendedores ativos usando como base a Meta Global do Mês
-    vendedores_ativos = []
-    if 'dados_v_dia' in locals() and not dados_v_dia.empty:
-        # Filtra apenas os vendedores reais (removendo linhas de totais ou "OUTROS" sem meta)
-        vendedores_ativos = dados_v_dia[dados_v_dia['Meta'] > 0].to_dict('records')
-    
-    # Total de metas cadastradas no mês para base do novo cálculo proporcional
-    total_metas_mes = sum(v["Meta"] for v in vendedores_ativos) if vendedores_ativos else 0
-
-    # Descobre qual é a última semana ativa do planejamento corrente
-    ultima_semana_do_plano = df_semanas['Semana'].max() if not df_semanas.empty else 0
-
-    # CORPO DO CRONOGRAMA (Iteração por semanas usando Containers Nativos)
-    for semana, dados_sem in df_semanas.groupby('Semana'):
-        ini_dt = dados_sem['Data'].min()
-        fim_dt = dados_sem['Data'].max()
-        ini = ini_dt.strftime('%d/%m')
-        fim = fim_dt.strftime('%d/%m')
-        d_uteis = len(dados_sem)
+if data_selecionada < data_limite_faturamento:
+    # --- EXIBE CRONOGRAMA PRO SE ESTIVER ANTES DO DIA DE CORTE ---
+    st.markdown("## 🗓️ Planejamento Estratégico de Fechamento")
+    try:
+        gap_total = falta_r_cifra
+        dias_restantes = dias_uteis_restantes
+        qtd_vendedores = 5
         
-        meta_semana = (gap_total / dias_restantes) * d_uteis if dias_restantes > 0 else 0
-        peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
-        media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
+        total_peds_mes = (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum()) if not dados_v_dia.empty else 0
+        tm_time = total_geral / total_peds_mes if total_peds_mes > 0 else 2217.21
+        
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🚩 Gap p/ Meta", fmt_br(gap_total))
+        
+        ultimo_dia_str = pd.to_datetime(dias_uteis_totais_list[-1]).strftime('%d/%m') if dias_uteis_totais_list else ""
+        c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta=f"Até {ultimo_dia_str}")
+        
+        esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
+        peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
+        c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"{int(peds_dia_time)} pedidos/dia")
 
-        # Nova lógica automatizada de ações estratégicas
-        if semana == ultima_semana_do_plano:
-            acao_titulo = "🏁 SPRINT FINAL"
-            acao_desc = "Recuperação e fechamento imediato."
-            cor_bloco = "red"
-        elif 15 in dados_sem['Data'].dt.day.values:
-            acao_titulo = "📈 SUSTENTAÇÃO"
-            acao_desc = "Ações de Upsell na base."
-            cor_bloco = "green"
-        else:
-            acao_titulo = "🔥 ANTECIPAÇÃO"
-            acao_desc = "Foco: Mudança de tabela."
-            cor_bloco = "orange"
+        datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
+        df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
+        df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
+        
+        vendedores_ativos = dados_v_dia[dados_v_dia['Meta'] > 0].to_dict('records') if not dados_v_dia.empty else []
+        total_metas_mes = sum(v["Meta"] for v in vendedores_ativos) if vendedores_ativos else 0
+        ultima_semana_do_plano = df_semanas['Semana'].max() if not df_semanas.empty else 0
 
-        st.subheader(f"🗓️ Período: {ini} a {fim} ({d_uteis} dias úteis)")
-        
-        col_esf, col_prev, col_peds = st.columns([1.5, 1, 1.5])
-        
-        with col_esf:
-            st.markdown(f"**Ação Estratégica:**\n:{cor_bloco}[**{acao_titulo}**] — *{acao_desc}*")
-        
-        with col_prev:
-            st.markdown(f"**Valor Previsto:**\n:red[**{fmt_br(meta_semana)}**]")
+        for semana, dados_sem in df_semanas.groupby('Semana'):
+            ini = dados_sem['Data'].min().strftime('%d/%m')
+            fim = dados_sem['Data'].max().strftime('%d/%m')
+            d_uteis = len(dados_sem)
             
-        with col_peds:
-            st.markdown(f"**Meta de Pedidos:**\n🏆 **{peds_semana}** pedidos total | 🎯 Ind: **{media_p_vendedor} pedidos**")
+            meta_semana = (gap_total / dias_restantes) * d_uteis if dias_restantes > 0 else 0
+            peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
+            media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
 
-        # Expander Seguro e Compacto para o Detalhamento por Vendedor
-        if vendedores_ativos:
-            with st.expander("📋 Ver Planejamento por Vendedor", expanded=False):
-                
-                st.markdown("""
-                <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-weight: bold; font-size: 11px; color: #64748b; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;">
-                    <div style="flex: 2; text-align: left;">Vendedor</div>
-                    <div style="flex: 1; text-align: center;">Meta Período</div>
-                    <div style="flex: 1; text-align: right;">Qtd Pedidos Esperada</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                for v in vendedores_ativos:
-                    # [CORREÇÃO] O peso agora reflete o tamanho da meta original dele sobre a meta do time
-                    peso = (v["Meta"] / total_metas_mes) if total_metas_mes > 0 else (1 / len(vendedores_ativos))
-                    
-                    meta_ind_semana = meta_semana * peso
-                    
-                    # Calcula os pedidos individuais usando o ticket médio individual do vendedor v["tm"]
-                    peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
-                    
-                    st.markdown(f"""
-                    <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f1f5f9; align-items: center;">
-                        <div style="flex: 2; text-align: left; font-weight: 600; color: #1e293b;">👤 {v['Vendedor']}</div>
-                        <div style="flex: 1; text-align: center; font-weight: bold; color: #d32f2f;">{fmt_br(meta_ind_semana)}</div>
-                        <div style="flex: 1; text-align: right; font-weight: bold; color: #002D62;">{peds_ind_semana} pedidos</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+            if semana == ultima_semana_do_plano:
+                acao_titulo = "🏁 SPRINT FINAL"
+                acao_desc = "Recuperação e fechamento imediato."
+                cor_bloco = "red"
+            elif 15 in dados_sem['Data'].dt.day.values:
+                acao_titulo = "📈 SUSTENTAÇÃO"
+                acao_desc = "Ações de Upsell na base."
+                cor_bloco = "green"
+            else:
+                acao_titulo = "🔥 ANTECIPAÇÃO"
+                acao_desc = "Foco: Mudança de tabela."
+                cor_bloco = "orange"
+
+            st.subheader(f"🗓️ Período: {ini} a {fim} ({d_uteis} dias úteis)")
+            col_esf, col_prev, col_peds = st.columns([1.5, 1, 1.5])
+            
+            with col_esf: st.markdown(f"**Ação Estratégica:**\n:{cor_bloco}[**{acao_titulo}**] — *{acao_desc}*")
+            with col_prev: st.markdown(f"**Valor Previsto:**\n:red[**{fmt_br(meta_semana)}**]")
+            with col_peds: st.markdown(f"**Meta de Pedidos:**\n🏆 **{peds_semana}** pedidos total | 🎯 Ind: **{media_p_vendedor} pedidos**")
+
+            if vendedores_ativos:
+                with st.expander("📋 Ver Planejamento por Vendedor", expanded=False):
+                    st.markdown("""<div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-weight: bold; font-size: 11px; color: #64748b; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;"><div style="flex: 2; text-align: left;">Vendedor</div><div style="flex: 1; text-align: center;">Meta Período</div><div style="flex: 1; text-align: right;">Qtd Pedidos Esperada</div></div>""", unsafe_allow_html=True)
+                    for v in vendedores_ativos:
+                        peso = (v["Meta"] / total_metas_mes) if total_metas_mes > 0 else (1 / len(vendedores_ativos))
+                        meta_ind_semana = meta_semana * peso
+                        peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
+                        st.markdown(f"""<div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f1f5f9; align-items: center;"><div style="flex: 2; text-align: left; font-weight: 600; color: #1e293b;">👤 {v['Vendedor']}</div><div style="flex: 1; text-align: center; font-weight: bold; color: #d32f2f;">{fmt_br(meta_ind_semana)}</div><div style="flex: 1; text-align: right; font-weight: bold; color: #002D62;">{peds_ind_semana} pedidos</div></div>""", unsafe_allow_html=True)
+            st.markdown("---")
+
+        with st.container():
+            st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
+    except Exception as e:
+        st.warning(f"Configure os dados de faturamento para visualizar o cronograma.")
+
+else:
+    # --- SUBSTITUI PARA A TABELA DE TRANSBORDO SE JÁ PASSOU DA DATA LIMITE ---
+    if tabela_tem_transbordo:
+        st.markdown("### 📥 Transbordo e Carteira para o Próximo Mês")
+        st.info(f"💡 **Atenção:** Os pedidos digitados a partir do dia {data_limite_faturamento.strftime('%d/%m')} não faturam mais neste mês. Eles estão sendo computados abaixo como carteira garantida para a abertura do próximo mês.")
         
-        st.markdown("---")
-
-    with st.container():
-        st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
-
-except Exception as e:
-    st.warning(f"Configure os dados de faturamento para visualizar o cronograma.")
+        style_t = """<style>.tab-transbordo { width: 50%; border-collapse: collapse; font-family: sans-serif; font-size: 13px; margin-bottom: 20px; } .tab-transbordo th { background-color: #f8fafc; padding: 8px; text-align: left; color: #475569; border-bottom: 2px solid #e2e8f0; } .tab-transbordo td { padding: 8px; text-align: left; border-bottom: 1px solid #f1f5f9; }</style>"""
+        html_t = style_t + f"""<table class='tab-transbordo'><thead><tr><th>👤 Vendedor</th><th style='text-align: right;'>💰 Valor Transbordo (Mês +1)</th></tr></thead><tbody>{linhas_transbordo_html}"""
+        html_t += f"<tr style='background-color: #eff6ff;'><td><b>TOTAL TRANSBORDO TIME</b></td><td style='text-align: right; color: #1e40af; font-weight: bold;'>{fmt_tm(valor_transbordo_time)}</td></tr>"
+        html_t += "</tbody></table>"
+        st.markdown(html_t, unsafe_allow_html=True)
         
 # =========================
 # ARQUIVO BASE
