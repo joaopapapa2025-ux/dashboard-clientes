@@ -170,756 +170,578 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # ==========================================
+
 # 📊 CONFIGURAÇÃO E CARREGAMENTO (COM AUTO-REFRESH)
+
 # ==========================================
 
-import streamlit as st
-import pandas as pd
-from datetime import datetime, timedelta
-from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday
-import streamlit.components.v1 as components
 
-@st.cache_data(ttl=60)  # O cache expira e recarrega o Excel a cada 60 segundos
+
+@st.cache_data(ttl=60) # O cache expira e recarrega o Excel a cada 60 segundos
+
 def carregar_dados():
+
     try:
+
         # Carrega as abas do Excel
+
         df_g = pd.read_excel("dados_performance.xlsx", sheet_name="Geral")
+
         df_v = pd.read_excel("dados_performance.xlsx", sheet_name="Vendedores")
 
+        
+
         # Garante que a coluna Data seja tratada como data pura
+
         df_g['Data'] = pd.to_datetime(df_g['Data']).dt.date
+
         df_v['Data'] = pd.to_datetime(df_v['Data']).dt.date
 
         return df_g, df_v
 
     except Exception as e:
+
         st.error(f"Erro ao carregar 'dados_performance.xlsx': {e}")
+
         return None, None
+
+
 
 df_geral_hist, df_vendedores_hist = carregar_dados()
 
-# ==========================================
-# 🇧🇷 CONFIGURAÇÃO DE FERIADOS
-# ==========================================
+
+
+# --- CONFIGURAÇÃO DE FERIADOS ---
 
 class FeriadosBrasil(AbstractHolidayCalendar):
+
     rules = [
+
         Holiday('Confraternização Universal', month=1, day=1),
+
         Holiday('Tiradentes', month=4, day=21),
+
         Holiday('Dia do Trabalho', month=5, day=1),
+
         Holiday('Independência', month=9, day=7),
+
         Holiday('Nossa Sra Aparecida', month=10, day=12),
+
         Holiday('Finados', month=11, day=2),
+
         Holiday('Proclamação da República', month=11, day=15),
+
         Holiday('Natal', month=12, day=25),
+
     ]
 
+
+
 cal = FeriadosBrasil()
+
 feriados_pandas = cal.holidays(start='2026-01-01', end='2026-12-31')
+
 lista_feriados = [d.date() for d in feriados_pandas]
 
-# ==========================================
-# ⚙️ FILTRO DE DATA
-# ==========================================
+
+
+# --- FILTRO DE DATA ---
 
 with st.sidebar:
+
     st.header("⚙️ Filtro")
 
-    # Botão Hoje
+    
+
+    # Se o botão "Hoje" for clicado, ele limpa qualquer seleção anterior e volta para a data atual
+
     if st.button("📅 Hoje"):
+
         st.session_state["data_input_key"] = datetime.now().date()
 
-    # Date Input
+
+
+    # Adicionamos uma 'key' para o date_input ser controlado pelo botão
+
     data_selecionada = st.date_input(
-        "Preencha a data de hoje (resultado D -1):",
-        value=st.session_state.get("data_input_key", datetime.now().date()),
+
+        "Preencha a data de hoje (resultado D -1):", 
+
+        value=st.session_state.get("data_input_key", datetime.now().date()), 
+
         format="DD/MM/YYYY",
+
         key="data_input_key"
+
     )
 
+
+
 # ==========================================
+
 # 📝 LÓGICA DE DATAS (D-1 ÚTIL)
+
 # ==========================================
 
-inicio_mes = datetime(
-    data_selecionada.year,
-    data_selecionada.month,
-    1
-).date()
+inicio_mes = datetime(data_selecionada.year, data_selecionada.month, 1).date()
 
-fim_mes_civil = (
-    (inicio_mes + timedelta(days=32)).replace(day=1)
-    - timedelta(days=1)
-)
+fim_mes_civil = (inicio_mes + timedelta(days=32)).replace(day=1) - timedelta(days=1)
 
-dias_uteis_reais = pd.date_range(
-    inicio_mes,
-    fim_mes_civil,
-    freq='B'
-)
 
-dias_uteis_reais = [
-    d.date()
-    for d in dias_uteis_reais
-    if d.date() not in lista_feriados
-]
 
-# Prazo final de faturamento
-data_limite_faturamento = dias_uteis_reais[-4]
+dias_uteis_reais = pd.date_range(inicio_mes, fim_mes_civil, freq='B')
 
-dias_uteis_totais_list = [
-    d for d in dias_uteis_reais
-    if d <= data_limite_faturamento
-]
+dias_uteis_reais = [d.date() for d in dias_uteis_reais if d.date() not in lista_feriados]
+
+
+
+# Prazo final de faturamento (10 dias úteis no total)
+
+data_limite_faturamento = dias_uteis_reais[-4] 
+
+dias_uteis_totais_list = [d for d in dias_uteis_reais if d <= data_limite_faturamento]
 
 dias_uteis_comerciais_totais = len(dias_uteis_totais_list)
 
-# ==========================================
-# 📅 D-1 ÚTIL
-# ==========================================
 
-dias_uteis_anteriores = [
-    d for d in dias_uteis_totais_list
-    if d < data_selecionada
-]
+
+# --- A CHAVE DO PROBLEMA: D-1 ÚTIL ---
+
+# Pegamos todos os dias úteis ANTES da data selecionada
+
+dias_uteis_anteriores = [d for d in dias_uteis_totais_list if d < data_selecionada]
 
 dias_uteis_passados = len(dias_uteis_anteriores)
 
-data_ref_calculo = (
-    dias_uteis_anteriores[-1]
-    if dias_uteis_passados > 0
-    else inicio_mes
-)
+# A data de referência real para os cálculos de "esperado"
 
-dias_uteis_restantes = len([
-    d for d in dias_uteis_totais_list
-    if d >= data_selecionada
-])
+data_ref_calculo = dias_uteis_anteriores[-1] if dias_uteis_passados > 0 else inicio_mes
 
-percentual_esperado = (
-    (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
-    if dias_uteis_comerciais_totais > 0
-    else 100
-)
+
+
+# Dias restantes (contando a partir da data selecionada)
+
+dias_uteis_restantes = len([d for d in dias_uteis_totais_list if d >= data_selecionada])
+
+
+
+# Meta esperada baseada no fechamento do dia útil anterior
+
+percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100 if dias_uteis_comerciais_totais > 0 else 100
+
+
 
 # ==========================================
-# 📊 PERFORMANCE GERAL
+
+# 📝 BLOCO 1: PERFORMANCE GERAL
+
 # ==========================================
 
-meta_maio = 873528.0
-faturado_maio = 0.0
-digitado_maio = 0.0
+meta_maio, faturado_maio, digitado_maio = 873528.0, 0.0, 0.0
 
-valor_devolucoes = 40252.00
+valor_devolucoes = 40252.00  # Valor fixo conforme solicitado
+
+
 
 if df_geral_hist is not None:
-    linha = df_geral_hist[
-        df_geral_hist['Data'] == data_selecionada
-    ]
+
+    linha = df_geral_hist[df_geral_hist['Data'] == data_selecionada]
 
     if not linha.empty:
+
         meta_maio = float(linha.iloc[0]['Meta_Mes'])
+
         faturado_maio = float(linha.iloc[0]['Faturado_Acumulado'])
+
         digitado_maio = float(linha.iloc[0]['Digitado_Acumulado'])
 
-# Total Geral
-total_geral = (
-    faturado_maio +
-    digitado_maio -
-    valor_devolucoes
-)
 
-percentual_atual = (
-    (total_geral / meta_maio) * 100
-    if meta_maio > 0
-    else 0
-)
+
+# CÁLCULO AJUSTADO: O Total Geral agora é o faturamento líquido (Bruto - Devoluções)
+
+total_geral = (faturado_maio + digitado_maio) - valor_devolucoes
+
+
+
+# Os cálculos abaixo agora herdam automaticamente o valor já com o desconto
+
+percentual_atual = (total_geral / meta_maio) * 100 if meta_maio > 0 else 0
 
 gap_vs_linear = percentual_atual - percentual_esperado
 
 falta_r_cifra = meta_maio - total_geral
 
-ritmo_final = (
-    max(falta_r_cifra / dias_uteis_restantes, 0)
-    if dias_uteis_restantes > 0
-    else 0
-)
+ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
-st.subheader(
-    f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})"
-)
 
-st.markdown(
-    f"🕒 *Última atualização: {datetime.now().strftime('%d/%m/%Y às %H:%M')}*"
-)
 
-st.markdown("""
-<style>
-[data-testid="stMetricDelta"] svg {
-    display: none !important;
-}
+st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
 
-[data-testid="column"]:nth-of-type(7)
-[data-testid="stMetricDelta"] > div {
-    background-color: transparent !important;
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(f"🕒 *Última atualização: 28/05/2026 às 08:10*")
 
-# ==========================================
-# 📈 FORECAST
-# ==========================================
 
-dias_decorridos = (
-    dias_uteis_comerciais_totais -
-    dias_uteis_restantes
-)
+
+st.markdown("""<style>[data-testid="stMetricDelta"] svg { display: none !important; } [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div { background-color: transparent !important; }</style>""", unsafe_allow_html=True)
+
+
+
+# --- CÁLCULO DO FORECAST (PROJEÇÃO) ---
+
+# Usamos as variáveis exatas que você já tem no seu código de calendário:
+
+# dias_uteis_comerciais_totais (Total do ciclo)
+
+# dias_uteis_restantes (Quanto falta)
+
+
+
+dias_decorridos = dias_uteis_comerciais_totais - dias_uteis_restantes
+
+
 
 if dias_decorridos > 0 and total_geral > 0:
+
     ritmo_atual_realizado = total_geral / dias_decorridos
-    forecast_valor = (
-        ritmo_atual_realizado *
-        dias_uteis_comerciais_totais
-    )
+
+    forecast_valor = ritmo_atual_realizado * dias_uteis_comerciais_totais
+
 else:
+
+    # Se for o primeiro dia útil do mês, o forecast começa zerado ou na meta
+
     forecast_valor = 0
 
-forecast_txt = (
-    f"R$ {forecast_valor:,.2f}"
-    .replace(",", "X")
-    .replace(".", ",")
-    .replace("X", ".")
-)
 
-# ==========================================
-# 🚨 ALERTAS
-# ==========================================
+
+# Formatação para Real
+
+forecast_txt = f"R$ {forecast_valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 
 if gap_vs_linear < -2 and falta_r_cifra > 0:
-    st.error(
-        f"⚠️ **Ritmo Atrasado:** Estamos "
-        f"{abs(gap_vs_linear):.1f}% abaixo do ideal "
-        f"para o fechamento de "
-        f"{data_ref_calculo.strftime('%d/%m')}."
-    )
+
+    st.error(f"⚠️ **Ritmo Atrasado:** Estamos {abs(gap_vs_linear):.1f}% abaixo do ideal para o fechamento de {data_ref_calculo.strftime('%d/%m')}.")
 
 elif falta_r_cifra <= 0:
-    st.balloons()
-    st.success("🏆 **META BATIDA!**")
 
-# ==========================================
-# 💰 MÉTRICAS
-# ==========================================
+    st.balloons(); st.success("🏆 **META BATIDA!**")
+
+
 
 col1, col2, col3, col_total, col4, col5, col6 = st.columns(7)
 
-def fmt_m(v):
-    return (
-        f"R$ {v:,.0f}"
-        .replace(",", "X")
-        .replace(".", ",")
-        .replace("X", ".")
-    )
+def fmt_m(v): return f"R$ {v:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-with col1:
-    st.metric("🎯 Meta", fmt_m(meta_maio))
 
-with col2:
-    st.metric("✅ Faturado", fmt_m(faturado_maio))
 
-with col3:
-    st.metric("📝 Digitado", fmt_m(digitado_maio))
+with col1: st.metric("🎯 Meta", fmt_m(meta_maio))
 
-with col_total:
-    st.metric("💰 Total Geral", fmt_m(total_geral))
+with col2: st.metric("✅ Faturado", fmt_m(faturado_maio))
 
-with col4:
-    st.metric(
-        "🚩 Falta (Gap)"
-        if falta_r_cifra > 0
-        else "🏆 Superavit",
-        fmt_m(abs(falta_r_cifra))
-    )
+with col3: st.metric("📝 Digitado", fmt_m(digitado_maio))
 
-with col5:
-    st.metric(
-        "🔥 Atingimento",
-        f"{percentual_atual:.1f}%",
-        delta=f"{gap_vs_linear:.1f}% vs Ideal"
-    )
+with col_total: st.metric("💰 Total Geral", fmt_m(total_geral))
 
-with col6:
-    st.metric(
-        "📅 Ritmo Diário Necessário",
-        f"{fmt_m(ritmo_final)} /dia",
-        delta=f"{dias_uteis_restantes} d.ú. rest."
-    )
+with col4: st.metric("🚩 Falta (Gap)" if falta_r_cifra > 0 else "🏆 Superavit", fmt_m(abs(falta_r_cifra)))
 
-components.html("""
-<script>
-const f = () => {
-    const d = window.parent.document.querySelectorAll('[data-testid="stMetricDelta"]');
+with col5: st.metric("🔥 Atingimento", f"{percentual_atual:.1f}%", delta=f"{gap_vs_linear:.1f}% vs Ideal")
 
-    if(d.length > 0){
-        const e = d[d.length-1].querySelector('div');
+with col6: st.metric("📅 Ritmo Diário Necessário", f"{fmt_m(ritmo_final)} /dia", delta=f"{dias_uteis_restantes} d.ú. rest.")
 
-        if(e){
-            e.style.color = '#29b5e8';
-            e.style.setProperty('color', '#29b5e8', 'important');
-        }
-    }
-};
 
-f();
-setTimeout(f, 1000);
-</script>
-""", height=0)
+
+components.html("""<script>const f = () => { const d = window.parent.document.querySelectorAll('[data-testid="stMetricDelta"]'); if(d.length > 0){ const e = d[d.length-1].querySelector('div'); if(e){ e.style.color = '#29b5e8'; e.style.setProperty('color', '#29b5e8', 'important'); }}}; f(); setTimeout(f, 1000);</script>""", height=0)
+
+
+
+valor_esperado_reais = (percentual_esperado / 100) * meta_maio
+
+valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+dev_txt = f"-R$ {valor_devolucoes:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 
 # ==========================================
-# 📊 INDICADORES DE PEDIDOS E TM
+
+# 📊 CÁLCULO DOS INDICADORES DE PEDIDOS E TM DIRECT DE DADOS_PERFORMANCE
+
 # ==========================================
-
-valor_esperado_reais = (
-    (percentual_esperado / 100) *
-    meta_maio
-)
-
-valor_formatado_br = (
-    f"R$ {valor_esperado_reais:,.2f}"
-    .replace(",", "X")
-    .replace(".", ",")
-    .replace("X", ".")
-)
-
-dev_txt = (
-    f"-R$ {valor_devolucoes:,.2f}"
-    .replace(",", "X")
-    .replace(".", ",")
-    .replace("X", ".")
-)
 
 total_ped_fat = 0
+
 total_ped_dig = 0
+
 tm_time_geral = 0.0
 
-if (
-    df_vendedores_hist is not None and
-    not df_vendedores_hist.empty
-):
 
-    dados_v_dia_ciclo = df_vendedores_hist[
-        df_vendedores_hist['Data'] == data_selecionada
-    ].copy()
+
+if df_vendedores_hist is not None and not df_vendedores_hist.empty:
+
+    # Filtra os dados especificamente para a data selecionada para garantir consistência
+
+    dados_v_dia_ciclo = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
+
+    
 
     if not dados_v_dia_ciclo.empty:
 
-        cols_calculo = [
-            "Fat_Ped",
-            "Dig_Ped",
-            "Faturado_Acumulado",
-            "Digitado_Acumulado"
-        ]
+        # Garante que as colunas críticas sejam numéricas
+
+        cols_calculo = ["Fat_Ped", "Dig_Ped", "Faturado_Acumulado", "Digitado_Acumulado"]
 
         for col in cols_calculo:
+
             if col in dados_v_dia_ciclo.columns:
-                dados_v_dia_ciclo[col] = pd.to_numeric(
-                    dados_v_dia_ciclo[col],
-                    errors='coerce'
-                ).fillna(0)
 
-        total_ped_fat = int(
-            dados_v_dia_ciclo["Fat_Ped"].sum()
-        )
+                dados_v_dia_ciclo[col] = pd.to_numeric(dados_v_dia_ciclo[col], errors='coerce').fillna(0)
 
-        total_ped_dig = int(
-            dados_v_dia_ciclo["Dig_Ped"].sum()
-        )
+        
 
-        total_peds_geral = (
-            total_ped_fat +
-            total_ped_dig
-        )
+        # 1. Totalização de Pedidos Faturados e Digitados do Time
 
-        financeiro_total = (
-            dados_v_dia_ciclo["Faturado_Acumulado"].sum() +
-            dados_v_dia_ciclo["Digitado_Acumulado"].sum()
-        )
+        total_ped_fat = int(dados_v_dia_ciclo["Fat_Ped"].sum())
+
+        total_ped_dig = int(dados_v_dia_ciclo["Dig_Ped"].sum())
+
+        total_peds_geral = total_ped_fat + total_ped_dig
+
+        
+
+        # 2. Totalização Financeira (Sem considerar devoluções conforme solicitado)
+
+        financeiro_total = dados_v_dia_ciclo["Faturado_Acumulado"].sum() + dados_v_dia_ciclo["Digitado_Acumulado"].sum()
+
+        
+
+        # 3. Cálculo do Ticket Médio do Time
 
         if total_peds_geral > 0:
-            tm_time_geral = (
-                financeiro_total /
-                total_peds_geral
-            )
+
+            tm_time_geral = financeiro_total / total_peds_geral
+
+        else:
+
+            tm_time_geral = 0.0
+
+
+
+# Funções de formatação locais rápidas e seguras
 
 def fmt_tm(val):
+
     try:
-        return (
-            f"R$ {val:,.2f}"
-            .replace(",", "X")
-            .replace(".", ",")
-            .replace("X", ".")
-        )
+
+        return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
     except:
+
         return "R$ 0,00"
 
+
+
 # ==========================================
-# 🔍 ANÁLISE DE CICLO
+
+# 🔍 ANÁLISE DE CICLO CORRIGIDA E PRECISÃO 100%
+
 # ==========================================
 
 st.markdown(f"""
+
 > **Análise de ciclo:**
->
+
 > * Valor de devoluções: **{dev_txt}**
->
-> * Referência de dados para meta ideal:
-> **{data_ref_calculo.strftime('%d/%m')}**
->
-> * Prazo final de faturamento:
-> **{data_limite_faturamento.strftime('%d/%m')}**
->
-> * Dias úteis restantes:
-> **{dias_uteis_restantes}**
->
-> * O atingimento ideal para hoje é de
-> **{percentual_esperado:.1f}%**
-> (equivalente a **{valor_formatado_br}**)
->
-> * **Volume do mês:**
-> **{total_ped_fat}** pedidos faturados |
-> **{total_ped_dig}** pedidos digitados |
-> **{total_ped_fat + total_ped_dig}** pedidos total
->
-> * **Ticket médio:** **{fmt_tm(tm_time_geral)}**
->
-> * **Forecast:** :orange[**{forecast_txt}**]
+
+> * Referência de dados para meta ideal: **{data_ref_calculo.strftime('%d/%m')}** (Último dia útil completo).
+
+> * Prazo final de faturamento: **{data_limite_faturamento.strftime('%d/%m')}**.
+
+> * Dias úteis restantes (contando com a data selecionada): **{dias_uteis_restantes}**.
+
+> * O atingimento ideal para hoje é de **{percentual_esperado:.1f}%** (equivalente a **{valor_formatado_br}**).
+
+> * **Volume do mês:** **{total_ped_fat}** pedidos faturados | **{total_ped_dig}** pedidos digitados. | **{total_ped_fat + total_ped_dig}** pedidos no total.
+
+> * **Ticket médio:** **{fmt_tm(tm_time_geral)}**.
+
+> * **Forecast (previsão de fechamento):** :orange[**{forecast_txt}**] (baseado no ritmo atual).
+
 """)
 
 st.markdown("---")
 
-# ==========================================
-# 👥 PERFORMANCE POR VENDEDOR
+
+
 # ==========================================
 
-st.subheader(
-    f"👥 Ranking de Performance Individual - "
-    f"{data_selecionada.strftime('%B').capitalize()}"
-)
+# 📈 PERFORMANCE POR VENDEDOR
 
-st.markdown(
-    f"🎯 **Atingimento ideal para hoje:** "
-    f":blue[{percentual_esperado:.1f}%]"
-)
+# ==========================================
+
+st.subheader(f"👥 Ranking de Performance Individual - {data_selecionada.strftime('%B').capitalize()}")
+
+st.markdown(f"🎯 **Atingimento ideal para hoje:** :blue[{percentual_esperado:.1f}%]")
+
+
 
 if df_vendedores_hist is not None:
 
-    dados_v_dia = df_vendedores_hist[
-        df_vendedores_hist['Data'] == data_selecionada
-    ].copy()
+    # Filtra os dados do dia
 
-    faturamento_total_dia = (
-        dados_v_dia["Faturado_Acumulado"].sum()
-        if not dados_v_dia.empty
-        else 0
-    )
+    dados_v_dia = df_vendedores_hist[df_vendedores_hist['Data'] == data_selecionada].copy()
+
+
+
+# --- NOVO AVISO DE ATUALIZAÇÃO ---
+
+    # Verifica se a soma do faturamento de todos os vendedores é zero
+
+    faturamento_total_dia = dados_v_dia["Faturado_Acumulado"].sum() if not dados_v_dia.empty else 0
+
+    
 
     if faturamento_total_dia == 0:
-        st.warning(
-            "⚠️ **Aviso:** O dashboard está sendo alimentado "
-            "com os resultados de ontem. "
-            "Em breve os números estarão na tela. "
-            "Se demorar mais que o normal, "
-            "é só avisar o João Tadra."
-        )
+
+        st.warning("⚠️ **Aviso:** O dashboard está sendo alimentado com os resultados de ontem. Em breve os números estarão na tela. Se demorar mais que o normal, é só avisar o João Tadra.")
+
+    
 
     if not dados_v_dia.empty:
 
-        cols_numericas = [
-            "Faturado_Acumulado",
-            "Digitado_Acumulado",
-            "Meta",
-            "Fat_Ped",
-            "Dig_Ped"
-        ]
+        # --- BLINDAGEM: Garante que colunas críticas sejam números e não tenham vazios (NaN) ---
+
+        cols_numericas = ["Faturado_Acumulado", "Digitado_Acumulado", "Meta", "Fat_Ped", "Dig_Ped"]
 
         for col in cols_numericas:
+
             if col in dados_v_dia.columns:
-                dados_v_dia[col] = pd.to_numeric(
-                    dados_v_dia[col],
-                    errors='coerce'
-                ).fillna(0)
+
+                dados_v_dia[col] = pd.to_numeric(dados_v_dia[col], errors='coerce').fillna(0)
+
+
 
         for idx, v in dados_v_dia.iterrows():
 
-            total = (
-                v["Faturado_Acumulado"] +
-                v["Digitado_Acumulado"]
-            )
+            total = v["Faturado_Acumulado"] + v["Digitado_Acumulado"]
 
             dados_v_dia.at[idx, "total"] = total
 
-            dados_v_dia.at[idx, "ating"] = (
-                (total / v["Meta"]) * 100
-                if v["Meta"] > 0
-                else 0
-            )
+            
 
-            val_id = (
-                (percentual_esperado / 100) *
-                v["Meta"]
-            )
+            # Atingimento (evita divisão por zero)
+
+            dados_v_dia.at[idx, "ating"] = (total / v["Meta"]) * 100 if v["Meta"] > 0 else 0.0
+
+            
+
+            # Valor Ideal e Diferença
+
+            val_id = (percentual_esperado / 100) * v["Meta"]
 
             dados_v_dia.at[idx, "val_id"] = val_id
 
-            dados_v_dia.at[idx, "diff"] = (
-                total - val_id
-            )
+            dados_v_dia.at[idx, "diff"] = total - val_id
 
-            peds = (
-                v["Fat_Ped"] +
-                v["Dig_Ped"]
-            )
+            
 
-            dados_v_dia.at[idx, "tm"] = (
-                total / peds
-                if peds > 0
-                else 0
-            )
+            # Ticket Médio
 
-            falta_v = max(
-                0,
-                v["Meta"] - total
-            )
+            peds = v["Fat_Ped"] + v["Dig_Ped"]
 
-            dados_v_dia.at[idx, "ritmo"] = (
-                falta_v / dias_uteis_restantes
-                if dias_uteis_restantes > 0
-                else falta_v
-            )
+            dados_v_dia.at[idx, "tm"] = total / peds if peds > 0 else 0
 
-            dias_passados = (
-                dias_uteis_comerciais_totais -
-                dias_uteis_restantes
-            )
+            
 
-            dados_v_dia.at[idx, "forecast_ind"] = (
-                (total / dias_passados) *
-                dias_uteis_comerciais_totais
-                if dias_passados > 0
-                else 0
-            )
+            # Ritmo Diário Necessário
 
-        v_lista = dados_v_dia.sort_values(
-            by="ating",
-            ascending=False
-        ).to_dict('records')
+            falta_v = max(0, v["Meta"] - total)
+
+            # Se não houver dias restantes, o ritmo é o que falta
+
+            dados_v_dia.at[idx, "ritmo"] = falta_v / dias_uteis_restantes if dias_uteis_restantes > 0 else falta_v
+
+
+
+            # Projeção (Forecast) Individual
+
+            dias_passados = dias_uteis_comerciais_totais - dias_uteis_restantes
+
+            dados_v_dia.at[idx, "forecast_ind"] = (total / dias_passados) * dias_uteis_comerciais_totais if dias_passados > 0 else 0
+
+
+
+        # Ordenar e formatar para o HTML
+
+        v_lista = dados_v_dia.sort_values(by="ating", ascending=False).to_dict('records')
+
+        
+
+        # Função fmt_br melhorada para não quebrar com erro
 
         def fmt_br(val):
-            try:
-                if pd.isna(val) or val == float('inf'):
-                    return "R$ 0,00"
 
-                return (
-                    f"R$ {val:,.2f}"
-                    .replace(",", "X")
-                    .replace(".", ",")
-                    .replace("X", ".")
-                )
+            try:
+
+                if pd.isna(val) or val == float('inf'): return "R$ 0,00"
+
+                return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
             except:
+
                 return "R$ 0,00"
 
-        style = """
-        <style>
-        .tab-performance {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: sans-serif;
-            font-size: 14px;
-        }
 
-        .tab-performance th {
-            background-color: #f0f2f6;
-            padding: 12px;
-            text-align: center;
-            color: #31333F;
-            border-bottom: 2px solid #ccc;
-        }
 
-        .tab-performance td {
-            padding: 12px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-        }
+        # --- MONTAGEM DA TABELA HTML ---
 
-        .prog-bg {
-            background-color: #ddd;
-            border-radius: 10px;
-            width: 60px;
-            height: 8px;
-            display: inline-block;
-            margin-right: 5px;
-        }
+        style = """<style>.tab-performance { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; } .tab-performance th { background-color: #f0f2f6; padding: 12px; text-align: center; color: #31333F; border-bottom: 2px solid #ccc; } .tab-performance td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; } .prog-bg { background-color: #ddd; border-radius: 10px; width: 60px; height: 8px; display: inline-block; margin-right: 5px; } .prog-bar { background-color: #29b5e8; height: 8px; border-radius: 10px; } .val-sub { font-size: 11px; color: #757575; display: block; margin-top: 2px; } .col-vendedor { width: 250px !important; text-align: left !important; white-space: nowrap !important; }</style>"""
 
-        .prog-bar {
-            background-color: #29b5e8;
-            height: 8px;
-            border-radius: 10px;
-        }
+        
 
-        .val-sub {
-            font-size: 11px;
-            color: #757575;
-            display: block;
-            margin-top: 2px;
-        }
+        html_v = style + """<table class='tab-performance'><thead><tr><th>Pos.</th><th class='col-vendedor'>Vendedor</th><th>Meta</th><th>Faturado</th><th>Digitado</th><th>Total (TM)</th><th>Atingimento</th><th>Ideal Hoje (R$)</th><th>Ritmo Diário Nec.</th></tr></thead><tbody>"""
 
-        .col-vendedor {
-            width: 250px !important;
-            text-align: left !important;
-            white-space: nowrap !important;
-        }
-        </style>
-        """
-
-        html_v = style + """
-        <table class='tab-performance'>
-        <thead>
-        <tr>
-            <th>Pos.</th>
-            <th class='col-vendedor'>Vendedor</th>
-            <th>Meta</th>
-            <th>Faturado</th>
-            <th>Digitado</th>
-            <th>Total (TM)</th>
-            <th>Atingimento</th>
-            <th>Ideal Hoje (R$)</th>
-            <th>Ritmo Diário Nec.</th>
-        </tr>
-        </thead>
-        <tbody>
-        """
+        
 
         for i, v in enumerate(v_lista):
 
-            cor_a = (
-                "#2E7D32"
-                if v["ating"] >= percentual_esperado
-                else "#C62828"
-            )
+            cor_a = "#2E7D32" if v["ating"] >= percentual_esperado else "#C62828"
 
-            cor_d = (
-                "#2E7D32"
-                if v["diff"] >= 0
-                else "#C62828"
-            )
+            cor_d = "#2E7D32" if v["diff"] >= 0 else "#C62828"
 
-            cor_f = (
-                "#2E7D32"
-                if v.get("forecast_ind", 0) >= v["Meta"]
-                else "#C62828"
-            )
+            cor_f = "#2E7D32" if v.get("forecast_ind", 0) >= v["Meta"] else "#C62828"
+
+            
 
             fat_ped = int(v.get('Fat_Ped', 0))
+
             dig_ped = int(v.get('Dig_Ped', 0))
 
-            linha = f"""
-            <tr>
-                <td>{i+1}º</td>
 
-                <td class='col-vendedor'>
-                    <b>{v['Vendedor']}</b>
-                </td>
 
-                <td>{fmt_br(v['Meta'])}</td>
+            # Linha corrigida com Forecast em negrito (bold)
 
-                <td style='color: #2E7D32;'>
-                    {fmt_br(v['Faturado_Acumulado'])}
-                    <span class='val-sub'>{fat_ped} ped.</span>
-                </td>
-
-                <td style='color: #1565C0;'>
-                    {fmt_br(v['Digitado_Acumulado'])}
-                    <span class='val-sub'>{dig_ped} ped.</span>
-                </td>
-
-                <td>
-                    <b>{fmt_br(v['total'])}</b>
-                    <span class='val-sub'>
-                        TM: {fmt_br(v['tm'])}
-                    </span>
-                </td>
-
-                <td>
-                    <div class='prog-bg'>
-                        <div class='prog-bar'
-                        style='width: {min(v["ating"], 100)}%'>
-                        </div>
-                    </div>
-
-                    <span style='color: {cor_a};
-                    font-weight: bold;'>
-                        {v['ating']:.1f}%
-                    </span>
-
-                    <span class='val-sub'
-                    style='color: {cor_f};
-                    font-weight: bold;'>
-                        Forecast:
-                        {fmt_br(v.get('forecast_ind', 0))}
-                    </span>
-                </td>
-
-                <td>
-                    <b>{fmt_br(v['val_id'])}</b>
-
-                    <span class='val-sub'
-                    style='color: {cor_d};
-                    font-weight: bold;'>
-
-                        {'Acima' if v['diff'] >= 0 else 'Gap'}:
-                        {fmt_br(abs(v['diff']))}
-
-                    </span>
-                </td>
-
-                <td>
-                    <span style='color: #E64A19;
-                    font-weight: bold;'>
-                        {fmt_br(v['ritmo'])}
-                    </span>
-
-                    <span class='val-sub'>
-                        p/ dia
-                    </span>
-                </td>
-            </tr>
-            """
+            linha = f"<tr><td>{i+1}º</td><td class='col-vendedor'><b>{v['Vendedor']}</b></td><td>{fmt_br(v['Meta'])}</td><td style='color: #2E7D32;'>{fmt_br(v['Faturado_Acumulado'])}<span class='val-sub'>{fat_ped} ped.</span></td><td style='color: #1565C0;'>{fmt_br(v['Digitado_Acumulado'])}<span class='val-sub'>{dig_ped} ped.</span></td><td><b>{fmt_br(v['total'])}</b><span class='val-sub'>TM: {fmt_br(v['tm'])}</span></td><td><div class='prog-bg'><div class='prog-bar' style='width: {min(v['ating'], 100)}%'></div></div> <span style='color: {cor_a}; font-weight: bold;'>{v['ating']:.1f}%</span><span class='val-sub' style='color: {cor_f}; font-weight: bold;'>Forecast: {fmt_br(v.get('forecast_ind', 0))}</span></td><td><b>{fmt_br(v['val_id'])}</b><span class='val-sub' style='color: {cor_d}; font-weight: bold;'>{ 'Acima' if v['diff'] >= 0 else 'Gap'}: {fmt_br(abs(v['diff']))}</span></td><td><span style='color: #E64A19; font-weight: bold;'>{fmt_br(v['ritmo'])}</span><span class='val-sub'>p/ dia</span></td></tr>"
 
             html_v += linha
+
+        
 
         html_v += "</tbody></table>"
 
         st.markdown(html_v, unsafe_allow_html=True)
 
-        if (
-            len(v_lista) > 0 and
-            v_lista[0]["ating"] > 0
-        ):
+        
 
-            st.success(
-                f"🚀 **Destaque do Mês:** "
-                f"Atualmente "
-                f"**{v_lista[0]['Vendedor']}** "
-                f"lidera o ranking com "
-                f"**{v_lista[0]['ating']:.1f}%** da meta! 🔥"
-            )
+        if len(v_lista) > 0 and v_lista[0]["ating"] > 0:
+
+            st.success(f"🚀 **Destaque do Mês:** Atualmente **{v_lista[0]['Vendedor']}** lidera o ranking com **{v_lista[0]['ating']:.1f}%** da meta! 🔥")
 
     else:
-        st.info(
-            "ℹ️ Os dados de performance para a data "
-            "selecionada ainda não foram carregados "
-            "na planilha."
-        )
+
+        # MENSAGEM CASO A PLANILHA NÃO ESTEJA ATUALIZADA
+
+        st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
         
 # =========================
 # ARQUIVO BASE
