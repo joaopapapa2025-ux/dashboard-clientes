@@ -258,7 +258,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 meta_mes = 0.0
-valor_devolucoes = 40252.00  # Valor fixo de devoluções
+valor_devolucoes = 41435.00  # Valor fixo de devoluções
 
 if df_geral_hist is not None and not df_geral_hist.empty:
     linha = df_geral_hist[df_geral_hist['Data'] == data_selecionada]
@@ -338,7 +338,7 @@ falta_r_cifra = meta_mes - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
-st.markdown(f"🕒 *Última atualização: 28/05/2026 às 08:10*")
+st.markdown(f"🕒 *Última atualização: 29/05/2026 às 08:20*")
 
 st.markdown("""<style>[data-testid="stMetricDelta"] svg { display: none !important; } [data-testid="column"]:nth-of-type(7) [data-testid="stMetricDelta"] > div { background-color: transparent !important; }</style>""", unsafe_allow_html=True)
 
