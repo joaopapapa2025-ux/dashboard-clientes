@@ -742,6 +742,126 @@ if df_vendedores_hist is not None:
         # MENSAGEM CASO A PLANILHA NÃO ESTEJA ATUALIZADA
 
         st.info("ℹ️ Os dados de performance para a data selecionada ainda não foram carregados na planilha.")
+
+# ==========================================
+# 🚀 CRONOGRAMA PRO: DESIGN ELITE & ESTRATÉGICO
+# ==========================================
+st.markdown("---")
+st.markdown("## 🗓️ Planejamento Estratégico de Fechamento")
+
+try:
+    # 1. VARIÁVEIS BASE
+    gap_total = falta_r_cifra
+    dias_restantes = dias_uteis_restantes
+    qtd_vendedores = 5
+    
+    # Cálculo do Ticket Médio Real do Time
+    total_peds_mes = (dados_v_dia["Fat_Ped"].sum() + dados_v_dia["Dig_Ped"].sum())
+    tm_time = total_geral / total_peds_mes if total_peds_mes > 0 else 2217.21
+    
+    # 2. CARDS DE TOPO (NATIVOS STREAMLIT)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("🚩 Gap p/ Meta", fmt_br(gap_total))
+    
+    ultimo_dia_str = pd.to_datetime(dias_uteis_totais_list[-1]).strftime('%d/%m') if dias_uteis_totais_list else ""
+    c2.metric("⏳ Janela de Faturamento", f"{dias_restantes} d.ú.", delta=f"Até {ultimo_dia_str}")
+    
+    esforco_diario = gap_total / dias_restantes if dias_restantes > 0 else 0
+    peds_dia_time = esforco_diario / tm_time if tm_time > 0 else 0
+    c3.metric("🔥 Esforço Diário (Time)", fmt_br(esforco_diario), delta=f"{int(peds_dia_time)} pedidos/dia")
+
+    # 3. LÓGICA DE DATAS E SELEÇÃO DE SEMANAS
+    datas_janela = [d for d in dias_uteis_totais_list if d >= data_selecionada]
+    df_semanas = pd.DataFrame({'Data': pd.to_datetime(datas_janela)})
+    df_semanas['Semana'] = df_semanas['Data'].dt.isocalendar().week
+    
+    # Mapeia vendedores ativos usando como base a Meta Global do Mês
+    vendedores_ativos = []
+    if 'dados_v_dia' in locals() and not dados_v_dia.empty:
+        # Filtra apenas os vendedores reais (removendo linhas de totais ou "OUTROS" sem meta)
+        vendedores_ativos = dados_v_dia[dados_v_dia['Meta'] > 0].to_dict('records')
+    
+    # Total de metas cadastradas no mês para base do novo cálculo proporcional
+    total_metas_mes = sum(v["Meta"] for v in vendedores_ativos) if vendedores_ativos else 0
+
+    # Descobre qual é a última semana ativa do planejamento corrente
+    ultima_semana_do_plano = df_semanas['Semana'].max() if not df_semanas.empty else 0
+
+    # CORPO DO CRONOGRAMA (Iteração por semanas usando Containers Nativos)
+    for semana, dados_sem in df_semanas.groupby('Semana'):
+        ini_dt = dados_sem['Data'].min()
+        fim_dt = dados_sem['Data'].max()
+        ini = ini_dt.strftime('%d/%m')
+        fim = fim_dt.strftime('%d/%m')
+        d_uteis = len(dados_sem)
+        
+        meta_semana = (gap_total / dias_restantes) * d_uteis if dias_restantes > 0 else 0
+        peds_semana = int(meta_semana / tm_time) if tm_time > 0 else 0
+        media_p_vendedor = round(peds_semana / qtd_vendedores, 1) if qtd_vendedores > 0 else 0
+
+        # Nova lógica automatizada de ações estratégicas
+        if semana == ultima_semana_do_plano:
+            acao_titulo = "🏁 SPRINT FINAL"
+            acao_desc = "Recuperação e fechamento imediato."
+            cor_bloco = "red"
+        elif 15 in dados_sem['Data'].dt.day.values:
+            acao_titulo = "📈 SUSTENTAÇÃO"
+            acao_desc = "Ações de Upsell na base."
+            cor_bloco = "green"
+        else:
+            acao_titulo = "🔥 ANTECIPAÇÃO"
+            acao_desc = "Foco: Mudança de tabela."
+            cor_bloco = "orange"
+
+        st.subheader(f"🗓️ Período: {ini} a {fim} ({d_uteis} dias úteis)")
+        
+        col_esf, col_prev, col_peds = st.columns([1.5, 1, 1.5])
+        
+        with col_esf:
+            st.markdown(f"**Ação Estratégica:**\n:{cor_bloco}[**{acao_titulo}**] — *{acao_desc}*")
+        
+        with col_prev:
+            st.markdown(f"**Valor Previsto:**\n:red[**{fmt_br(meta_semana)}**]")
+            
+        with col_peds:
+            st.markdown(f"**Meta de Pedidos:**\n🏆 **{peds_semana}** pedidos total | 🎯 Ind: **{media_p_vendedor} pedidos**")
+
+        # Expander Seguro e Compacto para o Detalhamento por Vendedor
+        if vendedores_ativos:
+            with st.expander("📋 Ver Planejamento por Vendedor", expanded=False):
+                
+                st.markdown("""
+                <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-weight: bold; font-size: 11px; color: #64748b; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;">
+                    <div style="flex: 2; text-align: left;">Vendedor</div>
+                    <div style="flex: 1; text-align: center;">Meta Período</div>
+                    <div style="flex: 1; text-align: right;">Qtd Pedidos Esperada</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                for v in vendedores_ativos:
+                    # [CORREÇÃO] O peso agora reflete o tamanho da meta original dele sobre a meta do time
+                    peso = (v["Meta"] / total_metas_mes) if total_metas_mes > 0 else (1 / len(vendedores_ativos))
+                    
+                    meta_ind_semana = meta_semana * peso
+                    
+                    # Calcula os pedidos individuais usando o ticket médio individual do vendedor v["tm"]
+                    peds_ind_semana = max(0, round(meta_ind_semana / v["tm"], 1)) if v["tm"] > 0 else max(0, round(meta_ind_semana / tm_time, 1))
+                    
+                    st.markdown(f"""
+                    <div style="font-family: 'Segoe UI', sans-serif; display: flex; width: 100%; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f1f5f9; align-items: center;">
+                        <div style="flex: 2; text-align: left; font-weight: 600; color: #1e293b;">👤 {v['Vendedor']}</div>
+                        <div style="flex: 1; text-align: center; font-weight: bold; color: #d32f2f;">{fmt_br(meta_ind_semana)}</div>
+                        <div style="flex: 1; text-align: right; font-weight: bold; color: #002D62;">{peds_ind_semana} pedidos</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+
+    with st.container():
+        st.info(f"💡 **Insight:** Para atingir o objetivo, cada vendedor precisa faturar em média **{fmt_br(gap_total/qtd_vendedores)}** nos próximos {dias_restantes} dias.")
+
+except Exception as e:
+    st.warning(f"Configure os dados de faturamento para visualizar o cronograma.")
         
 # =========================
 # ARQUIVO BASE
