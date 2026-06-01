@@ -339,7 +339,7 @@ percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
 
 meta_maio, faturado_maio, digitado_maio = 873528.0, 0.0, 0.0
 
-valor_devolucoes = 40252.00  # Valor fixo conforme solicitado
+valor_devolucoes = 40887.00  # Valor fixo conforme solicitado
 
 
 
@@ -377,7 +377,7 @@ ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restant
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
 
-st.markdown(f"🕒 *Última atualização: 28/05/2026 às 08:10*")
+st.markdown(f"🕒 *Última atualização: 01/06/2026 às 08:20*")
 
 
 
