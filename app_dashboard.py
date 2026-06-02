@@ -337,9 +337,9 @@ percentual_esperado = (dias_uteis_passados / dias_uteis_comerciais_totais) * 100
 
 # ==========================================
 
-meta_maio, faturado_maio, digitado_maio = 873528.0, 0.0, 0.0
+meta_junho, faturado_junho, digitado_junho = 873528.0, 0.0, 0.0
 
-valor_devolucoes = 40887.00  # Valor fixo conforme solicitado
+valor_devolucoes = 00.00  # Valor fixo conforme solicitado
 
 
 
@@ -349,27 +349,27 @@ if df_geral_hist is not None:
 
     if not linha.empty:
 
-        meta_maio = float(linha.iloc[0]['Meta_Mes'])
+        meta_junho = float(linha.iloc[0]['Meta_Mes'])
 
-        faturado_maio = float(linha.iloc[0]['Faturado_Acumulado'])
+        faturado_junho = float(linha.iloc[0]['Faturado_Acumulado'])
 
-        digitado_maio = float(linha.iloc[0]['Digitado_Acumulado'])
+        digitado_junho = float(linha.iloc[0]['Digitado_Acumulado'])
 
 
 
 # CÁLCULO AJUSTADO: O Total Geral agora é o faturamento líquido (Bruto - Devoluções)
 
-total_geral = (faturado_maio + digitado_maio) - valor_devolucoes
+total_geral = (faturado_junho + digitado_junho) - valor_devolucoes
 
 
 
 # Os cálculos abaixo agora herdam automaticamente o valor já com o desconto
 
-percentual_atual = (total_geral / meta_maio) * 100 if meta_maio > 0 else 0
+percentual_atual = (total_geral / meta_junho) * 100 if meta_junho > 0 else 0
 
 gap_vs_linear = percentual_atual - percentual_esperado
 
-falta_r_cifra = meta_maio - total_geral
+falta_r_cifra = meta_junho - total_geral
 
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
@@ -377,7 +377,7 @@ ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restant
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
 
-st.markdown(f"🕒 *Última atualização: 01/06/2026 às 08:20*")
+st.markdown(f"🕒 *Última atualização: 02/06/2026 às 08:15*")
 
 
 
@@ -435,11 +435,11 @@ def fmt_m(v): return f"R$ {v:,.0f}".replace(",", "X").replace(".", ",").replace(
 
 
 
-with col1: st.metric("🎯 Meta", fmt_m(meta_maio))
+with col1: st.metric("🎯 Meta", fmt_m(meta_junho))
 
-with col2: st.metric("✅ Faturado", fmt_m(faturado_maio))
+with col2: st.metric("✅ Faturado", fmt_m(faturado_junho))
 
-with col3: st.metric("📝 Digitado", fmt_m(digitado_maio))
+with col3: st.metric("📝 Digitado", fmt_m(digitado_junho))
 
 with col_total: st.metric("💰 Total Geral", fmt_m(total_geral))
 
@@ -455,7 +455,7 @@ components.html("""<script>const f = () => { const d = window.parent.document.qu
 
 
 
-valor_esperado_reais = (percentual_esperado / 100) * meta_maio
+valor_esperado_reais = (percentual_esperado / 100) * meta_junho
 
 valor_formatado_br = f"R$ {valor_esperado_reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
