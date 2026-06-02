@@ -2124,6 +2124,19 @@ else:
 st.markdown("---")
 st.subheader("🚀 Radar de Desenvolvimento das Novas Linhas")
 
+vendas_radar["MES_ANO"] = vendas_radar["DATA PEDIDO"].dt.strftime("%m/%Y")
+
+meses_disponiveis = ["Todos os meses"] + sorted(vendas_radar["MES_ANO"].dropna().unique().tolist())
+
+mes_selecionado = st.selectbox(
+    "Filtrar mês:",
+    options=meses_disponiveis,
+    key="filtro_mes_novas_linhas"
+)
+
+if mes_selecionado != "Todos os meses":
+    vendas_radar = vendas_radar[vendas_radar["MES_ANO"] == mes_selecionado]
+
 if not df_vendas.empty:
     cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
     base_clientes_visiveis = df_filtrado["CNPJ_LIMPO"].nunique()
