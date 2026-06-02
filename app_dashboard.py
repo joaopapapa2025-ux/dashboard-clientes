@@ -2132,7 +2132,15 @@ if not df_vendas.empty:
     vendas_radar["DATA PEDIDO"] = pd.to_datetime(vendas_radar["DATA PEDIDO"], errors="coerce")
     vendas_radar["MES_ANO"] = vendas_radar["DATA PEDIDO"].dt.strftime("%m/%Y")
 
-    meses_disponiveis = ["Todos os meses"] + sorted(vendas_radar["MES_ANO"].dropna().unique().tolist())
+    meses_df = (
+        vendas_radar[["MES_ANO", "DATA PEDIDO"]]
+        .dropna()
+        .assign(MES_DATA=lambda x: x["DATA PEDIDO"].dt.to_period("M").dt.to_timestamp())
+        .drop_duplicates("MES_ANO")
+        .sort_values("MES_DATA", ascending=False)
+    )
+
+    meses_disponiveis = ["Todos os meses"] + meses_df["MES_ANO"].tolist()
 
     mes_selecionado = st.selectbox(
         "Filtrar mês:",
