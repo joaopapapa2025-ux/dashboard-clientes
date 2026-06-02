@@ -1598,6 +1598,105 @@ if 'id_cliente' in locals() and id_cliente:
         pass
 
 # ==========================================
+# FUNÇÕES E CATÁLOGOS - NOVAS LINHAS
+# ==========================================
+
+import unicodedata
+
+def limpar_texto(t):
+    return "".join(
+        c for c in unicodedata.normalize("NFD", str(t))
+        if unicodedata.category(c) != "Mn"
+    ).upper().strip()
+
+
+CATALOGO_NOVAS_LINHAS = {
+    "ERA UMA VEZ": {
+        "Salgadinho Integral Orgânico Queijo 40g": ["SALGADINHO", "QUEIJO", "ERA UMA VEZ"],
+        "Salgadinho Integral Orgânico Cebola & Salsa 40g": ["SALGADINHO", "CEBOLA", "SALSA", "ERA UMA VEZ"],
+        "Salgadinho Integral Orgânico Churrasco 40g": ["SALGADINHO", "CHURRASCO", "ERA UMA VEZ"],
+        "Biscoito Recheado Frutas Amarelas 30g": ["BISCOITO", "RECHEADO", "FRUTAS", "AMARELAS"],
+        "Biscoito Recheado Morango 30g": ["BISCOITO", "RECHEADO", "MORANGO"],
+        "Bebida de Laranja 200ml": ["BEBIDA", "LARANJA", "ERA UMA VEZ"],
+        "Bebida de Uva 200ml": ["BEBIDA", "UVA", "ERA UMA VEZ"],
+        "Bebida de Morango 200ml": ["BEBIDA", "MORANGO", "ERA UMA VEZ"],
+        "Bebida de Maçã 200ml": ["BEBIDA", "MACA", "ERA UMA VEZ"],
+        "Bebida Láctea UHT Chocolate 200ml": ["BEBIDA", "LACTEA", "CHOCOLATE"],
+    },
+    "PUERICULTURA": {
+        "Kit De Talheres Infantil - Azul": ["KIT", "TALHERES", "AZUL"],
+        "Kit De Talheres Infantil - Verde": ["KIT", "TALHERES", "VERDE"],
+        "Kit De Talheres Infantil - Rosa": ["KIT", "TALHERES", "ROSA"],
+        "Babador Infantil Com Bolso - Azul": ["BABADOR", "BOLSO", "AZUL"],
+        "Babador Infantil Com Bolso - Verde": ["BABADOR", "BOLSO", "VERDE"],
+        "Babador Infantil Com Bolso - Rosa": ["BABADOR", "BOLSO", "ROSA"],
+        "Bowl Infantil Com Ventosa - Azul": ["BOWL", "VENTOSA", "AZUL"],
+        "Bowl Infantil Com Ventosa - Verde": ["BOWL", "VENTOSA", "VERDE"],
+        "Bowl Infantil Com Ventosa - Rosa": ["BOWL", "VENTOSA", "ROSA"],
+        "Pratinho Infantil Com Ventosa - Azul": ["PRATINHO", "VENTOSA", "AZUL"],
+        "Pratinho Infantil Com Ventosa - Verde": ["PRATINHO", "VENTOSA", "VERDE"],
+        "Pratinho Infantil Com Ventosa - Rosa": ["PRATINHO", "VENTOSA", "ROSA"],
+    }
+}
+
+
+def classificar_nova_linha(desc_produto, linha_original=""):
+    nome = limpar_texto(desc_produto)
+    linha = limpar_texto(linha_original)
+
+    if "PUERICULTURA" in linha:
+        return "PUERICULTURA"
+
+    termos_puericultura = ["TALHERES", "BABADOR", "BOWL", "PRATINHO", "VENTOSA"]
+    if any(t in nome for t in termos_puericultura):
+        return "PUERICULTURA"
+
+    termos_era_uma_vez = [
+        "ERA UMA VEZ",
+        "SALGADINHO INTEGRAL ORGANICO",
+        "BISCOITO RECHEADO",
+        "BEBIDA LACTEA UHT CHOCOLATE",
+    ]
+    if any(t in nome for t in termos_era_uma_vez):
+        return "ERA UMA VEZ"
+
+    return None
+
+
+def preparar_novas_linhas(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    base = df.copy()
+
+    if "DATA PEDIDO" in base.columns:
+        base["DATA PEDIDO"] = pd.to_datetime(base["DATA PEDIDO"], errors="coerce")
+
+    for col in ["VALOR", "QTDE", "QTD"]:
+        if col in base.columns:
+            base[col] = pd.to_numeric(base[col], errors="coerce").fillna(0)
+
+    if "LINHA" not in base.columns:
+        base["LINHA"] = ""
+
+    base["NOVA_LINHA"] = base.apply(
+        lambda r: classificar_nova_linha(r.get("DESC PRODUTO", ""), r.get("LINHA", "")),
+        axis=1
+    )
+
+    return base[base["NOVA_LINHA"].notna()].copy()
+
+
+def produto_ja_comprado(vendas_nomes, keywords):
+    keys = [limpar_texto(k) for k in keywords]
+    return any(all(k in nome for k in keys) for nome in vendas_nomes)
+
+
+def moeda_br(v):
+    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+# ==========================================
 # ANÁLISE DE COMPRAS (DENTRO DO IF DO CLIENTE ÚNICO)
 # ==========================================
 
@@ -1605,13 +1704,11 @@ if not vendas_cliente.empty:
     st.divider()
     st.subheader("📊 Análise de Performance e Mix")
 
-    # Garantir que a data está em formato datetime para ordenação correta nos gráficos
-    vendas_cliente["DATA PEDIDO"] = pd.to_datetime(vendas_cliente["DATA PEDIDO"])
+    vendas_cliente["DATA PEDIDO"] = pd.to_datetime(vendas_cliente["DATA PEDIDO"], errors="coerce")
 
     col_graf1, col_graf2 = st.columns(2)
 
     with col_graf1:
-        # MIX POR LINHA
         mix_linha = (
             vendas_cliente
             .groupby("LINHA")["VALOR"]
@@ -1627,17 +1724,16 @@ if not vendas_cliente.empty:
             hole=0.4,
             color_discrete_sequence=px.colors.qualitative.Pastel
         )
-        fig_mix.update_traces(textposition='inside', textinfo='percent+label')
+        fig_mix.update_traces(textposition="inside", textinfo="percent+label")
         st.plotly_chart(fig_mix, use_container_width=True)
 
     with col_graf2:
-        # TOP PRODUTOS (Gráfico de Barras Horizontal)
         top_produtos = (
             vendas_cliente
             .groupby("DESC PRODUTO")["VALOR"]
             .sum()
             .reset_index()
-            .sort_values("VALOR", ascending=True) # Ascending True para o maior ficar no topo da barra horizontal
+            .sort_values("VALOR", ascending=True)
             .tail(10)
         )
         fig_top = px.bar(
@@ -1647,19 +1743,19 @@ if not vendas_cliente.empty:
             orientation="h",
             title="Top 10 Produtos (Valor Total)",
             labels={"VALOR": "Total Gasto (R$)", "DESC PRODUTO": "Produto"},
+            color="VALOR",
             color_continuous_scale="Reds"
         )
         st.plotly_chart(fig_top, use_container_width=True)
 
-    # EVOLUÇÃO DE COMPRAS (Agrupado por Mês para reduzir ruído)
     evolucao = (
         vendas_cliente
         .set_index("DATA PEDIDO")
-        .resample('MS')["VALOR"] # MS = Month Start
+        .resample("MS")["VALOR"]
         .sum()
         .reset_index()
     )
-    
+
     fig_evolucao = px.area(
         evolucao,
         x="DATA PEDIDO",
@@ -1671,27 +1767,95 @@ if not vendas_cliente.empty:
     fig_evolucao.update_traces(fillcolor="rgba(255, 75, 75, 0.2)", line_color="#FF4B4B")
     st.plotly_chart(fig_evolucao, use_container_width=True)
 
+    # ==========================================
+    # 🚀 RADAR DE NOVAS LINHAS - CLIENTE
+    # ==========================================
+
+    vendas_novas_cliente = preparar_novas_linhas(vendas_cliente)
+
+    st.markdown("#### 🚀 Radar de Novas Linhas no Cliente")
+
+    if not vendas_novas_cliente.empty:
+        qtd_col = "QTDE" if "QTDE" in vendas_novas_cliente.columns else "QTD"
+
+        total_novas = vendas_novas_cliente["VALOR"].sum()
+        qtd_novas = vendas_novas_cliente[qtd_col].sum() if qtd_col in vendas_novas_cliente.columns else 0
+        linhas_compradas = vendas_novas_cliente["NOVA_LINHA"].nunique()
+        skus_comprados = vendas_novas_cliente["DESC PRODUTO"].nunique()
+
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("Faturamento Novas Linhas", moeda_br(total_novas))
+        k2.metric("Volume", f"{int(qtd_novas):,}".replace(",", "."))
+        k3.metric("Linhas Compradas", f"{linhas_compradas}/2")
+        k4.metric("SKUs Comprados", skus_comprados)
+
+        c_nova_1, c_nova_2 = st.columns(2)
+
+        with c_nova_1:
+            evol_novas_cliente = (
+                vendas_novas_cliente
+                .groupby([pd.Grouper(key="DATA PEDIDO", freq="D"), "NOVA_LINHA"])["VALOR"]
+                .sum()
+                .reset_index()
+            )
+            fig_evol_novas_cliente = px.line(
+                evol_novas_cliente,
+                x="DATA PEDIDO",
+                y="VALOR",
+                color="NOVA_LINHA",
+                markers=True,
+                title="Evolução das Novas Linhas no Cliente",
+                labels={"VALOR": "Valor (R$)", "DATA PEDIDO": "Data", "NOVA_LINHA": "Nova Linha"},
+                color_discrete_map={"ERA UMA VEZ": "#FF7A00", "PUERICULTURA": "#7C3AED"}
+            )
+            fig_evol_novas_cliente.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_evol_novas_cliente, use_container_width=True)
+
+        with c_nova_2:
+            top_novas_cliente = (
+                vendas_novas_cliente
+                .groupby(["NOVA_LINHA", "DESC PRODUTO"])["VALOR"]
+                .sum()
+                .reset_index()
+                .sort_values("VALOR", ascending=True)
+                .tail(10)
+            )
+            fig_top_novas_cliente = px.bar(
+                top_novas_cliente,
+                x="VALOR",
+                y="DESC PRODUTO",
+                color="NOVA_LINHA",
+                orientation="h",
+                title="Top SKUs das Novas Linhas",
+                labels={"VALOR": "Valor (R$)", "DESC PRODUTO": "Produto"},
+                color_discrete_map={"ERA UMA VEZ": "#FF7A00", "PUERICULTURA": "#7C3AED"}
+            )
+            fig_top_novas_cliente.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_top_novas_cliente, use_container_width=True)
+
+    else:
+        st.info("Este cliente ainda não comprou Era Uma Vez nem Puericultura.")
+
+
 # ==========================================
-# 🚀 INTELIGÊNCIA DE MERCADO - LÓGICA CORRIGIDA
+# 🚀 INTELIGÊNCIA DE MERCADO - GAP E CROSS-SELL
 # ==========================================
+
 if 1 <= len(df_filtrado) <= 300:
     cnpjs_no_filtro = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_analise = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_no_filtro)].copy()
 
     if not vendas_analise.empty:
-        import unicodedata
-        def limpar(t): 
-            return "".join(c for c in unicodedata.normalize('NFD', str(t)) if unicodedata.category(c) != 'Mn').upper().strip()
+        vendas_nomes = [limpar_texto(n) for n in vendas_analise["DESC PRODUTO"].unique()]
 
-        vendas_nomes = [limpar(n) for n in vendas_analise["DESC PRODUTO"].unique()]
-
-        # --- PASSO 1: IDENTIFICADORES DE LINHA (DNA) ---
-        # Simplificamos os termos para garantir que a categoria seja reconhecida
-        ja_compra_salgada = any(("120G" in n or "SALGADA" in n) and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"]) for n in vendas_nomes)
+        ja_compra_salgada = any(
+            ("120G" in n or "SALGADA" in n)
+            and not any(x in n for x in ["FRUTA", "DOCE", "MACA", "BANANA", "MANGA", "PERA", "AMEIXA", "MIRTILO"])
+            for n in vendas_nomes
+        )
         ja_compra_palitinho = any("PALIT" in n for n in vendas_nomes)
         ja_compra_fruta = any(("100G" in n or "FRUTA" in n) and "PAPINHA" in n for n in vendas_nomes)
 
-        # DNA focado em termos genéricos da linha para evitar que caia no Cross-sell errado
         catalogo_dna = {
             "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"],
             "SOPINHAS": ["SOPINHA", "240G"],
@@ -1699,13 +1863,14 @@ if 1 <= len(df_filtrado) <= 300:
             "PAPINHAS SALGADAS": ["120G", "SALGADA"],
             "PAPINHAS DE FRUTAS": ["100G", "FRUTA"],
             "BISCOTTI": ["BISCOTTI"],
-            "PALITINHOS": ["PALIT"], # Termo raiz
+            "PALITINHOS": ["PALIT"],
             "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
             "MACARRÃO": ["ELBOW", "FUSILLI", "MACARRAO"],
-            "CEREAIS": ["CEREAL", "AVEIA"]
+            "CEREAIS": ["CEREAL", "AVEIA"],
+            "ERA UMA VEZ": ["ERA UMA VEZ", "SALGADINHO", "BISCOITO RECHEADO", "BEBIDA"],
+            "PUERICULTURA": ["PUERICULTURA", "TALHERES", "BABADOR", "BOWL", "PRATINHO", "VENTOSA"]
         }
 
-        # --- PASSO 2: CATÁLOGO COMPLETO ---
         catalogo_papapa = {
             "LA CHEF": {
                 "Lentilha Carne Legumes 180g": ["LENTILHA"],
@@ -1739,7 +1904,7 @@ if 1 <= len(df_filtrado) <= 300:
                 "Biscotti Maçã e Canela 60g": ["BISCOTTI", "MAC", "CANEL"],
                 "Biscotti Banana e Cacau 60g": ["BISCOTTI", "CACAU"],
                 "Biscotti Goiaba 60g": ["BISCOTTI", "GOIAB"],
-                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJ"] 
+                "Biscotti Maracujá e Camomila 60g": ["BISCOTTI", "MARACUJ"]
             },
             "PALITINHOS": {
                 "Palitinho Org. Beterraba 20g": ["BETERRABA"],
@@ -1758,26 +1923,28 @@ if 1 <= len(df_filtrado) <= 300:
                 "Cereal Multicereais 170g": ["CEREAL", "MULTI"],
                 "Cereal Aveia Morango e Beterraba 170g": ["AVEIA", "MORANGO"],
                 "Cereal Aveia Banana e Ameixa 170g": ["AVEIA", "BANANA"]
-            }
+            },
+            "ERA UMA VEZ": CATALOGO_NOVAS_LINHAS["ERA UMA VEZ"],
+            "PUERICULTURA": CATALOGO_NOVAS_LINHAS["PUERICULTURA"]
         }
 
         gap_mix = []
         cross_sell = []
 
-        # --- PASSO 3: LÓGICA DE SEPARAÇÃO ---
         for linha, skus_dict in catalogo_papapa.items():
-            # Define se trabalha a linha
-            if linha == "PAPINHAS SALGADAS": trabalha_a_linha = ja_compra_salgada
-            elif linha == "PALITINHOS": trabalha_a_linha = ja_compra_palitinho
-            elif linha == "PAPINHAS DE FRUTAS": trabalha_a_linha = ja_compra_fruta
+            if linha == "PAPINHAS SALGADAS":
+                trabalha_a_linha = ja_compra_salgada
+            elif linha == "PALITINHOS":
+                trabalha_a_linha = ja_compra_palitinho
+            elif linha == "PAPINHAS DE FRUTAS":
+                trabalha_a_linha = ja_compra_fruta
             else:
                 ids_dna = catalogo_dna.get(linha, [])
                 trabalha_a_linha = any(any(id_dna in n for id_dna in ids_dna) for n in vendas_nomes)
 
             for nome_exibicao, keywords in skus_dict.items():
-                # Validação de SKU
-                ja_tem_sku = any(all(limpar(k) in n for k in keywords) for n in vendas_nomes)
-                
+                ja_tem_sku = produto_ja_comprado(vendas_nomes, keywords)
+
                 if not ja_tem_sku:
                     item = {"Linha": linha, "Produto": nome_exibicao}
                     if trabalha_a_linha:
@@ -1785,47 +1952,53 @@ if 1 <= len(df_filtrado) <= 300:
                     else:
                         cross_sell.append(item)
 
-        # --- PASSO 4: EXIBIÇÃO ---
         st.subheader("📦 Sugestões de Expansão")
         c1, c2 = st.columns(2)
+
         with c1:
             st.markdown("#### 🚨 Gap de Mix")
-            if gap_mix: st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
-            else: st.success("✅ Mix completo nas categorias atuais!")
+            if gap_mix:
+                st.dataframe(pd.DataFrame(gap_mix), use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ Mix completo nas categorias atuais!")
+
         with c2:
             st.markdown("#### 📦 Cross-sell")
-            if cross_sell: st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
-            else: st.info("💡 Já compra todas as linhas!")
+            if cross_sell:
+                st.dataframe(pd.DataFrame(cross_sell), use_container_width=True, hide_index=True)
+            else:
+                st.info("💡 Já compra todas as linhas!")
 
 elif len(df_filtrado) > 300:
     st.info("💡 Filtre um cliente ou uma rede específica para ver as sugestões de Gap e Cross-sell.")
-                
+
+
+# ==========================================
+# 📦 ANÁLISE GERAL DE MIX E PRODUTOS
 # ==========================================
 
 st.subheader("📦 Análise Geral de Mix e Produtos")
 
 if not df_vendas.empty:
-    # 1. Filtro de Segurança: Analisar apenas vendas dos clientes visíveis na sidebar
     cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
-    
-    # Limpeza de ruído (Blacklist)
+
     blacklist_geral = ["CONFERIDO", "AJUSTE", "TESTE", "FRETE"]
     regex_geral = "|".join(blacklist_geral)
     vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.upper().str.contains(regex_geral, na=False)]
 
     if not vendas_geral.empty:
-        # 2. MAPEAMENTO INTELIGENTE (Categorização PAPAPÁ)
-        
-        def mapear_catalogo_detalhado(nome):
-            nome = str(nome).upper()
-            
-            # 1. Trava de Prioridade: Se for Macarrão, já retorna logo para não cair em outras categorias
-            termos_macarrao = ["ELBOW", "FUSILLI", "MACARRÃO", "MACARRAO", "MASSA", "LETRE"]
+        def mapear_catalogo_detalhado(nome, linha_original=""):
+            nova_linha = classificar_nova_linha(nome, linha_original)
+            if nova_linha:
+                return nova_linha
+
+            nome = limpar_texto(nome)
+
+            termos_macarrao = ["ELBOW", "FUSILLI", "MACARRAO", "MASSA", "LETRE"]
             if any(key in nome for key in termos_macarrao):
                 return "MACARRÃO"
 
-            # 2. Dicionário para as demais linhas
             catalogo = {
                 "LA CHEF": ["LENTILHA", "RISOTINHO", "CASEIRINHO"],
                 "SOPINHAS": ["SOPINHA"],
@@ -1837,91 +2010,317 @@ if not df_vendas.empty:
                 "DENTIÇÃO": ["DENTICAO", "DENTIÇÃO"],
                 "CEREAIS": ["CEREAL", "AVEIA"]
             }
-            
+
             for linha, keywords in catalogo.items():
                 if any(key in nome for key in keywords):
                     return linha
-            
+
+            return "OUTROS"
 
         def mapear_sabor(nome):
-            nome = str(nome).upper()
-            doces = ["FRUTA", "BANANA", "MAÇÃ", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA", "IOGURTE", "YOGUZINHO"]
+            nome = limpar_texto(nome)
+
+            if any(x in nome for x in ["PUERICULTURA", "TALHERES", "BABADOR", "BOWL", "PRATINHO", "VENTOSA"]):
+                return "Puericultura"
+
+            doces = ["FRUTA", "BANANA", "MACA", "MAMAO", "AMEIXA", "DOCE", "CACAU", "LARANJA", "MORANGO", "MANGA", "PERA", "IOGURTE", "YOGUZINHO", "UVA", "CHOCOLATE"]
             return "Doce" if any(x in nome for x in doces) else "Salgado"
 
         def mapear_idade(nome):
-            nome = str(nome).upper()
-            if "12" in nome or "CEREAL" in nome or "PALIT" in nome: return "12 meses+"
-            if any(x in nome for x in ["MACARRÃO", "MASSA", "LETRE", "ELBOW", "FUSILLI"]): return "8 meses+"
+            nome = limpar_texto(nome)
+
+            if any(x in nome for x in ["PUERICULTURA", "TALHERES", "BABADOR", "BOWL", "PRATINHO", "VENTOSA"]):
+                return "Infantil"
+
+            if "12" in nome or "CEREAL" in nome or "PALIT" in nome:
+                return "12 meses+"
+
+            if any(x in nome for x in ["MACARRAO", "MASSA", "LETRE", "ELBOW", "FUSILLI"]):
+                return "8 meses+"
+
             return "6 meses+"
 
-        # Aplicando as novas classificações
-        vendas_geral["CAT_CATALOGO"] = vendas_geral["DESC PRODUTO"].apply(mapear_catalogo_detalhado)
+        vendas_geral["CAT_CATALOGO"] = vendas_geral.apply(
+            lambda r: mapear_catalogo_detalhado(r.get("DESC PRODUTO", ""), r.get("LINHA", "")),
+            axis=1
+        )
         vendas_geral["SABOR"] = vendas_geral["DESC PRODUTO"].apply(mapear_sabor)
         vendas_geral["IDADE"] = vendas_geral["DESC PRODUTO"].apply(mapear_idade)
 
-        # 3. LINHA 1 DE GRÁFICOS (Mix por Linha e Sabores)
         c1, c2 = st.columns(2)
+
         with c1:
             mix_cat = vendas_geral.groupby("CAT_CATALOGO")["VALOR"].sum().reset_index()
-            fig_mix_cat = px.pie(mix_cat, names="CAT_CATALOGO", values="VALOR", 
-                                title="Mix por Linha de Produto", hole=0.4, 
-                                color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_mix_cat = px.pie(
+                mix_cat,
+                names="CAT_CATALOGO",
+                values="VALOR",
+                title="Mix por Linha de Produto",
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
             fig_mix_cat.update_layout(margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_mix_cat, use_container_width=True)
-            
+
         with c2:
             mix_sabor = vendas_geral.groupby("SABOR")["VALOR"].sum().reset_index()
-            fig_sabor = px.pie(mix_sabor, names="SABOR", values="VALOR", 
-                               title="Divisão Doce vs Salgado", 
-                               color_discrete_map={"Doce":"#FFB6C1","Salgado":"#90EE90"})
+            fig_sabor = px.pie(
+                mix_sabor,
+                names="SABOR",
+                values="VALOR",
+                title="Divisão Doce vs Salgado vs Puericultura",
+                color_discrete_sequence=px.colors.qualitative.Set3
+            )
             fig_sabor.update_layout(margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_sabor, use_container_width=True)
 
-        # 4. LINHA 2 DE GRÁFICOS (Idade e Top 10)
         c3, c4 = st.columns(2)
+
         with c3:
-            # Ordenação lógica das idades
-            vendas_geral["IDADE"] = pd.Categorical(vendas_geral["IDADE"], categories=["6 meses+", "8 meses+", "12 meses+"], ordered=True)
+            ordem_idade = ["6 meses+", "8 meses+", "12 meses+", "Infantil"]
+            vendas_geral["IDADE"] = pd.Categorical(vendas_geral["IDADE"], categories=ordem_idade, ordered=True)
             mix_idade = vendas_geral.groupby("IDADE", observed=True)["VALOR"].sum().reset_index()
-            
-            fig_idade = px.bar(mix_idade, x="IDADE", y="VALOR", color="IDADE", 
-                               title="Vendas por Faixa Etária",
-                               color_discrete_sequence=px.colors.qualitative.Safe)
+
+            fig_idade = px.bar(
+                mix_idade,
+                x="IDADE",
+                y="VALOR",
+                color="IDADE",
+                title="Vendas por Faixa/Perfil",
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
             fig_idade.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_idade, use_container_width=True)
-            
+
         with c4:
-            top_10_geral = (vendas_geral.groupby("DESC PRODUTO")["VALOR"].sum()
-                            .reset_index().sort_values("VALOR", ascending=True).tail(10))
-            fig_top_geral = px.bar(top_10_geral, x="VALOR", y="DESC PRODUTO", orientation="h", 
-                                   title="Top 10 Produtos Mais Vendidos",
-                                   color="VALOR", color_continuous_scale="Reds")
+            top_10_geral = (
+                vendas_geral
+                .groupby("DESC PRODUTO")["VALOR"]
+                .sum()
+                .reset_index()
+                .sort_values("VALOR", ascending=True)
+                .tail(10)
+            )
+            fig_top_geral = px.bar(
+                top_10_geral,
+                x="VALOR",
+                y="DESC PRODUTO",
+                orientation="h",
+                title="Top 10 Produtos Mais Vendidos",
+                color="VALOR",
+                color_continuous_scale="Reds"
+            )
             fig_top_geral.update_layout(margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_top_geral, use_container_width=True)
 
 else:
     st.warning("Base de vendas não encontrada. Verifique o arquivo de dados.")
 
+
+# ==========================================
+# 🚀 RADAR GERAL DE NOVAS LINHAS
+# ==========================================
+
+st.markdown("---")
+st.subheader("🚀 Radar de Desenvolvimento das Novas Linhas")
+
+if not df_vendas.empty:
+    cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
+    base_clientes_visiveis = df_filtrado["CNPJ_LIMPO"].nunique()
+
+    vendas_radar = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
+    vendas_novas = preparar_novas_linhas(vendas_radar)
+
+    if not vendas_novas.empty:
+        qtd_col = "QTDE" if "QTDE" in vendas_novas.columns else "QTD"
+
+        clientes_novas = vendas_novas["CNPJ_LIMPO"].nunique()
+        penetracao = (clientes_novas / base_clientes_visiveis) * 100 if base_clientes_visiveis > 0 else 0
+        total_novas = vendas_novas["VALOR"].sum()
+        qtd_novas = vendas_novas[qtd_col].sum() if qtd_col in vendas_novas.columns else 0
+        ticket_cliente = total_novas / clientes_novas if clientes_novas > 0 else 0
+
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("Faturamento", moeda_br(total_novas))
+        m2.metric("Volume", f"{int(qtd_novas):,}".replace(",", "."))
+        m3.metric("Clientes Compradores", clientes_novas)
+        m4.metric("Penetração", f"{penetracao:.1f}%")
+        m5.metric("Ticket/Cliente", moeda_br(ticket_cliente))
+
+        st.markdown("##### Visão Executiva de Tração")
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+            evol_novas = (
+                vendas_novas
+                .groupby([pd.Grouper(key="DATA PEDIDO", freq="D"), "NOVA_LINHA"])["VALOR"]
+                .sum()
+                .reset_index()
+            )
+            fig_evol_novas = px.area(
+                evol_novas,
+                x="DATA PEDIDO",
+                y="VALOR",
+                color="NOVA_LINHA",
+                title="Evolução Diária das Novas Linhas",
+                labels={"VALOR": "Valor (R$)", "DATA PEDIDO": "Data", "NOVA_LINHA": "Nova Linha"},
+                color_discrete_map={"ERA UMA VEZ": "#FF7A00", "PUERICULTURA": "#7C3AED"},
+                line_shape="spline"
+            )
+            fig_evol_novas.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_evol_novas, use_container_width=True)
+
+        with c2:
+            resumo_linha = (
+                vendas_novas
+                .groupby("NOVA_LINHA")
+                .agg(
+                    Valor=("VALOR", "sum"),
+                    Clientes=("CNPJ_LIMPO", "nunique"),
+                    SKUs=("DESC PRODUTO", "nunique")
+                )
+                .reset_index()
+            )
+            fig_resumo_linha = px.bar(
+                resumo_linha,
+                x="NOVA_LINHA",
+                y="Valor",
+                color="NOVA_LINHA",
+                text="Clientes",
+                title="Tração por Nova Linha",
+                labels={"Valor": "Valor (R$)", "NOVA_LINHA": "Nova Linha"},
+                color_discrete_map={"ERA UMA VEZ": "#FF7A00", "PUERICULTURA": "#7C3AED"}
+            )
+            fig_resumo_linha.update_traces(texttemplate="%{text} clientes", textposition="outside")
+            fig_resumo_linha.update_layout(showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_resumo_linha, use_container_width=True)
+
+        c3, c4 = st.columns(2)
+
+        with c3:
+            top_skus_novas = (
+                vendas_novas
+                .groupby(["NOVA_LINHA", "DESC PRODUTO"])
+                .agg(Valor=("VALOR", "sum"), Volume=(qtd_col, "sum") if qtd_col in vendas_novas.columns else ("VALOR", "count"))
+                .reset_index()
+                .sort_values("Valor", ascending=True)
+                .tail(12)
+            )
+            fig_top_skus_novas = px.bar(
+                top_skus_novas,
+                x="Valor",
+                y="DESC PRODUTO",
+                color="NOVA_LINHA",
+                orientation="h",
+                title="Top SKUs das Novas Linhas",
+                labels={"Valor": "Valor (R$)", "DESC PRODUTO": "Produto"},
+                color_discrete_map={"ERA UMA VEZ": "#FF7A00", "PUERICULTURA": "#7C3AED"}
+            )
+            fig_top_skus_novas.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_top_skus_novas, use_container_width=True)
+
+        with c4:
+            clientes_por_linha = (
+                vendas_novas
+                .groupby(["CNPJ_LIMPO", "NOVA_LINHA"])["VALOR"]
+                .sum()
+                .reset_index()
+            )
+            matriz_clientes = (
+                clientes_por_linha
+                .pivot_table(index="CNPJ_LIMPO", columns="NOVA_LINHA", values="VALOR", aggfunc="sum", fill_value=0)
+                .reset_index()
+            )
+
+            if "ERA UMA VEZ" not in matriz_clientes.columns:
+                matriz_clientes["ERA UMA VEZ"] = 0
+            if "PUERICULTURA" not in matriz_clientes.columns:
+                matriz_clientes["PUERICULTURA"] = 0
+
+            compradores_ambas = len(matriz_clientes[(matriz_clientes["ERA UMA VEZ"] > 0) & (matriz_clientes["PUERICULTURA"] > 0)])
+            compradores_era = len(matriz_clientes[(matriz_clientes["ERA UMA VEZ"] > 0) & (matriz_clientes["PUERICULTURA"] == 0)])
+            compradores_pueri = len(matriz_clientes[(matriz_clientes["PUERICULTURA"] > 0) & (matriz_clientes["ERA UMA VEZ"] == 0)])
+            sem_novas = max(base_clientes_visiveis - clientes_novas, 0)
+
+            aderencia = pd.DataFrame({
+                "Status": ["Comprou as duas", "Só Era Uma Vez", "Só Puericultura", "Ainda não comprou"],
+                "Clientes": [compradores_ambas, compradores_era, compradores_pueri, sem_novas]
+            })
+
+            fig_aderencia = px.pie(
+                aderencia,
+                names="Status",
+                values="Clientes",
+                title="Aderência das Novas Linhas na Base Filtrada",
+                hole=0.45,
+                color_discrete_sequence=["#16A34A", "#FF7A00", "#7C3AED", "#CBD5E1"]
+            )
+            fig_aderencia.update_traces(textposition="inside", textinfo="percent+label")
+            fig_aderencia.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_aderencia, use_container_width=True)
+
+        st.markdown("##### Clientes com Maior Tração nas Novas Linhas")
+
+        cols_cliente = ["CNPJ_LIMPO"]
+        for possivel_col in ["RAZÃO SOCIAL", "RAZAO SOCIAL", "CLIENTE", "GRUPO ECONÔMICO", "VENDEDOR", "UF", "CIDADE"]:
+            if possivel_col in df_filtrado.columns:
+                cols_cliente.append(possivel_col)
+
+        cadastro_clientes = df_filtrado[cols_cliente].drop_duplicates("CNPJ_LIMPO")
+
+        ranking_clientes_novas = (
+            vendas_novas
+            .groupby(["CNPJ_LIMPO", "NOVA_LINHA"])
+            .agg(Valor=("VALOR", "sum"), SKUs=("DESC PRODUTO", "nunique"))
+            .reset_index()
+        )
+
+        ranking_clientes_pivot = (
+            ranking_clientes_novas
+            .pivot_table(index="CNPJ_LIMPO", columns="NOVA_LINHA", values="Valor", aggfunc="sum", fill_value=0)
+            .reset_index()
+        )
+
+        if "ERA UMA VEZ" not in ranking_clientes_pivot.columns:
+            ranking_clientes_pivot["ERA UMA VEZ"] = 0
+        if "PUERICULTURA" not in ranking_clientes_pivot.columns:
+            ranking_clientes_pivot["PUERICULTURA"] = 0
+
+        ranking_clientes_pivot["TOTAL NOVAS LINHAS"] = ranking_clientes_pivot["ERA UMA VEZ"] + ranking_clientes_pivot["PUERICULTURA"]
+
+        ranking_clientes_pivot = ranking_clientes_pivot.merge(cadastro_clientes, on="CNPJ_LIMPO", how="left")
+        ranking_clientes_pivot = ranking_clientes_pivot.sort_values("TOTAL NOVAS LINHAS", ascending=False).head(15)
+
+        for col in ["ERA UMA VEZ", "PUERICULTURA", "TOTAL NOVAS LINHAS"]:
+            ranking_clientes_pivot[col] = ranking_clientes_pivot[col].apply(moeda_br)
+
+        st.dataframe(ranking_clientes_pivot, use_container_width=True, hide_index=True)
+
+    else:
+        st.info("Ainda não há vendas de Era Uma Vez ou Puericultura na base filtrada.")
+
+else:
+    st.warning("Base de vendas não encontrada. Verifique o arquivo de dados.")
+
+
 # ==========================================
 # 🏆 PERFORMANCE POR LINHA (VISÃO DETALHADA - MULTI CLIENTE)
 # ==========================================
 
-# Mudamos de == 1 para >= 1 para aceitar seleções múltiplas
 if len(df_filtrado) >= 1:
-    
-    # 1. Pegamos os CNPJs de todos os clientes que estão no df_filtrado
     cnpjs_selecionados = df_filtrado[COL_CNPJ].unique()
-    
-    # 2. Filtramos a base de vendas para trazer tudo desses clientes (Soma automática)
     vendas_clientes_selecionados = df_vendas[df_vendas[COL_CNPJ].isin(cnpjs_selecionados)].copy()
 
     if not vendas_clientes_selecionados.empty:
         st.markdown("---")
         st.markdown("#### 🏆 Performance Consolidada por Linha de Produto")
-        
-        # [Mantenha aqui o seu dicionário regras_linhas igual ao original]
+
         termos_la_chef = ["LENTILHA", "RISOTINHO", "CASEIRINHO", "CHEF"]
+
         regras_linhas = {
+            "ERA UMA VEZ": ["ERA UMA VEZ", "SALGADINHO INTEGRAL ORGANICO", "BISCOITO RECHEADO", "BEBIDA LACTEA UHT CHOCOLATE"],
+            "PUERICULTURA": ["PUERICULTURA", "TALHERES", "BABADOR", "BOWL", "PRATINHO", "VENTOSA"],
             "LA CHEF": termos_la_chef,
             "SOPINHAS": ["SOPINHA"],
             "YOGUZINHO": ["IOGURTE", "YOGU"],
@@ -1933,58 +2332,68 @@ if len(df_filtrado) >= 1:
             "MACARRÃO": ["ELBOW", "FUSILLI"],
             "CEREAIS": ["CEREAL", "AVEIA"]
         }
-        
-        linha_selecionada = st.selectbox("Selecione uma linha para análise consolidada:", options=list(regras_linhas.keys()))
 
-        # 3. LÓGICA DE FILTRO (Agora usando a base multicliente)
+        linha_selecionada = st.selectbox(
+            "Selecione uma linha para análise consolidada:",
+            options=list(regras_linhas.keys())
+        )
+
         termos = regras_linhas[linha_selecionada]
         filtro_termos = "|".join(termos)
-        
+
+        nomes_normalizados = vendas_clientes_selecionados["DESC PRODUTO"].apply(limpar_texto)
+
         df_detalhe_linha = vendas_clientes_selecionados[
-            vendas_clientes_selecionados["DESC PRODUTO"].str.upper().str.contains(filtro_termos, na=False)
+            nomes_normalizados.str.contains(filtro_termos, na=False)
         ].copy()
 
-        # --- A TRAVA PARA LA CHEF (Permanece igual) ---
         if linha_selecionada == "SOPINHAS":
             filtro_trava = "|".join(termos_la_chef)
             df_detalhe_linha = df_detalhe_linha[
-                ~df_detalhe_linha["DESC PRODUTO"].str.upper().str.contains(filtro_trava, na=False)
+                ~df_detalhe_linha["DESC PRODUTO"].apply(limpar_texto).str.contains(filtro_trava, na=False)
             ]
-        
+
         if not df_detalhe_linha.empty:
             col_valor = "VALOR TOTAL" if "VALOR TOTAL" in df_detalhe_linha.columns else "VALOR"
             col_qtd = "QTD" if "QTD" in df_detalhe_linha.columns else "QTDE"
 
-            # Aqui o groupby já vai somar os valores de todos os clientes filtrados
-            performance_sku = df_detalhe_linha.groupby("DESC PRODUTO")[col_valor].sum().sort_values(ascending=False).reset_index()
-            
+            performance_sku = (
+                df_detalhe_linha
+                .groupby("DESC PRODUTO")[col_valor]
+                .sum()
+                .sort_values(ascending=False)
+                .reset_index()
+            )
+
             c_top, c_vol = st.columns(2)
-            
+
             with c_top:
                 st.success(f"⭐ **Top SKUs do Grupo: {linha_selecionada}**")
                 df_top_sku = performance_sku.head(5).copy()
-                df_top_sku[col_valor] = df_top_sku[col_valor].apply(lambda x: f"R$ {x:,.2f}")
+                df_top_sku[col_valor] = df_top_sku[col_valor].apply(moeda_br)
                 st.table(df_top_sku.rename(columns={"DESC PRODUTO": "Produto", col_valor: "Total Gasto"}))
-                
+
             with c_vol:
                 total_linha = df_detalhe_linha[col_valor].sum()
-                qtd_total = df_detalhe_linha[col_qtd].sum()
-                
-                st.metric(label=f"Investimento Total (Grupo)", value=f"R$ {total_linha:,.2f}")
+                qtd_total = df_detalhe_linha[col_qtd].sum() if col_qtd in df_detalhe_linha.columns else 0
+                clientes_linha = df_detalhe_linha[COL_CNPJ].nunique() if COL_CNPJ in df_detalhe_linha.columns else 0
+
+                st.metric(label="Investimento Total (Grupo)", value=moeda_br(total_linha))
                 st.metric(label="Volume Total (Unidades)", value=int(qtd_total))
-                
-                # Gráfico também mostrará o somatório
+                st.metric(label="Clientes Compradores", value=clientes_linha)
+
                 fig_bar_linha = px.bar(
-                    performance_sku.head(5), 
-                    x=col_valor, 
-                    y="DESC PRODUTO", 
-                    orientation='h',
+                    performance_sku.head(5),
+                    x=col_valor,
+                    y="DESC PRODUTO",
+                    orientation="h",
                     title=f"Ranking de Vendas: {linha_selecionada}",
                     labels={col_valor: "Valor Acumulado (R$)", "DESC PRODUTO": "Produto"},
                     color_discrete_sequence=["#00CC96"]
                 )
                 fig_bar_linha.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
                 st.plotly_chart(fig_bar_linha, use_container_width=True)
+
         else:
             st.warning(f"Os clientes selecionados não possuem compras na linha '{linha_selecionada}'.")
         
