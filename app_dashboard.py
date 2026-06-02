@@ -2260,14 +2260,6 @@ if not df_vendas.empty:
             fig_aderencia.update_layout(margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_aderencia, use_container_width=True)
 
-        st.download_button(
-            label="📥 Baixar Base Novas Linhas",
-            data=vendas_novas.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig"),
-            file_name="base_novas_linhas.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-
         st.markdown("##### Clientes com Maior Tração nas Novas Linhas")
 
         cols_cliente = ["CNPJ_LIMPO"]
