@@ -801,16 +801,16 @@ try:
 
         # Nova lógica automatizada de ações estratégicas
         if semana == ultima_semana_do_plano:
-            acao_titulo = "🏁 SPRINT FINAL"
-            acao_desc = "Recuperação e fechamento imediato."
+            acao_titulo = "ERA UMA VEZ"
+            acao_desc = "Oferecer nova linha para todos os clientes."
             cor_bloco = "red"
         elif 15 in dados_sem['Data'].dt.day.values:
-            acao_titulo = "📈 SUSTENTAÇÃO"
-            acao_desc = "Ações de Upsell na base."
+            acao_titulo = "NATURAL TECH"
+            acao_desc = "Trabalhar a base da Natural Tech."
             cor_bloco = "green"
         else:
-            acao_titulo = "🔥 ANTECIPAÇÃO"
-            acao_desc = "Foco: Mudança de tabela."
+            acao_titulo = "FECHAMENTO DO MÊS"
+            acao_desc = "Garantir pedidos."
             cor_bloco = "orange"
 
         st.subheader(f"🗓️ Período: {ini} a {fim} ({d_uteis} dias úteis)")
