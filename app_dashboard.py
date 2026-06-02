@@ -1983,6 +1983,28 @@ if not df_vendas.empty:
     cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
     vendas_geral = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
 
+    vendas_geral["DATA PEDIDO"] = pd.to_datetime(vendas_geral["DATA PEDIDO"], errors="coerce")
+    vendas_geral["MES_ANO"] = vendas_geral["DATA PEDIDO"].dt.strftime("%m/%Y")
+
+    meses_df_mix = (
+        vendas_geral[["MES_ANO", "DATA PEDIDO"]]
+        .dropna()
+        .assign(MES_DATA=lambda x: x["DATA PEDIDO"].dt.to_period("M").dt.to_timestamp())
+        .drop_duplicates("MES_ANO")
+        .sort_values("MES_DATA", ascending=False)
+    )
+
+    meses_disponiveis_mix = ["Todos os meses"] + meses_df_mix["MES_ANO"].tolist()
+
+    mes_selecionado_mix = st.selectbox(
+        "Filtrar mês:",
+        options=meses_disponiveis_mix,
+        key="filtro_mes_mix_geral"
+    )
+
+    if mes_selecionado_mix != "Todos os meses":
+        vendas_geral = vendas_geral[vendas_geral["MES_ANO"] == mes_selecionado_mix]
+
     blacklist_geral = ["CONFERIDO", "AJUSTE", "TESTE", "FRETE"]
     regex_geral = "|".join(blacklist_geral)
     vendas_geral = vendas_geral[~vendas_geral["DESC PRODUTO"].str.upper().str.contains(regex_geral, na=False)]
