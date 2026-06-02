@@ -2301,7 +2301,7 @@ if not df_vendas.empty:
         )
 
         for col in ["ERA UMA VEZ", "PUERICULTURA", "TOTAL NOVAS LINHAS"]:
-        ranking_clientes_pivot[col] = ranking_clientes_pivot[col].apply(moeda_br)
+            ranking_clientes_pivot[col] = ranking_clientes_pivot[col].apply(moeda_br)
 
         st.dataframe(ranking_clientes_pivot, use_container_width=True, hide_index=True)
 
