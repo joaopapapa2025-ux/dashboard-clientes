@@ -322,7 +322,7 @@ falta_r_cifra = meta_mes - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
-st.markdown(f"🕒 *Última atualização: {datetime.now().strftime('%d/%m/%Y às %H:%M')}*")
+st.markdown(f"🕒 *Última atualização: 03/06/2026 às 08:30*")
 
 st.markdown(
     """
