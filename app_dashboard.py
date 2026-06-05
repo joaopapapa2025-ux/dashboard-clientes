@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import zipfile
+import xml.etree.ElementTree as ET
 
 # PDF
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -238,6 +240,7 @@ class FeriadosBrasil(AbstractHolidayCalendar):
         Holiday("Confraternização Universal", month=1, day=1),
         Holiday("Tiradentes", month=4, day=21),
         Holiday("Dia do Trabalho", month=5, day=1),
+        Holiday("Corpus Christi", month=6, day=4),
         Holiday("Independência", month=9, day=7),
         Holiday("Nossa Sra Aparecida", month=10, day=12),
         Holiday("Finados", month=11, day=2),
@@ -333,16 +336,34 @@ ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restant
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
 
+def obter_data_modificacao_xlsx(caminho_arquivo):
+    ns = {
+        "cp": "http://schemas.openxmlformats.org/package/2006/metadata/core-properties",
+        "dcterms": "http://purl.org/dc/terms/",
+    }
+
+    with zipfile.ZipFile(caminho_arquivo, "r") as xlsx:
+        with xlsx.open("docProps/core.xml") as core:
+            tree = ET.parse(core)
+            root = tree.getroot()
+            modified = root.find("dcterms:modified", ns)
+
+            if modified is not None and modified.text:
+                dt_utc = datetime.fromisoformat(modified.text.replace("Z", "+00:00"))
+                return dt_utc.astimezone(ZoneInfo("America/Sao_Paulo"))
+
+    return None
+
+
 arquivo_dados = Path("dados_performance.xlsx")
+ultima_atualizacao = obter_data_modificacao_xlsx(arquivo_dados)
 
-ultima_atualizacao = datetime.fromtimestamp(
-    arquivo_dados.stat().st_mtime,
-    ZoneInfo("America/Sao_Paulo")
-)
-
-st.markdown(
-    f"🕒 *Última atualização: {ultima_atualizacao.strftime('%d/%m/%Y às %H:%M')}*"
-)
+if ultima_atualizacao:
+    st.markdown(
+        f"🕒 *Última atualização: {ultima_atualizacao.strftime('%d/%m/%Y às %H:%M')}*"
+    )
+else:
+    st.markdown("🕒 *Última atualização: não identificada na planilha*")
 
 st.markdown(
     """
