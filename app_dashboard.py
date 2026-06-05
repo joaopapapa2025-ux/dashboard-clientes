@@ -6,6 +6,9 @@ import urllib.request
 import re
 from io import BytesIO
 from datetime import datetime, timedelta
+from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # PDF
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -329,10 +332,6 @@ falta_r_cifra = meta_mes - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
-
-from pathlib import Path
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 arquivo_dados = Path("dados_performance.xlsx")
 
