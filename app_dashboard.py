@@ -314,6 +314,13 @@ if df_geral_hist is not None and not df_geral_hist.empty:
         faturado_mes = float(linha.iloc[0]["Faturado_Acumulado"])
         digitado_mes = float(linha.iloc[0]["Digitado_Acumulado"])
 
+        if "Devolucoes" in linha.columns:
+            valor_devolucoes = pd.to_numeric(
+                linha.iloc[0]["Devolucoes"],
+                errors="coerce"
+            )
+            valor_devolucoes = 0.0 if pd.isna(valor_devolucoes) else abs(float(valor_devolucoes))
+
 total_geral = (faturado_mes + digitado_mes) - valor_devolucoes
 
 percentual_atual = (total_geral / meta_mes) * 100 if meta_mes > 0 else 0
@@ -322,7 +329,21 @@ falta_r_cifra = meta_mes - total_geral
 ritmo_final = max(falta_r_cifra / dias_uteis_restantes, 0) if dias_uteis_restantes > 0 else 0
 
 st.subheader(f"📊 Resultado - Inside Sales (Ref: {data_ref_calculo.strftime('%d/%m')})")
-st.markdown(f"🕒 *Última atualização: 05/06/2026 às 08:20*")
+
+from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+arquivo_dados = Path("dados_performance.xlsx")
+
+ultima_atualizacao = datetime.fromtimestamp(
+    arquivo_dados.stat().st_mtime,
+    ZoneInfo("America/Sao_Paulo")
+)
+
+st.markdown(
+    f"🕒 *Última atualização: {ultima_atualizacao.strftime('%d/%m/%Y às %H:%M')}*"
+)
 
 st.markdown(
     """
