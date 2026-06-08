@@ -2216,6 +2216,17 @@ if not df_vendas.empty:
 
     vendas_novas = preparar_novas_linhas(vendas_radar)
 
+    filtro_linha_nova = st.selectbox(
+        "Filtrar linha:",
+        options=["Era Uma Vez + Puericultura", "Só Era Uma Vez", "Só Puericultura"],
+        key="filtro_linha_novas_linhas"
+    )
+
+    if filtro_linha_nova == "Só Era Uma Vez":
+        vendas_novas = vendas_novas[vendas_novas["NOVA_LINHA"] == "ERA UMA VEZ"]
+    elif filtro_linha_nova == "Só Puericultura":
+        vendas_novas = vendas_novas[vendas_novas["NOVA_LINHA"] == "PUERICULTURA"]
+
     if not vendas_novas.empty:
         qtd_col = "QTDE" if "QTDE" in vendas_novas.columns else "QTD"
 
@@ -2287,7 +2298,10 @@ if not df_vendas.empty:
             top_skus_novas = (
                 vendas_novas
                 .groupby(["NOVA_LINHA", "DESC PRODUTO"])
-                .agg(Valor=("VALOR", "sum"), Volume=(qtd_col, "sum") if qtd_col in vendas_novas.columns else ("VALOR", "count"))
+                .agg(
+                    Valor=("VALOR", "sum"),
+                    Volume=(qtd_col, "sum") if qtd_col in vendas_novas.columns else ("VALOR", "count")
+                )
                 .reset_index()
                 .sort_values("Valor", ascending=True)
                 .tail(12)
@@ -2314,7 +2328,13 @@ if not df_vendas.empty:
             )
             matriz_clientes = (
                 clientes_por_linha
-                .pivot_table(index="CNPJ_LIMPO", columns="NOVA_LINHA", values="VALOR", aggfunc="sum", fill_value=0)
+                .pivot_table(
+                    index="CNPJ_LIMPO",
+                    columns="NOVA_LINHA",
+                    values="VALOR",
+                    aggfunc="sum",
+                    fill_value=0
+                )
                 .reset_index()
             )
 
@@ -2323,9 +2343,24 @@ if not df_vendas.empty:
             if "PUERICULTURA" not in matriz_clientes.columns:
                 matriz_clientes["PUERICULTURA"] = 0
 
-            compradores_ambas = len(matriz_clientes[(matriz_clientes["ERA UMA VEZ"] > 0) & (matriz_clientes["PUERICULTURA"] > 0)])
-            compradores_era = len(matriz_clientes[(matriz_clientes["ERA UMA VEZ"] > 0) & (matriz_clientes["PUERICULTURA"] == 0)])
-            compradores_pueri = len(matriz_clientes[(matriz_clientes["PUERICULTURA"] > 0) & (matriz_clientes["ERA UMA VEZ"] == 0)])
+            compradores_ambas = len(
+                matriz_clientes[
+                    (matriz_clientes["ERA UMA VEZ"] > 0) &
+                    (matriz_clientes["PUERICULTURA"] > 0)
+                ]
+            )
+            compradores_era = len(
+                matriz_clientes[
+                    (matriz_clientes["ERA UMA VEZ"] > 0) &
+                    (matriz_clientes["PUERICULTURA"] == 0)
+                ]
+            )
+            compradores_pueri = len(
+                matriz_clientes[
+                    (matriz_clientes["PUERICULTURA"] > 0) &
+                    (matriz_clientes["ERA UMA VEZ"] == 0)
+                ]
+            )
             sem_novas = max(base_clientes_visiveis - clientes_novas, 0)
 
             aderencia = pd.DataFrame({
@@ -2363,7 +2398,13 @@ if not df_vendas.empty:
 
         ranking_clientes_pivot = (
             ranking_clientes_novas
-            .pivot_table(index="CNPJ_LIMPO", columns="NOVA_LINHA", values="Valor", aggfunc="sum", fill_value=0)
+            .pivot_table(
+                index="CNPJ_LIMPO",
+                columns="NOVA_LINHA",
+                values="Valor",
+                aggfunc="sum",
+                fill_value=0
+            )
             .reset_index()
         )
 
@@ -2372,7 +2413,10 @@ if not df_vendas.empty:
         if "PUERICULTURA" not in ranking_clientes_pivot.columns:
             ranking_clientes_pivot["PUERICULTURA"] = 0
 
-        ranking_clientes_pivot["TOTAL NOVAS LINHAS"] = ranking_clientes_pivot["ERA UMA VEZ"] + ranking_clientes_pivot["PUERICULTURA"]
+        ranking_clientes_pivot["TOTAL NOVAS LINHAS"] = (
+            ranking_clientes_pivot["ERA UMA VEZ"] +
+            ranking_clientes_pivot["PUERICULTURA"]
+        )
 
         ranking_clientes_pivot = ranking_clientes_pivot.merge(cadastro_clientes, on="CNPJ_LIMPO", how="left")
         ranking_clientes_pivot = ranking_clientes_pivot.sort_values("TOTAL NOVAS LINHAS", ascending=False).head(15)
