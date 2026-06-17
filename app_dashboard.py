@@ -2189,10 +2189,17 @@ st.subheader("🚀 Radar de Desenvolvimento das Novas Linhas")
 
 if not df_vendas.empty:
     cnpjs_visiveis = df_filtrado["CNPJ_LIMPO"].unique()
-    base_clientes_visiveis = df_filtrado["CNPJ_LIMPO"].nunique()
 
     vendas_radar = df_vendas[df_vendas["CNPJ_LIMPO"].isin(cnpjs_visiveis)].copy()
     vendas_radar["DATA PEDIDO"] = pd.to_datetime(vendas_radar["DATA PEDIDO"], errors="coerce")
+    
+    data_referencia = vendas_radar["DATA PEDIDO"].max()
+    data_limite_4_meses = data_referencia - pd.DateOffset(months=4)
+
+    base_clientes_ultimos_4_meses = vendas_radar[
+        vendas_radar["DATA PEDIDO"] >= data_limite_4_meses
+    ]["CNPJ_LIMPO"].nunique()
+
     vendas_radar["MES_ANO"] = vendas_radar["DATA PEDIDO"].dt.strftime("%m/%Y")
 
     meses_df = (
@@ -2231,7 +2238,7 @@ if not df_vendas.empty:
         qtd_col = "QTDE" if "QTDE" in vendas_novas.columns else "QTD"
 
         clientes_novas = vendas_novas["CNPJ_LIMPO"].nunique()
-        penetracao = (clientes_novas / base_clientes_visiveis) * 100 if base_clientes_visiveis > 0 else 0
+        penetracao = (clientes_novas / base_clientes_ultimos_4_meses) * 100 if base_clientes_ultimos_4_meses > 0 else 0
         total_novas = vendas_novas["VALOR"].sum()
         qtd_novas = vendas_novas[qtd_col].sum() if qtd_col in vendas_novas.columns else 0
         ticket_cliente = total_novas / clientes_novas if clientes_novas > 0 else 0
@@ -2361,7 +2368,7 @@ if not df_vendas.empty:
                     (matriz_clientes["ERA UMA VEZ"] == 0)
                 ]
             )
-            sem_novas = max(base_clientes_visiveis - clientes_novas, 0)
+            sem_novas = max(base_clientes_ultimos_4_meses - clientes_novas, 0)
 
             aderencia = pd.DataFrame({
                 "Status": ["Comprou as duas", "Só Era Uma Vez", "Só Puericultura", "Ainda não comprou"],
