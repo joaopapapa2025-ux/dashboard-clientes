@@ -2266,7 +2266,7 @@ if not df_vendas.empty:
                 x="DATA PEDIDO",
                 y="VALOR",
                 color="NOVA_LINHA",
-                title="Evolução Diária das Novas Linhas",
+                title="Evolução diária das novas linhas",
                 labels={"VALOR": "Valor (R$)", "DATA PEDIDO": "Data", "NOVA_LINHA": "Nova Linha"},
                 color_discrete_map={"ERA UMA VEZ": "#FF7A00", "PUERICULTURA": "#7C3AED"},
                 line_shape="spline"
@@ -2291,7 +2291,7 @@ if not df_vendas.empty:
                 y="Valor",
                 color="NOVA_LINHA",
                 text="Clientes",
-                title="Tração por Nova Linha",
+                title="Tração por nova linha",
                 labels={"Valor": "Valor (R$)", "NOVA_LINHA": "Nova Linha"},
                 color_discrete_map={"ERA UMA VEZ": "#FF7A00", "PUERICULTURA": "#7C3AED"}
             )
@@ -2319,7 +2319,7 @@ if not df_vendas.empty:
                 y="DESC PRODUTO",
                 color="NOVA_LINHA",
                 orientation="h",
-                title="Top SKUs das Novas Linhas",
+                title="Top SKUs das novas linhas",
                 labels={"Valor": "Valor (R$)", "DESC PRODUTO": "Produto"},
                 color_discrete_map={"ERA UMA VEZ": "#FF7A00", "PUERICULTURA": "#7C3AED"}
             )
@@ -2379,7 +2379,7 @@ if not df_vendas.empty:
                 aderencia,
                 names="Status",
                 values="Clientes",
-                title="Aderência das Novas Linhas na Base Ativa dos Últimos 4 Meses",
+                title="Aderência das novas linhas na base ativa dos últimos 4 meses",
                 hole=0.45,
                 color_discrete_sequence=["#16A34A", "#FF7A00", "#7C3AED", "#CBD5E1"]
             )
@@ -2387,7 +2387,7 @@ if not df_vendas.empty:
             fig_aderencia.update_layout(margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_aderencia, use_container_width=True)
 
-        st.markdown("##### Clientes com Maior Tração nas Novas Linhas")
+        st.markdown("##### Clientes que já pediram as novas linhas")
 
         from io import BytesIO
 
