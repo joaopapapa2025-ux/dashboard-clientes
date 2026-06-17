@@ -2389,9 +2389,32 @@ if not df_vendas.empty:
 
         st.markdown("##### Clientes com Maior Tração nas Novas Linhas")
 
+        from io import BytesIO
+
+        possiveis_cols_codigo = [
+            "CODIGO CLIENTE",
+            "CÓDIGO CLIENTE",
+            "COD CLIENTE",
+            "COD_CLIENTE",
+            "CODIGO",
+            "CÓDIGO",
+            "CODCLI",
+            "COD CLI",
+            "COD. CLIENTE"
+        ]
+
+        col_codigo_cliente = next(
+            (col for col in possiveis_cols_codigo if col in df_filtrado.columns),
+            None
+        )
+
         cols_cliente = ["CNPJ_LIMPO"]
+
+        if col_codigo_cliente:
+            cols_cliente.insert(0, col_codigo_cliente)
+
         for possivel_col in ["RAZÃO SOCIAL", "RAZAO SOCIAL", "CLIENTE", "GRUPO ECONÔMICO", "VENDEDOR", "UF", "CIDADE"]:
-            if possivel_col in df_filtrado.columns:
+            if possivel_col in df_filtrado.columns and possivel_col not in cols_cliente:
                 cols_cliente.append(possivel_col)
 
         cadastro_clientes = df_filtrado[cols_cliente].drop_duplicates("CNPJ_LIMPO")
@@ -2426,13 +2449,33 @@ if not df_vendas.empty:
         )
 
         ranking_clientes_pivot = ranking_clientes_pivot.merge(cadastro_clientes, on="CNPJ_LIMPO", how="left")
-        ranking_clientes_pivot = ranking_clientes_pivot.sort_values("TOTAL NOVAS LINHAS", ascending=False).head(15)
+        ranking_clientes_pivot = ranking_clientes_pivot.sort_values("TOTAL NOVAS LINHAS", ascending=False)
+
+        colunas_inicio = []
+
+        if col_codigo_cliente and col_codigo_cliente in ranking_clientes_pivot.columns:
+            colunas_inicio.append(col_codigo_cliente)
+
+        colunas_inicio += ["CNPJ_LIMPO", "ERA UMA VEZ", "PUERICULTURA", "TOTAL NOVAS LINHAS"]
+
+        colunas_restantes = [
+            col for col in ranking_clientes_pivot.columns
+            if col not in colunas_inicio
+        ]
+
+        ranking_clientes_pivot = ranking_clientes_pivot[colunas_inicio + colunas_restantes]
+
+        ranking_clientes_excel = ranking_clientes_pivot.copy()
+
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            ranking_clientes_excel.to_excel(writer, index=False, sheet_name="Clientes Novas Linhas")
 
         st.download_button(
             label="📥 Baixar Base Clientes Novas Linhas",
-            data=ranking_clientes_pivot.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig"),
-            file_name="clientes_maior_tracao_novas_linhas.csv",
-            mime="text/csv",
+            data=output.getvalue(),
+            file_name="clientes_maior_tracao_novas_linhas.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
 
