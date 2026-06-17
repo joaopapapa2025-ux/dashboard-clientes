@@ -2379,7 +2379,7 @@ if not df_vendas.empty:
                 aderencia,
                 names="Status",
                 values="Clientes",
-                title="Aderência das Novas Linhas na Base Filtrada",
+                title="Aderência das Novas Linhas na Base Ativa dos Últimos 4 Meses",
                 hole=0.45,
                 color_discrete_sequence=["#16A34A", "#FF7A00", "#7C3AED", "#CBD5E1"]
             )
