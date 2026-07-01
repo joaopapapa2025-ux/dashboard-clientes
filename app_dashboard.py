@@ -658,11 +658,11 @@ try:
             acao_desc = "Garantir pedidos."
             cor_bloco = "orange"
         elif 15 in dados_sem["Data"].dt.day.values:
-            acao_titulo = "NATURAL TECH"
-            acao_desc = "Trabalhar a base da Natural Tech."
+            acao_titulo = "CAMPANHA DE DESCONTO"
+            acao_desc = "5% para pedidos acima de R$ 2.000,00"
             cor_bloco = "green"
         else:
-            acao_titulo = "ERA UMA VEZ"
+            acao_titulo = "ERA UMA VEZ E MANUTENÇÃO DA BASE"
             acao_desc = "Oferecer nova linha para todos os clientes."
             cor_bloco = "red"
 
