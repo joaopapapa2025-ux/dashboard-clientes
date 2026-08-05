@@ -1115,7 +1115,9 @@ if st.sidebar.button("Limpar todos os filtros"):
     for c in chaves:
         if c in st.session_state:
             st.session_state[c] = [] if isinstance(st.session_state[c], list) else ""
-    st.rerun()
+
+st.session_state["f_era_uma_vez"] = "Todos"
+st.rerun()
 
 df_filtrado = df.copy()
 
@@ -1188,6 +1190,82 @@ def definir_faixa_real(v):
     else: return "Acima de R$ 50k"
 
 df_filtrado["FAIXA_REAL"] = df_filtrado["FAT_REAL"].apply(definir_faixa_real)
+
+# --- FILTRO: CLIENTES QUE NUNCA COMPRARAM ERA UMA VEZ ---
+
+import unicodedata
+
+def normalizar_para_filtro(texto):
+    return "".join(
+        caractere
+        for caractere in unicodedata.normalize("NFD", str(texto))
+        if unicodedata.category(caractere) != "Mn"
+    ).upper().strip()
+
+
+# Identifica os produtos Era Uma Vez em todo o histórico da aba MIX
+if not df_vendas_limpo.empty and "DESC PRODUTO" in df_vendas_limpo.columns:
+
+    nomes_produtos = (
+        df_vendas_limpo["DESC PRODUTO"]
+        .fillna("")
+        .apply(normalizar_para_filtro)
+    )
+
+    if "LINHA" in df_vendas_limpo.columns:
+        nomes_linhas = (
+            df_vendas_limpo["LINHA"]
+            .fillna("")
+            .apply(normalizar_para_filtro)
+        )
+    else:
+        nomes_linhas = pd.Series(
+            "",
+            index=df_vendas_limpo.index
+        )
+
+    termos_era_uma_vez = [
+        "ERA UMA VEZ",
+        "SALGADINHO INTEGRAL ORGANICO",
+        "BISCOITO RECHEADO",
+        "BEBIDA LACTEA UHT CHOCOLATE",
+    ]
+
+    expressao_era_uma_vez = "|".join(termos_era_uma_vez)
+
+    vendas_era_uma_vez = df_vendas_limpo[
+        nomes_linhas.str.contains("ERA UMA VEZ", na=False) |
+        nomes_produtos.str.contains(expressao_era_uma_vez, na=False)
+    ]
+
+    # Relação de todos os clientes que já compraram a linha
+    cnpjs_com_era_uma_vez = set(
+        vendas_era_uma_vez[COL_CNPJ].dropna().astype(str)
+    )
+
+else:
+    cnpjs_com_era_uma_vez = set()
+
+
+filtro_era_uma_vez = st.sidebar.selectbox(
+    "Compra da linha Era Uma Vez",
+    options=[
+        "Todos",
+        "Nunca compraram",
+        "Já compraram",
+    ],
+    key="f_era_uma_vez"
+)
+
+if filtro_era_uma_vez == "Nunca compraram":
+    df_filtrado = df_filtrado[
+        ~df_filtrado["CNPJ_LIMPO"].astype(str).isin(cnpjs_com_era_uma_vez)
+    ]
+
+elif filtro_era_uma_vez == "Já compraram":
+    df_filtrado = df_filtrado[
+        df_filtrado["CNPJ_LIMPO"].astype(str).isin(cnpjs_com_era_uma_vez)
+    ]
 
 # --- AGORA OS FILTROS DA SIDEBAR (ORDEM COMPLETA) ---
 
