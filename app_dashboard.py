@@ -1110,14 +1110,32 @@ st.sidebar.title("Filtros")
 
 # BOTÃO LIMPAR - Reseta as chaves novas e as antigas (para garantir o ranking)
 if st.sidebar.button("Limpar todos os filtros"):
-    # Adicionado "f_grupo" na lista de chaves para resetar
-    chaves = ["b_cnpj", "b_razao", "b_email", "b_tel", "f_mes", "f_vend", "f_uf", "f_cid", "f_bair", "f_seg", "f_fat", "filtro_mes", "f_regiao", "f_semana", "f_grupo"]
+    chaves = [
+        "b_cnpj",
+        "b_razao",
+        "b_email",
+        "b_tel",
+        "f_mes",
+        "f_vend",
+        "f_uf",
+        "f_cid",
+        "f_bair",
+        "f_seg",
+        "f_fat",
+        "filtro_mes",
+        "f_regiao",
+        "f_semana",
+        "f_grupo",
+    ]
+
     for c in chaves:
         if c in st.session_state:
-            st.session_state[c] = [] if isinstance(st.session_state[c], list) else ""
+            st.session_state[c] = (
+                [] if isinstance(st.session_state[c], list) else ""
+            )
 
-st.session_state["f_era_uma_vez"] = "Todos"
-st.rerun()
+    st.session_state["f_era_uma_vez"] = "Todos"
+    st.rerun()
 
 df_filtrado = df.copy()
 
